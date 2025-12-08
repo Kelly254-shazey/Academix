@@ -1,0 +1,30 @@
+{
+  "name": "attendance-mvp-backend",
+  "version": "1.0.0",
+  "description": "Real-time attendance management system with WebSocket notifications",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "node database/migrations/run.js",
+    "seed": "node database/seeds/index.js"
+  },
+  "keywords": ["attendance", "real-time", "websocket", "postgresql"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4",
+    "pg": "^8.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "joi": "^17.9.1",
+    "csv-stringify": "^6.3.2",
+    "pdfkit": "^0.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

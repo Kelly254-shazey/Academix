@@ -1,0 +1,386 @@
+.qr-scanner-container {
+  padding: 40px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  animation: fadeIn 0.5s ease;
+}
+
+.scanner-header {
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.scanner-header h1 {
+  font-size: 2em;
+  color: #333;
+  margin: 0 0 10px 0;
+}
+
+.scanner-header p {
+  color: #999;
+  margin: 0;
+  font-size: 1em;
+}
+
+.scanner-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.scanner-section {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.scanner-box {
+  background: #f9f9f9;
+  border: 2px dashed #667eea;
+  border-radius: 12px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scanner-placeholder,
+.scanner-active {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.qr-icon {
+  font-size: 4em;
+  margin-bottom: 15px;
+  opacity: 0.7;
+}
+
+.scanner-placeholder p {
+  color: #999;
+  margin: 0;
+}
+
+.scanner-active {
+  position: relative;
+}
+
+.scanner-frame {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border: 2px solid #667eea;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.corner-tl,
+.corner-tr,
+.corner-bl,
+.corner-br {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #667eea;
+}
+
+.corner-tl {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-tr {
+  top: 0;
+  right: 0;
+  border-left: none;
+  border-bottom: none;
+}
+
+.corner-bl {
+  bottom: 0;
+  left: 0;
+  border-right: none;
+  border-top: none;
+}
+
+.corner-br {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+}
+
+.scanning-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #667eea, transparent);
+  animation: scan 2s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0% {
+    top: 0;
+  }
+  50% {
+    top: 50%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+.scanner-active p {
+  color: #999;
+  font-size: 0.95em;
+}
+
+.scanner-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btn-scan,
+.btn-upload,
+.btn-stop {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95em;
+}
+
+.btn-scan,
+.btn-upload {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  grid-column: auto;
+}
+
+.btn-scan:hover,
+.btn-upload:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-stop {
+  grid-column: 1 / -1;
+  background: #ff7675;
+  color: white;
+}
+
+.btn-stop:hover {
+  background: #d63031;
+  transform: translateY(-2px);
+}
+
+.manual-entry {
+  background: #f0f0ff;
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.manual-entry h3 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 0.95em;
+}
+
+.manual-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.manual-input-group input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  font-size: 0.9em;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.manual-input-group input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.manual-input-group button {
+  padding: 10px 15px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.manual-input-group button:hover {
+  background: #764ba2;
+}
+
+.scanner-results {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-result {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(46, 213, 115, 0.1) 0%, rgba(46, 213, 115, 0.05) 100%);
+  border: 2px solid #2ed573;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  animation: slideInUp 0.3s ease;
+}
+
+.result-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+}
+
+.scan-result h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.3em;
+}
+
+.result-info {
+  margin: 10px 0;
+  color: #666;
+  font-size: 0.95em;
+}
+
+.result-status {
+  background: #2ed573;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 20px;
+  display: inline-block;
+}
+
+.no-scans {
+  text-align: center;
+  color: #999;
+}
+
+.empty-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+.no-scans p {
+  margin: 0;
+  font-size: 0.95em;
+}
+
+.scan-history {
+  width: 100%;
+}
+
+.scan-history h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1em;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  transition: all 0.3s ease;
+  animation: slideInUp 0.3s ease;
+}
+
+.history-item:hover {
+  background: #f0f0f0;
+  transform: translateX(5px);
+}
+
+.history-left h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 0.95em;
+}
+
+.history-left p {
+  margin: 4px 0;
+  color: #999;
+  font-size: 0.85em;
+}
+
+.time {
+  font-weight: 500;
+  color: #667eea;
+}
+
+.history-badge {
+  font-size: 1.5em;
+}
+
+@media (max-width: 1024px) {
+  .scanner-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .qr-scanner-container {
+    padding: 20px 10px;
+  }
+
+  .scanner-section {
+    padding: 15px;
+  }
+
+  .scanner-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .scanner-results {
+    padding: 15px;
+    min-height: 300px;
+  }
+}
