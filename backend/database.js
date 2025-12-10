@@ -1,26 +1,39 @@
-const { Pool } = require('pg');
+const mysql = require('mysql2');
 require('dotenv').config();
 
+// Provide sensible defaults but prefer environment variables.
+// IMPORTANT: Do NOT commit real credentials. Use `.env` locally.
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_PORT = process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306;
+const DB_NAME = process.env.DB_NAME || 'class';
+const DB_USER = process.env.DB_USER || 'root';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'kelly123';
+
 /**
- * PostgreSQL Connection Pool
- * Establishes connection to PostgreSQL database with configuration from .env
+ * MySQL Connection Pool
+ * Uses mysql2 and exports a promise-based pool for queries
  */
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+const pool = mysql.createPool({
+  host: DB_HOST,
+  port: DB_PORT,
+  database: DB_NAME,
+  user: DB_USER,
+  password: DB_PASSWORD,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-// Log successful connection
-pool.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL database');
-});
+const promisePool = pool.promise();
 
-// Handle connection errors
-pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
-});
+// Try a test query to confirm connection; retry is left to the process manager.
+promisePool.getConnection()
+  .then((conn) => {
+    conn.release();
+    console.log(`✅ Connected to MySQL database '${DB_NAME}' on ${DB_HOST}:${DB_PORT}`);
+  })
+  .catch((err) => {
+    console.error(`❌ Failed to connect to MySQL database '${DB_NAME}':`, err.message || err);
+  });
 
-module.exports = pool;
+module.exports = promisePool;

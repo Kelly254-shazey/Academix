@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './Attendance.css';
+import QRScanner from '../components/QRScanner';
 
 function Attendance() {
   // eslint-disable-next-line no-unused-vars
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('today');
+  const [showScanner, setShowScanner] = useState(false);
+  const [classId, setClassId] = useState('1');
+  const [sessionId, setSessionId] = useState('1');
 
   const attendanceData = {
     today: [
@@ -112,6 +116,12 @@ function Attendance() {
         >
           This Month
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'scan' ? 'active' : ''}`}
+          onClick={() => setActiveTab('scan')}
+        >
+          Scan
+        </button>
       </div>
 
       <div className="attendance-content">
@@ -140,6 +150,24 @@ function Attendance() {
         )}
 
         {activeTab === 'week' && (
+
+        {activeTab === 'scan' && (
+          <div className="card">
+            <h2>Scan QR for Attendance</h2>
+            <div style={{ marginBottom: 12 }}>
+              <label>Class ID: </label>
+              <input value={classId} onChange={(e)=>setClassId(e.target.value)} />
+              <label style={{ marginLeft: 12 }}>Session ID: </label>
+              <input value={sessionId} onChange={(e)=>setSessionId(e.target.value)} />
+              <button style={{ marginLeft: 12 }} onClick={()=>setShowScanner(s => !s)}>
+                {showScanner ? 'Stop Scanner' : 'Start Scanner'}
+              </button>
+            </div>
+            {showScanner && (
+              <QRScanner classId={classId} sessionId={sessionId} onSuccess={(data)=>{ alert('Attendance recorded'); }} />
+            )}
+          </div>
+        )}
           <div className="card">
             <h2>Weekly Attendance</h2>
             <div className="weekly-stats">
