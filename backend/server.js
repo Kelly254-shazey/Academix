@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
 const socketIo = require('socket.io');
+const db = require('./database');  // Import database connection
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
 const attendanceRoutes = require('./routes/attendance');
