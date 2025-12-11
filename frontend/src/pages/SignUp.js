@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 function SignUp() {
   const [formData, setFormData] = useState({
     name: '',
@@ -17,7 +19,7 @@ function SignUp() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,7 +29,7 @@ function SignUp() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -70,40 +72,44 @@ function SignUp() {
       return;
     }
 
-    // Determine avatar based on role
-    const avatarMap = {
-      student: '👨‍🎓',
-      lecturer: '👨‍🏫',
-      admin: '👨‍💼'
-    };
-
-    // Simulate API call
-    setTimeout(() => {
-      try {
-        const signupData = {
+    // Call backend API
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           name: formData.name,
-          email: formData.email,
+          email: formData.email.toLowerCase(),
           password: formData.password,
           role: formData.role,
-          avatar: avatarMap[formData.role],
-          department: formData.department
-        };
+          department: formData.department,
+          studentId: formData.role === 'student' ? formData.studentId : null
+        })
+      });
 
-        // Add role-specific data
-        if (formData.role === 'student') {
-          signupData.studentId = formData.studentId;
-        } else if (formData.role === 'lecturer') {
-          signupData.subject = formData.subject;
-        }
+      const data = await response.json();
 
-        signup(signupData);
-        navigate('/');
-      } catch (err) {
-        setError('Sign up failed. Please try again.');
-      } finally {
+      if (!response.ok) {
+        setError(data.message || 'Registration failed');
         setIsLoading(false);
+        return;
       }
-    }, 500);
+
+      // Store token
+      localStorage.setItem('token', data.token);
+
+      // Login user with the returned user data
+      login(data.user);
+
+      // Redirect to home
+      navigate('/');
+    } catch (err) {
+      console.error('Sign up error:', err);
+      setError(`Failed to connect to server. Make sure backend is running on ${API_URL}.`);
+      setIsLoading(false);
+    }
   };
 
   return (

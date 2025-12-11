@@ -1,21 +1,33 @@
 const express = require('express');
 const router = express.Router();
 
-// Class routes
-router.get('/', (req, res) => {
-  res.json({ message: 'Get all classes', classes: [] });
-});
+const classController = require('../controllers/classController');
 
-router.post('/', (req, res) => {
-  res.json({ message: 'Create class', success: true });
-});
 
-router.get('/:id', (req, res) => {
-  res.json({ message: 'Get class by id', class: {} });
-});
+// GET /classes - list classes
+router.get('/', classController.getAllClasses);
 
-router.put('/:id', (req, res) => {
-  res.json({ message: 'Update class', success: true });
-});
+
+// POST /classes - create a class
+router.post('/', classController.createClass);
+
+
+// GET /classes/:id - get class by id
+router.get('/:id', classController.getClassById);
+
+
+// PUT /classes/:id - update class
+router.put('/:id', classController.updateClass);
+
+// DELETE /classes/:id - delete class
+router.delete('/:id', classController.deleteClass);
+
+
+// POST /classes/:classId/sessions - create a class session
+router.post('/:classId/sessions', classController.createSession);
+
+
+// POST /classes/:classId/sessions/:sessionId/scan
+router.post('/:classId/sessions/:sessionId/scan', classController.scanSession);
 
 module.exports = router;

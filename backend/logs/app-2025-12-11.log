@@ -1,0 +1,36 @@
+[INFO] 2025-12-11T10:06:36.280Z - Server running on port 5002 {"env":"development"}
+[ERROR] 2025-12-11T12:50:16.194Z - [2025-12-11T12:50:16.191Z] 500 - Invalid email or password {"url":"/auth/login","method":"POST"}
+[ERROR] 2025-12-11T12:50:22.393Z - [2025-12-11T12:50:22.393Z] 500 - Invalid email or password {"url":"/auth/login","method":"POST"}
+[INFO] 2025-12-11T13:11:54.379Z - New client connected: JHjGygMMddFgGBhoAAAB {}
+[INFO] 2025-12-11T13:11:54.384Z - User 4 joined notification room {"socketId":"JHjGygMMddFgGBhoAAAB"}
+[INFO] 2025-12-11T13:11:54.388Z - Client joined course general {"socketId":"JHjGygMMddFgGBhoAAAB"}
+[INFO] 2025-12-11T13:12:29.882Z - Client disconnected: JHjGygMMddFgGBhoAAAB {}
+[INFO] 2025-12-11T13:12:53.565Z - New client connected: uxZpanRLq8mMWZ4tAAAD {}
+[INFO] 2025-12-11T13:12:53.568Z - User 4 joined notification room {"socketId":"uxZpanRLq8mMWZ4tAAAD"}
+[INFO] 2025-12-11T13:12:53.570Z - Client joined course general {"socketId":"uxZpanRLq8mMWZ4tAAAD"}
+[INFO] 2025-12-11T13:13:32.087Z - Client disconnected: uxZpanRLq8mMWZ4tAAAD {}
+[INFO] 2025-12-11T13:14:51.109Z - New client connected: fI0txFpbc003fpO7AAAF {}
+[INFO] 2025-12-11T13:14:51.114Z - User 5 joined notification room {"socketId":"fI0txFpbc003fpO7AAAF"}
+[INFO] 2025-12-11T13:14:51.116Z - Client joined course general {"socketId":"fI0txFpbc003fpO7AAAF"}
+[INFO] 2025-12-11T13:15:51.257Z - Client disconnected: fI0txFpbc003fpO7AAAF {}
+[INFO] 2025-12-11T13:16:53.351Z - New client connected: eseRFd7lD58bI7FWAAAH {}
+[INFO] 2025-12-11T13:16:53.357Z - User 6 joined notification room {"socketId":"eseRFd7lD58bI7FWAAAH"}
+[INFO] 2025-12-11T13:16:53.360Z - Client joined course general {"socketId":"eseRFd7lD58bI7FWAAAH"}
+[INFO] 2025-12-11T13:19:03.096Z - Client disconnected: eseRFd7lD58bI7FWAAAH {}
+[INFO] 2025-12-11T13:20:05.173Z - New client connected: FhvPhitJBsjNM0P7AAAJ {}
+[INFO] 2025-12-11T13:20:05.183Z - User 7 joined notification room {"socketId":"FhvPhitJBsjNM0P7AAAJ"}
+[INFO] 2025-12-11T13:20:05.190Z - Client joined course general {"socketId":"FhvPhitJBsjNM0P7AAAJ"}
+[INFO] 2025-12-11T13:28:31.211Z - Client disconnected: FhvPhitJBsjNM0P7AAAJ {}
+[INFO] 2025-12-11T13:29:07.465Z - New client connected: EG6eyyRspU1s5-2qAAAL {}
+[INFO] 2025-12-11T13:29:07.467Z - User 7 joined notification room {"socketId":"EG6eyyRspU1s5-2qAAAL"}
+[INFO] 2025-12-11T13:29:07.469Z - Client joined course general {"socketId":"EG6eyyRspU1s5-2qAAAL"}
+[INFO] 2025-12-11T13:31:43.308Z - Client disconnected: EG6eyyRspU1s5-2qAAAL {}
+[ERROR] 2025-12-11T13:31:54.523Z - [2025-12-11T13:31:54.523Z] 500 - Invalid email or password {"url":"/auth/login","method":"POST"}
+[INFO] 2025-12-11T13:33:25.750Z - New client connected: miE8k0Wh7ECPPKTsAAAN {}
+[INFO] 2025-12-11T13:33:25.754Z - User 6 joined notification room {"socketId":"miE8k0Wh7ECPPKTsAAAN"}
+[INFO] 2025-12-11T13:33:25.756Z - Client joined course general {"socketId":"miE8k0Wh7ECPPKTsAAAN"}
+[INFO] 2025-12-11T13:36:57.953Z - Client disconnected: miE8k0Wh7ECPPKTsAAAN {}
+[INFO] 2025-12-11T13:36:57.967Z - New client connected: 8xwayq-Jl_IYu31sAAAP {}
+[INFO] 2025-12-11T13:36:57.970Z - User 6 joined notification room {"socketId":"8xwayq-Jl_IYu31sAAAP"}
+[INFO] 2025-12-11T13:36:57.972Z - Client joined course general {"socketId":"8xwayq-Jl_IYu31sAAAP"}
+[INFO] 2025-12-11T14:27:52.910Z - Server running on port 5002 {"env":"development"}

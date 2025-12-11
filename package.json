@@ -1,0 +1,15 @@
+{
+  "name": "academix-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "cypress": "^13.6.2"
+  },
+  "scripts": {
+    "start": "concurrently \"npm:start-backend\" \"npm:start-frontend\"",
+    "start-backend": "cd backend && cross-env PORT=5000 npm start",
+    "start-frontend": "cd frontend && cross-env PORT=3000 npm start",
+    "cy:run": "cypress run"
+  }
+}

@@ -18,12 +18,15 @@ export const NotificationProvider = ({ children }) => {
   const [lecturerNotifications, setLecturerNotifications] = useState([]);
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 
   // Initialize Socket.IO connection
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io('http://localhost:5000', {
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+    const wsUrl = apiUrl.replace(/^http/, 'ws');
+    const newSocket = io(wsUrl, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -79,7 +82,7 @@ export const NotificationProvider = ({ children }) => {
 
     const fetchNotifications = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/notifications/user/${user.id}`);
+        const response = await fetch(`${apiUrl}/notifications/user/${user.id}`);
         const data = await response.json();
         if (data.success) {
           setNotifications(data.notifications);
@@ -120,7 +123,7 @@ export const NotificationProvider = ({ children }) => {
 
     // Update on backend
     if (user) {
-      fetch(`http://localhost:5000/notifications/${id}/read`, {
+      fetch(`${apiUrl}/notifications/${id}/read`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -133,7 +136,7 @@ export const NotificationProvider = ({ children }) => {
 
     // Delete from backend
     if (user) {
-      fetch(`http://localhost:5000/notifications/${id}`, {
+      fetch(`${apiUrl}/notifications/${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -151,7 +154,7 @@ export const NotificationProvider = ({ children }) => {
 
   const sendNotificationToStudents = useCallback(async (notification) => {
     try {
-      const response = await fetch('http://localhost:5000/notifications/send', {
+      const response = await fetch(`${apiUrl}/notifications/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

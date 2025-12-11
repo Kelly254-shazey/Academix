@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './DataManagement.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 function DataManagement() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('attendance');
@@ -27,7 +29,7 @@ function DataManagement() {
 
   const fetchAuditLog = async () => {
     try {
-      const response = await fetch('http://localhost:5000/admin/audit-log');
+      const response = await fetch(`${API_URL}/admin/audit-log`);
       const data = await response.json();
       if (data.success) {
         setAuditLog(data.auditLog);
@@ -54,7 +56,7 @@ function DataManagement() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/admin/data/attendance/update', {
+      const response = await fetch(`${API_URL}/admin/data/attendance/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -100,7 +102,7 @@ function DataManagement() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/admin/data/attendance/bulk-update', {
+      const response = await fetch(`${API_URL}/admin/data/attendance/bulk-update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ records })
@@ -130,7 +132,7 @@ function DataManagement() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/admin/data/student/delete', {
+      const response = await fetch(`${API_URL}/admin/data/student/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentId, reason: 'Admin deletion' })
@@ -160,7 +162,7 @@ function DataManagement() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/admin/data/export', {
+      const response = await fetch(`${API_URL}/admin/data/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentIds: selectedRecords, dataType: 'attendance' })

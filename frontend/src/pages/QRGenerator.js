@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './QRGenerator.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 function QRGenerator() {
   const [sessions, setSessions] = useState([]);
   const [newSession, setNewSession] = useState({
@@ -21,7 +23,7 @@ function QRGenerator() {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/qr/sessions');
+      const response = await fetch(`${API_URL}/qr/sessions`);
       if (response.ok) {
         const data = await response.json();
         setSessions(data.sessions || []);
@@ -47,7 +49,7 @@ function QRGenerator() {
     try {
       // Try to generate via backend
       try {
-        const response = await fetch('http://localhost:5000/qr/generate', {
+        const response = await fetch(`${API_URL}/qr/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

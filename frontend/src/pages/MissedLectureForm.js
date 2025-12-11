@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './MissedLectureForm.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 function MissedLectureForm() {
   const [formData, setFormData] = useState({
     lectureId: '',
@@ -33,7 +35,7 @@ function MissedLectureForm() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/feedback/anonymous-message', {
+      const response = await fetch(`${API_URL}/feedback/anonymous-message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -70,7 +72,7 @@ function MissedLectureForm() {
       }, 2000);
     } catch (error) {
       console.error('Error submitting form:', error);
-      setMessage('Failed to connect to server. Ensure backend is running on port 5000.');
+      setMessage(`Failed to connect to server. Ensure backend is running on ${API_URL}.`);
     } finally {
       setLoading(false);
     }

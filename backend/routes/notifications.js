@@ -54,34 +54,34 @@ router.post('/send', (req, res) => {
     });
 
     // Emit real-time update via Socket.IO (INSTANT delivery)
-    if (global.io) {
+    if (req.io) {
       console.log(`📢 Broadcasting notification "${title}" to all connected students`);
-      
+
       // Broadcast to all connected students (instant real-time)
-      global.io.emit('new-notification', {
+      req.io.emit('new-notification', {
         ...notification,
         read: false
       });
 
       // Also send to specific recipient rooms if available
       recipientIds.forEach(userId => {
-        global.io.to(`user_${userId}`).emit('new-notification', {
+        req.io.to(`user_${userId}`).emit('new-notification', {
           ...notification,
           read: false
         });
       });
-      
+
       // Notify all students in course room
       if (courseId) {
-        global.io.to(`course_${courseId}`).emit('new-notification', {
+        req.io.to(`course_${courseId}`).emit('new-notification', {
           ...notification,
           read: false
         });
       }
     }
 
-    res.json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       notificationId,
       message: `Notification sent instantly to all connected students`,
       notification,
@@ -126,8 +126,8 @@ router.put('/:notificationId/read', (req, res) => {
     }
 
     // Emit real-time update
-    if (global.io) {
-      global.io.to(`user_${userId}`).emit('notification-read', { notificationId });
+    if (req.io) {
+      req.io.to(`user_${userId}`).emit('notification-read', { notificationId });
     }
 
     res.json({ success: true, message: 'Notification marked as read' });
@@ -137,21 +137,27 @@ router.put('/:notificationId/read', (req, res) => {
   }
 });
 
-// Delete notification
+// Delete a notification for a user
 router.delete('/:notificationId', (req, res) => {
   try {
     const { notificationId } = req.params;
     const { userId } = req.body;
 
     if (userNotifications[userId]) {
-      userNotifications[userId] = userNotifications[userId].filter(n => n.id !== notificationId);
+      const initialLength = userNotifications[userId].length;
+      userNotifications[userId] = userNotifications[userId].filter(
+        (n) => n.id !== notificationId
+      );
+      if (userNotifications[userId].length === initialLength) {
+        // No notification was found/deleted, but we don't treat it as a server error.
+        return res.status(404).json({ success: false, message: 'Notification not found for this user' });
+      }
     }
 
     // Emit real-time update
-    if (global.io) {
-      global.io.to(`user_${userId}`).emit('notification-deleted', { notificationId });
+    if (req.io) {
+      req.io.to(`user_${userId}`).emit('notification-deleted', { notificationId });
     }
-
     res.json({ success: true, message: 'Notification deleted' });
   } catch (error) {
     console.error('Error deleting notification:', error);
@@ -177,7 +183,7 @@ router.get('/user/:userId/unread-count', (req, res) => {
 router.get('/lecturer/:lecturerId/sent', (req, res) => {
   try {
     const { lecturerId } = req.params;
-    
+
     const sentNotifications = Object.values(notifications).filter(
       n => n.instructorId === lecturerId
     );

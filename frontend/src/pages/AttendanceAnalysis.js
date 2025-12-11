@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './AttendanceAnalysis.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 function AttendanceAnalysis() {
   const [activeTab, setActiveTab] = useState('overview');
   const [analysis, setAnalysis] = useState(null);
@@ -22,9 +24,9 @@ function AttendanceAnalysis() {
     setLoading(true);
     try {
       const [analyticsRes, alertsRes, messagesRes] = await Promise.all([
-        fetch('http://localhost:5000/feedback/analytics/realtime'),
-        fetch('http://localhost:5000/feedback/attendance/alerts'),
-        fetch('http://localhost:5000/feedback/anonymous-messages')
+        fetch(`${API_URL}/feedback/analytics/realtime`),
+        fetch(`${API_URL}/feedback/attendance/alerts`),
+        fetch(`${API_URL}/feedback/anonymous-messages`)
       ]);
 
       if (analyticsRes.ok) {
@@ -58,7 +60,7 @@ function AttendanceAnalysis() {
 
   const fetchStudentDetails = async (studentId) => {
     try {
-      const response = await fetch(`http://localhost:5000/feedback/attendance/analysis/${studentId}`);
+      const response = await fetch(`${API_URL}/feedback/attendance/analysis/${studentId}`);
       if (response.ok) {
         const data = await response.json();
         setStudentDetails(data);
@@ -75,7 +77,7 @@ function AttendanceAnalysis() {
 
   const markMessageAsReviewed = async (messageId) => {
     try {
-      const response = await fetch(`http://localhost:5000/feedback/anonymous-messages/${messageId}/review`, {
+      const response = await fetch(`${API_URL}/feedback/anonymous-messages/${messageId}/review`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: 'Reviewed', actionTaken: 'noted' })
@@ -83,7 +85,7 @@ function AttendanceAnalysis() {
 
       if (response.ok) {
         // Refresh messages
-        const messagesRes = await fetch('http://localhost:5000/feedback/anonymous-messages');
+        const messagesRes = await fetch(`${API_URL}/feedback/anonymous-messages`);
         const data = await messagesRes.json();
         setAnonymousMessages(data.messages);
       }
