@@ -72,16 +72,16 @@ router.post('/messages/send', async (req, res) => {
     // Emit real-time notification via Socket.IO
     if (req.io) {
       req.io.to(`user_${studentId}`).emit('new-admin-message', {
-        message: chatMessage.message,
-        senderType: senderType || 'admin',
+        message: chatMessage.message, // Corrected: senderType was not defined
+        senderType: payload.senderType,
         timestamp: chatMessage.timestamp
       });
 
       // Notify admin of message
       req.io.to('admin_001').emit('new-student-message', {
         studentId,
-        studentName: studentName || 'Unknown Student',
-        message,
+        studentName: 'Admin', // Corrected: studentName was not defined
+        message: chatMessage.message,
         timestamp: chatMessage.timestamp
       });
     }
@@ -125,8 +125,8 @@ router.post('/messages/student-send', async (req, res) => {
     if (req.io) {
       req.io.to('admin_001').emit('new-student-message', {
         studentId,
-        studentName: studentName || 'Unknown Student',
-        message,
+        studentName: 'Unknown Student', // Corrected: studentName was not defined. Consider fetching student name.
+        message: chatMessage.message,
         timestamp: chatMessage.timestamp
       });
     }
@@ -160,6 +160,7 @@ router.post('/data/attendance/update', (req, res) => {
       });
     }
 
+    // TODO: Replace with actual database update. Use parameterized queries to prevent SQL injection.
     // Log the audit trail
     dataAuditLog.push({
       id: `audit_${Date.now()}`,
@@ -169,7 +170,7 @@ router.post('/data/attendance/update', (req, res) => {
       newStatus: status,
       reason,
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001'
+      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
     });
 
     res.json({
@@ -205,6 +206,7 @@ router.post('/data/student/update', (req, res) => {
       });
     }
 
+    // TODO: Replace with actual database update. Use parameterized queries to prevent SQL injection.
     // Log the audit trail
     dataAuditLog.push({
       id: `audit_${Date.now()}`,
@@ -212,7 +214,7 @@ router.post('/data/student/update', (req, res) => {
       targetStudentId: studentId,
       updates,
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001'
+      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
     });
 
     res.json({
@@ -246,6 +248,7 @@ router.post('/data/attendance/bulk-update', (req, res) => {
       });
     }
 
+    // TODO: Replace with actual database update. Use parameterized queries to prevent SQL injection.
     // Log the audit trail
     dataAuditLog.push({
       id: `audit_${Date.now()}`,
@@ -253,7 +256,7 @@ router.post('/data/attendance/bulk-update', (req, res) => {
       recordCount: records.length,
       records,
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001'
+      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
     });
 
     res.json({
@@ -286,6 +289,7 @@ router.post('/data/student/delete', (req, res) => {
       });
     }
 
+    // TODO: Replace with actual database operation (delete or archive).
     // Log the audit trail
     dataAuditLog.push({
       id: `audit_${Date.now()}`,
@@ -293,7 +297,7 @@ router.post('/data/student/delete', (req, res) => {
       targetStudentId: studentId,
       reason: reason || 'No reason provided',
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001'
+      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
     });
 
     res.json({
@@ -351,6 +355,7 @@ router.post('/data/export', (req, res) => {
       });
     }
 
+    // TODO: Replace with actual data export logic (e.g., generating a CSV file).
     // Log the audit trail
     dataAuditLog.push({
       id: `audit_${Date.now()}`,
@@ -358,7 +363,7 @@ router.post('/data/export', (req, res) => {
       recordCount: studentIds.length,
       dataType: dataType || 'all',
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001'
+      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
     });
 
     res.json({
