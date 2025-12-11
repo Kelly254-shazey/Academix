@@ -25,6 +25,11 @@ const courseAnalyticsRoutes = require('./routes/courseAnalytics');
 const feedbackRoutes = require('./routes/feedback');
 const qrRoutes = require('./routes/qr');
 const adminRoutes = require('./routes/admin');
+// Lecturer Dashboard Routes
+const lecturerRoutes = require('./routes/lecturer');
+const classControlRoutes = require('./routes/classControl');
+const lecturerQRRoutes = require('./routes/lecturerQR');
+const rosterRoutes = require('./routes/roster');
 
 dotenv.config();
 
@@ -74,6 +79,12 @@ app.use('/feedback', feedbackRoutes);
 app.use('/qr', qrRoutes);
 app.use('/admin', adminRoutes);
 
+// Lecturer Dashboard Routes
+app.use('/api/lecturer', lecturerRoutes);
+app.use('/api/classes', classControlRoutes);
+app.use('/api/classes', lecturerQRRoutes);
+app.use('/api/classes', rosterRoutes);
+
 // Health check
 app.get('/', (req, res) => {
   res.json({ message: 'ClassTrack AI Backend is running', status: 'ok', timestamp: new Date().toISOString() });
@@ -94,6 +105,18 @@ io.on('connection', (socket) => {
   socket.on('join-course-room', (courseId) => {
     socket.join(`course_${courseId}`);
     logger.info(`Client joined course ${courseId}`, { socketId: socket.id });
+  });
+
+  // Join class-specific room (for lecturer session updates)
+  socket.on('join-class-room', (classId) => {
+    socket.join(`class_${classId}`);
+    logger.info(`Client joined class ${classId}`, { socketId: socket.id });
+  });
+
+  // Join session-specific room
+  socket.on('join-session-room', (sessionId) => {
+    socket.join(`session_${sessionId}`);
+    logger.info(`Client joined session ${sessionId}`, { socketId: socket.id });
   });
 
   // Class events
@@ -142,6 +165,93 @@ io.on('connection', (socket) => {
       timestamp: new Date(),
     });
     logger.info(`Lecturer delay notification for course ${classId}`);
+  });
+
+  // Lecturer Dashboard Session Events
+  socket.on('lecturer-session-started', (data) => {
+    const { classId, sessionId, lecturerId } = data;
+    io.to(`class_${classId}`).emit('lecturer-session-started', {
+      classId,
+      sessionId,
+      lecturerId,
+      message: 'Lecturer has started the session',
+      timestamp: new Date(),
+    });
+    logger.info(`Session ${sessionId} started by lecturer ${lecturerId}`);
+  });
+
+  socket.on('lecturer-session-delayed', (data) => {
+    const { classId, sessionId, delayMinutes, newStartTime } = data;
+    io.to(`class_${classId}`).emit('lecturer-session-delayed', {
+      classId,
+      sessionId,
+      delayMinutes,
+      newStartTime,
+      message: `Session delayed by ${delayMinutes} minutes`,
+      timestamp: new Date(),
+    });
+    logger.info(`Session ${sessionId} delayed by ${delayMinutes} minutes`);
+  });
+
+  socket.on('lecturer-session-cancelled', (data) => {
+    const { classId, sessionId, reason } = data;
+    io.to(`class_${classId}`).emit('lecturer-session-cancelled', {
+      classId,
+      sessionId,
+      reason,
+      message: 'Session has been cancelled',
+      timestamp: new Date(),
+    });
+    logger.info(`Session ${sessionId} cancelled: ${reason}`);
+  });
+
+  socket.on('lecturer-qr-rotated', (data) => {
+    const { classId, sessionId } = data;
+    io.to(`session_${sessionId}`).emit('lecturer-qr-rotated', {
+      classId,
+      sessionId,
+      message: 'QR code has been rotated',
+      timestamp: new Date(),
+    });
+    logger.info(`QR rotated for session ${sessionId}`);
+  });
+
+  socket.on('lecturer-attendance-verified', (data) => {
+    const { classId, sessionId, studentId, status } = data;
+    io.to(`session_${sessionId}`).emit('lecturer-attendance-verified', {
+      classId,
+      sessionId,
+      studentId,
+      status,
+      message: `Student ${studentId} attendance verified as ${status}`,
+      timestamp: new Date(),
+    });
+    logger.info(`Attendance verified for student ${studentId}`);
+  });
+
+  socket.on('lecturer-roster-updated', (data) => {
+    const { classId, sessionId, totalStudents, presentCount } = data;
+    io.to(`session_${sessionId}`).emit('lecturer-roster-updated', {
+      classId,
+      sessionId,
+      totalStudents,
+      presentCount,
+      message: `Roster updated: ${presentCount}/${totalStudents} present`,
+      timestamp: new Date(),
+    });
+    logger.info(`Roster updated for session ${sessionId}`);
+  });
+
+  socket.on('lecturer-alert-created', (data) => {
+    const { lecturerId, alertType, severity, message } = data;
+    io.to(`user_${lecturerId}`).emit('lecturer-alert-created', {
+      lecturerId,
+      alertType,
+      severity,
+      message,
+      timestamp: new Date(),
+    });
+    logger.info(`Alert created for lecturer ${lecturerId}`);
   });
 
   // Generic notification
