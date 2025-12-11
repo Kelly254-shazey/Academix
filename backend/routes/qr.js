@@ -1,57 +1,49 @@
 const express = require('express');
+const authMiddleware = require('../middleware/auth');
+const { validateRequest } = require('../middlewares/validation');
+const schemas = require('../validators/schemas');
+const qrValidationService = require('../services/qrValidationService');
+const logger = require('../utils/logger');
+
 const router = express.Router();
+router.use(authMiddleware);
 
-// In-memory QR code storage
-const qrSessions = [];
+// POST /api/qr/validate-and-checkin
+// Validate QR and perform check-in
+router.post(
+  '/validate-and-checkin',
+  validateRequest(schemas.qrValidationSchema),
+  async (req, res) => {
+    try {
+      const { qr_token, latitude, longitude, device_fingerprint } = req.validatedData;
 
-// Generate QR Code
-router.post('/generate', (req, res) => {
-  try {
-    const { courseName, lectureId, expirationMinutes, maxScans } = req.body;
+      const result = await qrValidationService.processQRCheckin(
+        req.user.id,
+        qr_token,
+        latitude,
+        longitude,
+        device_fingerprint,
+        req.body.device_name
+      );
 
-    if (!courseName || !lectureId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Course name and lecture ID are required'
-      });
+      if (result.success) {
+        res.status(200).json({
+          success: true,
+          data: result,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          statusCode: result.status,
+        });
+      }
+    } catch (error) {
+      logger.error('Error processing QR check-in:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-
-    // Generate unique session ID
-    const sessionId = 'QR' + Date.now().toString(36).toUpperCase();
-    const expiresAt = new Date(Date.now() + (expirationMinutes || 15) * 60000);
-
-    // Create QR code using external service
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${sessionId}`;
-
-    const session = {
-      id: sessionId,
-      courseName,
-      lectureId,
-      qrCode: qrCodeUrl,
-      expiresAt: expiresAt.toISOString(),
-      expirationMinutes: expirationMinutes || 15,
-      createdAt: new Date().toISOString(),
-      scansCount: 0,
-      maxScans: maxScans || 100,
-      status: 'active',
-      studentScans: []
-    };
-
-    qrSessions.push(session);
-
-    res.status(201).json({
-      success: true,
-      message: 'QR code generated successfully',
-      session
-    });
-  } catch (error) {
-    console.error('QR generation error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error generating QR code'
-    });
   }
-});
+);
 
 // Get all QR sessions
 router.get('/sessions', (req, res) => {

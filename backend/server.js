@@ -10,9 +10,18 @@ const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
 const attendanceRoutes = require('./routes/attendance');
+const attendanceAnalyticsRoutes = require('./routes/attendanceAnalytics');
 const dashboardRoutes = require('./routes/dashboard');
+const scheduleRoutes = require('./routes/schedule');
 const aiRoutes = require('./routes/ai');
-const notificationRoutes = require('./routes/notifications');
+const aiInsightsRoutes = require('./routes/aiInsights');
+const notificationRoutes = require('./routes/notificationRoutes');
+const profileRoutes = require('./routes/profile');
+const settingsRoutes = require('./routes/settings');
+const supportRoutes = require('./routes/support');
+const gamificationRoutes = require('./routes/gamification');
+const calendarRoutes = require('./routes/calendar');
+const courseAnalyticsRoutes = require('./routes/courseAnalytics');
 const feedbackRoutes = require('./routes/feedback');
 const qrRoutes = require('./routes/qr');
 const adminRoutes = require('./routes/admin');
@@ -28,6 +37,9 @@ const io = socketIo(server, {
     credentials: true
   }
 });
+
+// Make io globally accessible for services
+global.io = io;
 
 const PORT = process.env.PORT || 5002;
 
@@ -46,9 +58,18 @@ app.use((req, res, next) => {
 app.use('/auth', authRoutes);
 app.use('/classes', classRoutes);
 app.use('/attendance', attendanceRoutes);
+app.use('/attendance-analytics', attendanceAnalyticsRoutes);
+app.use('/schedule', scheduleRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/ai', aiRoutes);
+app.use('/ai-insights', aiInsightsRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/profile', profileRoutes);
+app.use('/settings', settingsRoutes);
+app.use('/support', supportRoutes);
+app.use('/gamification', gamificationRoutes);
+app.use('/calendar', calendarRoutes);
+app.use('/course-analytics', courseAnalyticsRoutes);
 app.use('/feedback', feedbackRoutes);
 app.use('/qr', qrRoutes);
 app.use('/admin', adminRoutes);
@@ -62,17 +83,68 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   logger.info(`New client connected: ${socket.id}`);
 
+  // Join user-specific notification room
   socket.on('join-user-room', (userId) => {
     socket.join(`user_${userId}`);
     logger.info(`User ${userId} joined notification room`, { socketId: socket.id });
     socket.emit('connection-confirmed', { success: true, userId, socketId: socket.id });
   });
 
+  // Join course-specific room
   socket.on('join-course-room', (courseId) => {
     socket.join(`course_${courseId}`);
     logger.info(`Client joined course ${courseId}`, { socketId: socket.id });
   });
 
+  // Class events
+  socket.on('class-started', (data) => {
+    const { classId, courseName } = data;
+    io.to(`course_${classId}`).emit('class-started', {
+      classId,
+      courseName,
+      message: `${courseName} has started. Please check in.`,
+      timestamp: new Date(),
+    });
+    logger.info(`Class started notification for course ${classId}`);
+  });
+
+  socket.on('class-cancelled', (data) => {
+    const { classId, courseName, reason } = data;
+    io.to(`course_${classId}`).emit('class-cancelled', {
+      classId,
+      courseName,
+      reason,
+      message: `${courseName} has been cancelled.${reason ? ' Reason: ' + reason : ''}`,
+      timestamp: new Date(),
+    });
+    logger.info(`Class cancellation notification for course ${classId}`);
+  });
+
+  socket.on('room-changed', (data) => {
+    const { classId, courseName, newLocation } = data;
+    io.to(`course_${classId}`).emit('room-changed', {
+      classId,
+      courseName,
+      newLocation,
+      message: `${courseName} location changed to ${newLocation}.`,
+      timestamp: new Date(),
+    });
+    logger.info(`Room change notification for course ${classId}`);
+  });
+
+  socket.on('lecturer-delay', (data) => {
+    const { classId, courseName, delayMinutes } = data;
+    io.to(`course_${classId}`).emit('lecturer-delay', {
+      classId,
+      courseName,
+      delayMinutes,
+      message: `${courseName} lecturer will be ${delayMinutes} minutes late.`,
+      timestamp: new Date(),
+    });
+    logger.info(`Lecturer delay notification for course ${classId}`);
+  });
+
+  // Generic notification
   socket.on('send-notification', (data) => {
     logger.info('Notification event', data);
     io.emit('notification-update', data);
@@ -90,3 +162,5 @@ app.use(errorHandler);
 server.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`, { env: process.env.NODE_ENV });
 });
+
+module.exports = server;

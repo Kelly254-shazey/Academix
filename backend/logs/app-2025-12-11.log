@@ -33,3 +33,4 @@
 [INFO] 2025-12-11T13:36:57.967Z - New client connected: 8xwayq-Jl_IYu31sAAAP {}
 [INFO] 2025-12-11T13:36:57.970Z - User 6 joined notification room {"socketId":"8xwayq-Jl_IYu31sAAAP"}
 [INFO] 2025-12-11T13:36:57.972Z - Client joined course general {"socketId":"8xwayq-Jl_IYu31sAAAP"}
+[INFO] 2025-12-11T14:27:52.910Z - Server running on port 5002 {"env":"development"}
