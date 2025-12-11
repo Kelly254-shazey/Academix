@@ -150,24 +150,6 @@ function Attendance() {
         )}
 
         {activeTab === 'week' && (
-
-        {activeTab === 'scan' && (
-          <div className="card">
-            <h2>Scan QR for Attendance</h2>
-            <div style={{ marginBottom: 12 }}>
-              <label>Class ID: </label>
-              <input value={classId} onChange={(e)=>setClassId(e.target.value)} />
-              <label style={{ marginLeft: 12 }}>Session ID: </label>
-              <input value={sessionId} onChange={(e)=>setSessionId(e.target.value)} />
-              <button style={{ marginLeft: 12 }} onClick={()=>setShowScanner(s => !s)}>
-                {showScanner ? 'Stop Scanner' : 'Start Scanner'}
-              </button>
-            </div>
-            {showScanner && (
-              <QRScanner classId={classId} sessionId={sessionId} onSuccess={(data)=>{ alert('Attendance recorded'); }} />
-            )}
-          </div>
-        )}
           <div className="card">
             <h2>Weekly Attendance</h2>
             <div className="weekly-stats">
@@ -192,6 +174,24 @@ function Attendance() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'scan' && (
+          <div className="card">
+            <h2>Scan QR for Attendance</h2>
+            <div style={{ marginBottom: 12 }}>
+              <label>Class ID: </label>
+              <input value={classId} onChange={(e)=>setClassId(e.target.value)} />
+              <label style={{ marginLeft: 12 }}>Session ID: </label>
+              <input value={sessionId} onChange={(e)=>setSessionId(e.target.value)} />
+              <button style={{ marginLeft: 12 }} onClick={()=>setShowScanner(s => !s)}>
+                {showScanner ? 'Stop Scanner' : 'Start Scanner'}
+              </button>
+            </div>
+            {showScanner && (
+              <QRScanner classId={classId} sessionId={sessionId} onSuccess={(data)=>{ alert('Attendance recorded'); }} />
+            )}
           </div>
         )}
 

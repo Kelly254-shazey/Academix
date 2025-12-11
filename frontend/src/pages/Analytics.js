@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './Analytics.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 function Analytics() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ function Analytics() {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await fetch('http://localhost:5000/feedback/analytics/realtime');
+      const response = await fetch(`${API_URL}/feedback/analytics/realtime`);
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data);

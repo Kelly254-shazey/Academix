@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import axios from 'axios';
+import api from '../api/axiosConfig';
 
 // Props:
 // - classId: id of the class
@@ -48,7 +48,7 @@ export default function QRScanner({ classId, sessionId, onSuccess }) {
             };
 
             // Send to backend (backend mounts classes routes at `/classes`)
-            axios.post(`/classes/${classId}/sessions/${sessionId}/scan`, body)
+            api.post(`/classes/${classId}/sessions/${sessionId}/scan`, body)
               .then((resp) => {
                 console.log('Scan recorded:', resp.data);
                 if (onSuccess) onSuccess(resp.data);

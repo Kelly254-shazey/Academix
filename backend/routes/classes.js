@@ -15,11 +15,17 @@ router.get('/', async (req, res) => {
 
 // POST /classes - create a class
 router.post('/', async (req, res) => {
-  const { course_code, course_name, lecturer_id, day_of_week, start_time, end_time } = req.body;
+  const { course_code, course_name, lecturer_id, day_of_week, start_time, end_time, location_lat, location_lng } = req.body;
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  let dayValue = day_of_week;
+  if (typeof day_of_week === 'number') {
+    dayValue = dayNames[day_of_week] || dayNames[0];
+  }
+  if (!dayValue) dayValue = dayNames[0];
   try {
     const [result] = await db.query(
-      'INSERT INTO classes (course_code, course_name, lecturer_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)',
-      [course_code, course_name, lecturer_id || null, day_of_week, start_time, end_time]
+      'INSERT INTO classes (course_code, course_name, lecturer_id, day_of_week, start_time, end_time, location_lat, location_lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [course_code, course_name, lecturer_id || null, dayValue, start_time, end_time, (location_lat != null ? location_lat : 0.0), (location_lng != null ? location_lng : 0.0)]
     );
     res.status(201).json({ message: 'Class created', classId: result.insertId });
   } catch (err) {
@@ -44,11 +50,17 @@ router.get('/:id', async (req, res) => {
 // PUT /classes/:id - update class
 router.put('/:id', async (req, res) => {
   const id = req.params.id;
-  const { course_code, course_name, lecturer_id, day_of_week, start_time, end_time } = req.body;
+  const { course_code, course_name, lecturer_id, day_of_week, start_time, end_time, location_lat, location_lng } = req.body;
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  let dayValue = day_of_week;
+  if (typeof day_of_week === 'number') {
+    dayValue = dayNames[day_of_week] || dayNames[0];
+  }
+  if (!dayValue) dayValue = dayNames[0];
   try {
     const [result] = await db.query(
-      'UPDATE classes SET course_code = ?, course_name = ?, lecturer_id = ?, day_of_week = ?, start_time = ?, end_time = ? WHERE id = ?',
-      [course_code, course_name, lecturer_id || null, day_of_week, start_time, end_time, id]
+      'UPDATE classes SET course_code = ?, course_name = ?, lecturer_id = ?, day_of_week = ?, start_time = ?, end_time = ?, location_lat = ?, location_lng = ? WHERE id = ?',
+      [course_code, course_name, lecturer_id || null, dayValue, start_time, end_time, (location_lat != null ? location_lat : 0.0), (location_lng != null ? location_lng : 0.0), id]
     );
     res.json({ message: 'Class updated', affectedRows: result.affectedRows });
   } catch (err) {
@@ -57,14 +69,15 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// POST /classes/:classId/sessions - create a class session (optionally generate QR signature on frontend/server)
+// POST /classes/:classId/sessions - create a class session
 router.post('/:classId/sessions', async (req, res) => {
   const classId = req.params.classId;
-  const { session_date, qr_signature, qr_expires_at } = req.body;
+  const { session_date, qr_signature } = req.body;
   try {
+    // DB uses column `qr_base_signature` for stored QR signature
     const [result] = await db.query(
-      'INSERT INTO class_sessions (class_id, session_date, qr_signature, qr_expires_at) VALUES (?, ?, ?, ?)',
-      [classId, session_date, qr_signature || null, qr_expires_at || null]
+      'INSERT INTO class_sessions (class_id, session_date, qr_base_signature) VALUES (?, ?, ?)',
+      [classId, session_date, qr_signature || null]
     );
     res.status(201).json({ message: 'Session created', sessionId: result.insertId });
   } catch (err) {
@@ -82,28 +95,20 @@ router.post('/:classId/sessions/:sessionId/scan', async (req, res) => {
   if (!studentId) return res.status(400).json({ error: 'studentId is required' });
 
   try {
-    // Fetch session to validate QR signature and expiry
-    const [sessions] = await db.query('SELECT id, qr_signature, qr_expires_at FROM class_sessions WHERE id = ? AND class_id = ?', [sessionId, classId]);
+    // Fetch session to validate QR signature (DB stores as `qr_base_signature`)
+    const [sessions] = await db.query('SELECT id, qr_base_signature FROM class_sessions WHERE id = ? AND class_id = ?', [sessionId, classId]);
     if (sessions.length === 0) return res.status(404).json({ error: 'Session not found' });
     const session = sessions[0];
-
-    // If QR signature exists on session, validate
-    if (session.qr_signature) {
-      if (!qr_signature || qr_signature !== session.qr_signature) {
+    // If QR signature exists on session, validate against stored `qr_base_signature`
+    if (session.qr_base_signature) {
+      if (!qr_signature || qr_signature !== session.qr_base_signature) {
         return res.status(400).json({ error: 'Invalid QR signature', verification_status: 'expired' });
       }
     }
 
-    // Check expiry if set
-    if (session.qr_expires_at) {
-      const now = new Date();
-      const expires = new Date(session.qr_expires_at);
-      if (now > expires) return res.status(400).json({ error: 'QR expired', verification_status: 'expired' });
-    }
-
-    // Insert attendance log
+    // Insert attendance log - DB uses captured_* column names and checkin_time
     const [insertRes] = await db.query(
-      'INSERT INTO attendance_logs (session_id, student_id, latitude, longitude, browser_fingerprint, verification_status) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO attendance_logs (session_id, student_id, captured_lat, captured_lng, captured_fingerprint, verification_status) VALUES (?, ?, ?, ?, ?, ?)',
       [sessionId, studentId, latitude || null, longitude || null, browser_fingerprint || null, 'success']
     );
 

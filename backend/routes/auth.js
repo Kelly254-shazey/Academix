@@ -2,47 +2,12 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
+const db = require('../database');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// In-memory user database (replace with PostgreSQL in production)
-const users = {
-  'student@university.edu': {
-    id: 'student_001',
-    name: 'John Student',
-    email: 'student@university.edu',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'student',
-    avatar: '👨‍🎓',
-    studentId: 'CS2024001',
-    department: 'Computer Science',
-    enrolledCourses: ['CS101', 'MATH201', 'ENG102']
-  },
-  'lecturer@university.edu': {
-    id: 'lecturer_001',
-    name: 'Dr. Smith',
-    email: 'lecturer@university.edu',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'lecturer',
-    avatar: '👨‍🏫',
-    employeeId: 'PROF001',
-    department: 'Computer Science',
-    courses: ['CS101', 'CS201']
-  },
-  'admin@university.edu': {
-    id: 'admin_001',
-    name: 'Admin User',
-    email: 'admin@university.edu',
-    password: bcrypt.hashSync('password123', 10),
-    role: 'admin',
-    avatar: '👨‍💼',
-    department: 'Administration',
-    permissions: ['all']
-  }
-};
-
 // Login endpoint
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -54,18 +19,20 @@ router.post('/login', (req, res) => {
       });
     }
 
-    // Find user by email
-    const user = users[email.toLowerCase()];
-
-    if (!user) {
+    // Find user in database
+    const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
+    
+    if (rows.length === 0) {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
-    // Compare password
-    const isPasswordValid = bcrypt.compareSync(password, user.password);
+    const user = rows[0];
+
+    // Compare password (stored as password_hash)
+    const isPasswordValid = bcrypt.compareSync(password, user.password_hash);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -85,8 +52,8 @@ router.post('/login', (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Send user data without password
-    const { password: _, ...userWithoutPassword } = user;
+    // Send user data without password_hash
+    const { password_hash: _, ...userWithoutPassword } = user;
 
     res.json({
       success: true,
@@ -104,9 +71,9 @@ router.post('/login', (req, res) => {
 });
 
 // Register endpoint
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, role, department } = req.body;
+    const { email, password, name, role } = req.body;
 
     // Validation
     if (!email || !password || !name || !role) {
@@ -124,7 +91,8 @@ router.post('/register', (req, res) => {
     }
 
     // Check if user already exists
-    if (users[email.toLowerCase()]) {
+    const [existingUser] = await db.execute('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
+    if (existingUser.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'User already exists'
@@ -134,31 +102,31 @@ router.post('/register', (req, res) => {
     // Hash password
     const hashedPassword = bcrypt.hashSync(password, 10);
 
-    // Create new user
-    const userId = `${role}_${Date.now()}`;
-    const newUser = {
-      id: userId,
-      name,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      role,
-      avatar: role === 'student' ? '👨‍🎓' : role === 'lecturer' ? '👨‍🏫' : '👨‍💼',
-      department: department || 'General'
-    };
-
-    // Add role-specific fields
-    if (role === 'student') {
-      newUser.studentId = `${role.toUpperCase()}${Date.now().toString().slice(-6)}`;
-      newUser.enrolledCourses = [];
-    } else if (role === 'lecturer') {
-      newUser.employeeId = `PROF${Date.now().toString().slice(-6)}`;
-      newUser.courses = [];
-    } else if (role === 'admin') {
-      newUser.permissions = ['all'];
+    // Insert user using columns present in current schema
+    try {
+      await db.execute(
+        'INSERT INTO users (name, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [name, email.toLowerCase(), hashedPassword, role]
+      );
+    } catch (dbError) {
+      console.error('Database insert error:', dbError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create user: ' + dbError.message
+      });
     }
 
-    // Store user
-    users[email.toLowerCase()] = newUser;
+    // Fetch the created user
+    const [newUserRows] = await db.execute('SELECT id, name, email, role, created_at FROM users WHERE email = ?', [email.toLowerCase()]);
+    
+    if (newUserRows.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'User created but could not be retrieved'
+      });
+    }
+
+    const newUser = newUserRows[0];
 
     // Generate JWT token
     const token = jwt.sign(
@@ -171,20 +139,17 @@ router.post('/register', (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Send response without password
-    const { password: _, ...userWithoutPassword } = newUser;
-
     res.status(201).json({
       success: true,
       message: 'Registration successful',
       token,
-      user: userWithoutPassword
+      user: newUser
     });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during registration'
+      message: 'Server error during registration: ' + error.message
     });
   }
 });
@@ -205,7 +170,7 @@ router.post('/logout', (req, res) => {
 });
 
 // Verify token endpoint
-router.get('/verify', (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
 
@@ -217,22 +182,21 @@ router.get('/verify', (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = users[decoded.email];
+    const [rows] = await db.execute('SELECT id, name, email, role, avatar, department FROM users WHERE id = ?', [decoded.id]);
 
-    if (!user) {
+    if (rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    const { password: _, ...userWithoutPassword } = user;
-
     res.json({
       success: true,
-      user: userWithoutPassword
+      user: rows[0]
     });
   } catch (error) {
+    console.error('Verify error:', error);
     res.status(401).json({
       success: false,
       message: 'Invalid or expired token'
@@ -240,20 +204,17 @@ router.get('/verify', (req, res) => {
   }
 });
 
-// Get all demo users (for admin purposes)
-router.get('/demo-users', (req, res) => {
+// Get all users (for admin purposes)
+router.get('/users', async (req, res) => {
   try {
-    const demoUsers = Object.entries(users).map(([email, user]) => ({
-      email,
-      role: user.role,
-      name: user.name
-    }));
+    const [rows] = await db.execute('SELECT id, name, email, role, avatar, department FROM users');
 
     res.json({
       success: true,
-      users: demoUsers
+      users: rows
     });
   } catch (error) {
+    console.error('Get users error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error'

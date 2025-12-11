@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,7 +33,7 @@ function Login() {
       }
 
       // Call backend API
-      const response = await fetch('http://localhost:5000/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -59,7 +61,7 @@ function Login() {
       navigate('/');
     } catch (err) {
       console.error('Login error:', err);
-      setError('Failed to connect to server. Make sure backend is running on port 5000.');
+      setError(`Failed to connect to server. Make sure backend is running on ${API_URL}.`);
     } finally {
       setIsLoading(false);
     }

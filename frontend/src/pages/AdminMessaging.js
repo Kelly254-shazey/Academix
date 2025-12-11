@@ -41,7 +41,8 @@ function AdminMessaging() {
     try {
       if (user?.role !== 'admin') return;
       
-      const response = await fetch('http://localhost:5000/admin/messages/all', {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+      const response = await fetch(`${apiUrl}/admin/messages/all`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -65,7 +66,7 @@ function AdminMessaging() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/admin/communication/stats', {
+      const response = await fetch(`${apiUrl}/admin/communication/stats`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -93,7 +94,7 @@ function AdminMessaging() {
         return;
       }
       
-      const response = await fetch(`http://localhost:5000/admin/messages/student/${studentId}`, {
+      const response = await fetch(`${apiUrl}/admin/messages/student/${studentId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -155,7 +156,8 @@ function AdminMessaging() {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+      const response = await fetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

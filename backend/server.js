@@ -29,7 +29,7 @@ const io = socketIo(server, {
 // Make io accessible to routes
 global.io = io;
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -86,6 +86,18 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Try to listen on localhost (127.0.0.1) first; if port is taken, exit with error
+// Windows System process may block 0.0.0.0:5000, but localhost binding often works
+const listener = server.listen(PORT, '127.0.0.1', () => {
+  console.log(`✅ Server running on http://127.0.0.1:${PORT}`);
+});
+
+listener.on('error', (err) => {
+  if (err.code === 'EACCES' && PORT === 5000) {
+    console.error(`❌ Port ${PORT} is reserved by system (PID 4). Try PORT=5001 or check Windows services.`);
+    console.error(`Hint: Run "netstat -ano | findstr :${PORT}" to see which process owns it.`);
+  } else {
+    console.error(`❌ Server error:`, err.message);
+  }
+  process.exit(1);
 });
