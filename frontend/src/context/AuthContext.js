@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
       
       // If backend is available, try to register
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
         const response = await fetch(`${apiUrl}/auth/register`, {
           method: 'POST',
           headers: {
@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }) => {
     if (!storedToken) return false;
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const response = await fetch(`${apiUrl}/auth/verify`, {
         method: 'GET',
         headers: {

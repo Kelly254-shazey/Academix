@@ -9,9 +9,9 @@ function AdminMessaging() {
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({ totalStudents: 0, totalMessages: 0, unreadMessages: 0 });
   const messagesEndRef = useRef(null);
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -31,18 +31,13 @@ function AdminMessaging() {
       return () => clearInterval(interval);
     } else if (user?.role === 'student') {
       // Initialize empty chat with admin for student
-      setSelectedStudent({
-        studentId: user.id,
-        studentName: user.name
-      });
+      loadMessages(user.id);
     }
   }, [user]);
 
   const fetchConversations = async () => {
     try {
       if (user?.role !== 'admin') return;
-      
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
       const response = await fetch(`${apiUrl}/admin/messages/all`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -157,7 +152,7 @@ function AdminMessaging() {
         return;
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const response = await fetch(`${apiUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,8 +167,8 @@ function AdminMessaging() {
         if (user?.role === 'admin' && selectedStudent) {
           loadMessages(selectedStudent.studentId);
         } else {
-          // Reload messages for student
-          setMessages([...messages, data.data]);
+          // Reload messages for student to ensure sync
+          loadMessages(user.id);
         }
       }
     } catch (error) {
@@ -296,7 +291,7 @@ function AdminMessaging() {
           </div>
 
           <div className="messages-area">
-            {messages.length === 0 ? (
+            {loading ? (<div className="loading">Loading messages...</div>) : messages.length === 0 ? (
               <div className="no-messages">
                 <div className="placeholder-icon">👋</div>
                 <p>Start a conversation with the admin</p>

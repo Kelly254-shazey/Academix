@@ -26,7 +26,7 @@ function AdminDashboard() {
 
   const fetchAllData = async () => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const [usersRes, analyticsRes] = await Promise.all([
         fetch(`${apiUrl}/auth/demo-users`),
         fetch(`${apiUrl}/feedback/analytics/realtime`)

@@ -1,72 +1,23 @@
 const express = require('express');
 const router = express.Router();
+const messageService = require('../services/messageService');
 
-// In-memory storage for admin communications and data
-const adminMessages = [];
-const studentAdminChats = {}; // { studentId: [messages] }
+// In-memory storage for data manipulation audit log (for demo purposes)
 const dataAuditLog = [];
-
-// Initialize sample chats
-function initializeSampleChats() {
-  studentAdminChats['STU001'] = [
-    {
-      id: 'chat_1',
-      studentId: 'STU001',
-      studentName: 'John Student',
-      senderId: 'STU001',
-      senderType: 'student',
-      message: 'Hello Admin, I have a question about my attendance record',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      read: false
-    },
-    {
-      id: 'chat_2',
-      studentId: 'STU001',
-      studentName: 'John Student',
-      senderId: 'admin_001',
-      senderType: 'admin',
-      message: 'Hi John! How can I help you?',
-      timestamp: new Date(Date.now() - 3000000).toISOString(),
-      read: true
-    }
-  ];
-
-  studentAdminChats['STU002'] = [
-    {
-      id: 'chat_3',
-      studentId: 'STU002',
-      studentName: 'Jane Doe',
-      senderId: 'STU002',
-      senderType: 'student',
-      message: 'I need to update my course enrollment',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      read: true
-    }
-  ];
-}
-
-initializeSampleChats();
 
 // ==================== MESSAGING ENDPOINTS ====================
 
 // GET: Fetch admin chat with a specific student
-router.get('/messages/student/:studentId', (req, res) => {
+router.get('/messages/student/:studentId', async (req, res) => {
   try {
     const { studentId } = req.params;
-    const messages = studentAdminChats[studentId] || [];
-    
-    // Mark all messages as read for admin
-    messages.forEach(msg => {
-      if (msg.senderType === 'student') {
-        msg.read = true;
-      }
-    });
+    const messages = await messageService.getMessagesByStudentId(studentId);
 
     res.json({
       success: true,
       studentId,
       messages,
-      unreadCount: messages.filter(m => !m.read && m.senderType === 'student').length
+      unreadCount: messages.filter(m => !m.is_read && m.sender_type === 'student').length
     });
   } catch (error) {
     console.error('Error fetching messages:', error);
@@ -79,26 +30,14 @@ router.get('/messages/student/:studentId', (req, res) => {
 });
 
 // GET: Fetch all student conversations (admin view)
-router.get('/messages/all', (req, res) => {
+router.get('/messages/all', async (req, res) => {
   try {
-    const conversations = Object.entries(studentAdminChats).map(([studentId, messages]) => {
-      const lastMessage = messages[messages.length - 1];
-      const unreadCount = messages.filter(m => !m.read && m.senderType === 'student').length;
-      
-      return {
-        studentId,
-        studentName: lastMessage?.studentName || 'Unknown Student',
-        lastMessage: lastMessage?.message || '',
-        lastMessageTime: lastMessage?.timestamp,
-        unreadCount,
-        messageCount: messages.length
-      };
-    });
+    const conversations = await messageService.getConversations();
 
     res.json({
       success: true,
       conversations,
-      totalStudents: Object.keys(studentAdminChats).length
+      totalStudents: conversations.length
     });
   } catch (error) {
     console.error('Error fetching conversations:', error);
@@ -111,9 +50,9 @@ router.get('/messages/all', (req, res) => {
 });
 
 // POST: Send message from admin to student
-router.post('/messages/send', (req, res) => {
+router.post('/messages/send', async (req, res) => {
   try {
-    const { studentId, studentName, message, senderId, senderType } = req.body;
+    const { studentId, message, senderId } = req.body;
 
     if (!studentId || !message) {
       return res.status(400).json({
@@ -121,35 +60,25 @@ router.post('/messages/send', (req, res) => {
         message: 'studentId and message are required'
       });
     }
-
-    // Initialize chat if doesn't exist
-    if (!studentAdminChats[studentId]) {
-      studentAdminChats[studentId] = [];
-    }
-
-    const chatMessage = {
-      id: `msg_${Date.now()}`,
+    
+    const payload = {
       studentId,
-      studentName: studentName || 'Unknown Student',
       senderId: senderId || 'admin_001',
-      senderType: senderType || 'admin',
-      message,
-      timestamp: new Date().toISOString(),
-      read: senderType === 'admin' ? true : false
+      senderType: 'admin',
+      message
     };
-
-    studentAdminChats[studentId].push(chatMessage);
+    const chatMessage = await messageService.sendMessage(payload);
 
     // Emit real-time notification via Socket.IO
-    if (global.io) {
-      global.io.to(`student_${studentId}`).emit('new-admin-message', {
+    if (req.io) {
+      req.io.to(`user_${studentId}`).emit('new-admin-message', {
         message: chatMessage.message,
         senderType: senderType || 'admin',
         timestamp: chatMessage.timestamp
       });
 
       // Notify admin of message
-      global.io.to('admin_001').emit('new-student-message', {
+      req.io.to('admin_001').emit('new-student-message', {
         studentId,
         studentName: studentName || 'Unknown Student',
         message,
@@ -173,9 +102,9 @@ router.post('/messages/send', (req, res) => {
 });
 
 // POST: Student sends message to admin
-router.post('/messages/student-send', (req, res) => {
+router.post('/messages/student-send', async (req, res) => {
   try {
-    const { studentId, studentName, message } = req.body;
+    const { studentId, message } = req.body;
 
     if (!studentId || !message) {
       return res.status(400).json({
@@ -183,28 +112,18 @@ router.post('/messages/student-send', (req, res) => {
         message: 'studentId and message are required'
       });
     }
-
-    // Initialize chat if doesn't exist
-    if (!studentAdminChats[studentId]) {
-      studentAdminChats[studentId] = [];
-    }
-
-    const chatMessage = {
-      id: `msg_${Date.now()}`,
+    
+    const payload = {
       studentId,
-      studentName: studentName || 'Unknown Student',
       senderId: studentId,
       senderType: 'student',
-      message,
-      timestamp: new Date().toISOString(),
-      read: false
+      message
     };
-
-    studentAdminChats[studentId].push(chatMessage);
+    const chatMessage = await messageService.sendMessage(payload);
 
     // Emit real-time notification via Socket.IO
-    if (global.io) {
-      global.io.to('admin_001').emit('new-student-message', {
+    if (req.io) {
+      req.io.to('admin_001').emit('new-student-message', {
         studentId,
         studentName: studentName || 'Unknown Student',
         message,
@@ -463,25 +382,10 @@ router.post('/data/export', (req, res) => {
 });
 
 // GET: Student communication statistics
-router.get('/communication/stats', (req, res) => {
+router.get('/communication/stats', async (req, res) => {
   try {
-    const stats = {
-      totalStudents: Object.keys(studentAdminChats).length,
-      totalMessages: Object.values(studentAdminChats).reduce((sum, msgs) => sum + msgs.length, 0),
-      unreadMessages: Object.values(studentAdminChats).reduce((sum, msgs) => 
-        sum + msgs.filter(m => !m.read && m.senderType === 'student').length, 0
-      ),
-      averageMessagesPerStudent: Math.round(
-        Object.values(studentAdminChats).reduce((sum, msgs) => sum + msgs.length, 0) / 
-        Object.keys(studentAdminChats).length
-      ),
-      lastUpdated: new Date().toISOString()
-    };
-
-    res.json({
-      success: true,
-      stats
-    });
+    const stats = await messageService.getCommunicationStats();
+    res.json({ success: true, stats });
   } catch (error) {
     console.error('Error fetching communication stats:', error);
     res.status(500).json({

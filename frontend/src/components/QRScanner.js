@@ -1,12 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import api from '../api/axiosConfig';
+import { useAuth } from '../context/AuthContext';
 
 // Props:
 // - classId: id of the class
 // - sessionId: id of the session
 // - onSuccess: optional callback after a successful scan
 export default function QRScanner({ classId, sessionId, onSuccess }) {
+  const { user } = useAuth();
   const containerRef = useRef(null);
   const qrScannerRef = useRef(null);
 
@@ -40,7 +42,7 @@ export default function QRScanner({ classId, sessionId, onSuccess }) {
 
             // Build body to POST to backend
             const body = {
-              studentId: payload.studentId || payload.userId || null,
+              studentId: user?.id, // Use the logged-in user's ID
               qr_signature: payload.qr_signature || payload.signature || payload.sig || decodedText,
               latitude: null,
               longitude: null,
@@ -75,7 +77,7 @@ export default function QRScanner({ classId, sessionId, onSuccess }) {
         }).catch(() => {});
       }
     };
-  }, [classId, sessionId, onSuccess]);
+  }, [classId, sessionId, onSuccess, user]);
 
   return (
     <div>

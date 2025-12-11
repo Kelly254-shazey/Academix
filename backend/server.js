@@ -3,7 +3,10 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
 const socketIo = require('socket.io');
-const db = require('./database');  // Import database connection
+const db = require('./database');
+const logger = require('./utils/logger');
+const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware');
+
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
 const attendanceRoutes = require('./routes/attendance');
@@ -20,20 +23,24 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: process.env.FRONTEND_URL || '*',
+    methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
-// Make io accessible to routes
-global.io = io;
-
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Socket.IO middleware
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Routes
 app.use('/auth', authRoutes);
@@ -48,56 +55,38 @@ app.use('/admin', adminRoutes);
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ message: 'ClassTrack AI Backend is running' });
+  res.json({ message: 'ClassTrack AI Backend is running', status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log(`✅ New client connected: ${socket.id}`);
+  logger.info(`New client connected: ${socket.id}`);
 
-  // User joins their notification room
   socket.on('join-user-room', (userId) => {
     socket.join(`user_${userId}`);
-    console.log(`👤 User ${userId} joined their notification room (Socket: ${socket.id})`);
-    
-    // Emit connection confirmation
-    socket.emit('connection-confirmed', {
-      success: true,
-      userId,
-      socketId: socket.id,
-      message: 'Connected to real-time notifications'
-    });
+    logger.info(`User ${userId} joined notification room`, { socketId: socket.id });
+    socket.emit('connection-confirmed', { success: true, userId, socketId: socket.id });
   });
 
-  // Student joins course notification room
   socket.on('join-course-room', (courseId) => {
     socket.join(`course_${courseId}`);
-    console.log(`📚 Client joined course ${courseId} room (Socket: ${socket.id})`);
+    logger.info(`Client joined course ${courseId}`, { socketId: socket.id });
   });
 
-  // Listen for notifications
   socket.on('send-notification', (data) => {
-    console.log('📬 Notification event received:', data);
+    logger.info('Notification event', data);
     io.emit('notification-update', data);
   });
 
   socket.on('disconnect', () => {
-    console.log(`❌ Client disconnected: ${socket.id}`);
+    logger.info(`Client disconnected: ${socket.id}`);
   });
 });
 
-// Try to listen on localhost (127.0.0.1) first; if port is taken, exit with error
-// Windows System process may block 0.0.0.0:5000, but localhost binding often works
-const listener = server.listen(PORT, '127.0.0.1', () => {
-  console.log(`✅ Server running on http://127.0.0.1:${PORT}`);
-});
+// Error handling and 404
+app.use(notFoundHandler);
+app.use(errorHandler);
 
-listener.on('error', (err) => {
-  if (err.code === 'EACCES' && PORT === 5000) {
-    console.error(`❌ Port ${PORT} is reserved by system (PID 4). Try PORT=5001 or check Windows services.`);
-    console.error(`Hint: Run "netstat -ano | findstr :${PORT}" to see which process owns it.`);
-  } else {
-    console.error(`❌ Server error:`, err.message);
-  }
-  process.exit(1);
+server.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`, { env: process.env.NODE_ENV });
 });
