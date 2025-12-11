@@ -6,32 +6,20 @@ Write-Output "Stopping listeners on ports 3000 and 5000 (if any)"
 $ports = @(3000,5000)
 foreach ($p in $ports) {
     $conns = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue
-    if ($conns) {
-        foreach ($c in $conns) {
-            $pid = $c.OwningProcess
-            if ($pid -and (Get-Process -Id $pid -ErrorAction SilentlyContinue)) {
-                try {
-                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-                    Write-Output "Stopped PID $pid listening on port $p"
-                } catch {
-                    Write-Output ("Failed to stop PID {0}: {1}" -f $pid, $_)
-                }
-            }
-        }
+    foreach ($c in $conns) {
+        $pid = $c.OwningProcess
+        Write-Output "Stopping process with PID $pid on port $p"
+        Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
     }
 }
 
 Start-Sleep -Seconds 1
 
-# Start backend on port 5000
-Write-Output "Starting backend on port 5000"
-Push-Location "C:\Users\w\Academix\backend"
-Remove-Item Env:DB_USER -ErrorAction SilentlyContinue
-Remove-Item Env:DB_NAME -ErrorAction SilentlyContinue
-Remove-Item Env:DB_PASSWORD -ErrorAction SilentlyContinue
-$env:PORT = '5000'
-$backendProc = Start-Process -FilePath node -ArgumentList 'server.js' -WorkingDirectory (Get-Location) -PassThru
-Write-Output "Backend launched (PID $($backendProc.Id))"
+# Start backend and frontend using concurrently
+Write-Output "Starting backend and frontend via 'npm start'"
+Push-Location "C:\Users\w\Academix"
+$mainProc = Start-Process -FilePath "npm" -ArgumentList "start" -PassThru
+Write-Output "Launched main process (PID $($mainProc.Id))"
 
 # wait for backend to respond
 $up=false
@@ -43,25 +31,18 @@ for ($i=0; $i -lt 20; $i++) {
         Start-Sleep -Seconds 1
     }
 }
-if (-not $up) { Write-Output "Backend did not respond on port 5000"; Pop-Location; exit 1 }
+if (-not $up) { Write-Output "Backend did not respond on port 5000"; exit 1 }
 Write-Output "Backend is responding on port 5000"
-
-Pop-Location
-
-# Start frontend on port 3000
-Write-Output "Starting frontend on port 3000"
-Push-Location "C:\Users\w\Academix\frontend"
-# Use cmd to set PORT then run npm start in new window (detached)
-$cmd = "set PORT=3000 && npm start"
-$frontendProc = Start-Process -FilePath cmd -ArgumentList '/c', $cmd -WorkingDirectory (Get-Location) -PassThru
-Write-Output "Frontend launcher started (PID $($frontendProc.Id))"
 
 # wait for frontend
 $frontendUp = $false
 for ($i=0; $i -lt 30; $i++) {
     try {
         $resp = Invoke-WebRequest -Uri http://localhost:3000 -UseBasicParsing -TimeoutSec 2
-        if ($resp.StatusCode -eq 200) { $frontendUp = $true; break }
+        if ($resp.StatusCode -eq 200) {
+            $frontendUp = $true
+            break
+        }
     } catch {
         Start-Sleep -Seconds 1
     }
@@ -69,7 +50,6 @@ for ($i=0; $i -lt 30; $i++) {
 if ($frontendUp) { Write-Output "Frontend is responding on port 3000" } else { Write-Output "Frontend did not respond on port 3000 (it may have started on a different port)" }
 
 Pop-Location
-
 # Run API tests
 Write-Output "Running API tests against http://localhost:5000"
 try {
@@ -111,14 +91,26 @@ try {
 
 Write-Output "API tests completed successfully"
 
-# Attempt to push to GitHub
+# Stage, commit, and push changes to GitHub
 Push-Location "C:\Users\w\Academix"
-Write-Output "Attempting git push origin main"
+
+$gitStatus = git status --porcelain
+if ($gitStatus) {
+    Write-Output "Changes detected. Staging and committing..."
+    git add .
+    $commitMessage = "Automated commit by run_all.ps1 on $(Get-Date)"
+    git commit -m $commitMessage
+} else {
+    Write-Output "No local changes to commit."
+}
+
+Write-Output "Attempting to push to origin main..."
 try {
     $pushOutput = git push origin main 2>&1
     Write-Output $pushOutput
 } catch {
     Write-Output ("git push failed: {0}" -f $_)
+    exit 1
 }
 Pop-Location
 

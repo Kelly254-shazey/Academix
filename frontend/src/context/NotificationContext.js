@@ -18,6 +18,7 @@ export const NotificationProvider = ({ children }) => {
   const [lecturerNotifications, setLecturerNotifications] = useState([]);
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 
   // Initialize Socket.IO connection
   useEffect(() => {

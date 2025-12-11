@@ -11,6 +11,7 @@ function AdminMessaging() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const messagesEndRef = useRef(null);
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
