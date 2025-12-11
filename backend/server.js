@@ -30,6 +30,8 @@ const lecturerRoutes = require('./routes/lecturer');
 const classControlRoutes = require('./routes/classControl');
 const lecturerQRRoutes = require('./routes/lecturerQR');
 const rosterRoutes = require('./routes/roster');
+// Admin Dashboard Routes
+const adminDashboardRoutes = require('./routes/adminDashboard');
 
 dotenv.config();
 
@@ -84,6 +86,9 @@ app.use('/api/lecturer', lecturerRoutes);
 app.use('/api/classes', classControlRoutes);
 app.use('/api/classes', lecturerQRRoutes);
 app.use('/api/classes', rosterRoutes);
+
+// Admin Dashboard Routes
+app.use('/api/admin', adminDashboardRoutes);
 
 // Health check
 app.get('/', (req, res) => {
@@ -252,6 +257,107 @@ io.on('connection', (socket) => {
       timestamp: new Date(),
     });
     logger.info(`Alert created for lecturer ${lecturerId}`);
+  });
+
+  // Admin Dashboard Events
+  socket.on('admin-join-dashboard', (data) => {
+    const { adminId } = data;
+    socket.join(`admin_${adminId}`);
+    socket.join('admin-dashboard');
+    logger.info(`Admin ${adminId} joined dashboard`, { socketId: socket.id });
+  });
+
+  socket.on('broadcast-notification', (data) => {
+    const { broadcastId, targetType, message, priority } = data;
+    if (targetType === 'all') {
+      io.emit('new-broadcast', {
+        broadcastId,
+        message,
+        priority,
+        timestamp: new Date(),
+      });
+    } else {
+      io.to('admin-dashboard').emit('new-broadcast', {
+        broadcastId,
+        message,
+        priority,
+        timestamp: new Date(),
+      });
+    }
+    logger.info(`Broadcast ${broadcastId} sent with priority ${priority}`);
+  });
+
+  socket.on('admin-action-logged', (data) => {
+    const { action, resourceType, severity } = data;
+    io.to('admin-dashboard').emit('audit-update', {
+      action,
+      resourceType,
+      severity,
+      timestamp: new Date(),
+    });
+    logger.info(`Admin action logged: ${action} on ${resourceType}`);
+  });
+
+  socket.on('department-updated', (data) => {
+    const { departmentId, departmentName } = data;
+    io.to('admin-dashboard').emit('department-updated', {
+      departmentId,
+      departmentName,
+      message: `Department ${departmentName} updated`,
+      timestamp: new Date(),
+    });
+    logger.info(`Department ${departmentId} updated notification`);
+  });
+
+  socket.on('student-flagged', (data) => {
+    const { studentId, studentName, flagType, severity } = data;
+    io.to('admin-dashboard').emit('student-flagged', {
+      studentId,
+      studentName,
+      flagType,
+      severity,
+      message: `Student ${studentName} flagged as ${flagType}`,
+      timestamp: new Date(),
+    });
+    logger.info(`Student ${studentId} flagged as ${flagType} (${severity})`);
+  });
+
+  socket.on('export-job-started', (data) => {
+    const { jobId, exportType, format } = data;
+    io.to('admin-dashboard').emit('export-job-progress', {
+      jobId,
+      status: 'started',
+      exportType,
+      format,
+      progress: 0,
+      timestamp: new Date(),
+    });
+    logger.info(`Export job ${jobId} started (${exportType} as ${format})`);
+  });
+
+  socket.on('export-job-completed', (data) => {
+    const { jobId, exportType, format, fileSize } = data;
+    io.to('admin-dashboard').emit('export-job-progress', {
+      jobId,
+      status: 'completed',
+      exportType,
+      format,
+      progress: 100,
+      fileSize,
+      timestamp: new Date(),
+    });
+    logger.info(`Export job ${jobId} completed`);
+  });
+
+  socket.on('system-alert', (data) => {
+    const { alertType, severity, message } = data;
+    io.to('admin-dashboard').emit('system-alert', {
+      alertType,
+      severity,
+      message,
+      timestamp: new Date(),
+    });
+    logger.info(`System alert: ${alertType} (${severity})`);
   });
 
   // Generic notification
