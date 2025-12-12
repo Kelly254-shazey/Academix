@@ -8,7 +8,6 @@ function Analytics() {
   const [loading, setLoading] = useState(true);
   const [selectedView, setSelectedView] = useState('overview');
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [courseData, setCourseData] = useState([]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -23,11 +22,6 @@ function Analytics() {
       if (response.ok) {
         const data = await response.json();
         setAnalyticsData(data);
-        if (data.courses && Array.isArray(data.courses)) {
-          setCourseData(data.courses);
-        } else {
-          setCourseData([]);
-        }
         setLastUpdated(new Date());
       }
     } catch (error) {

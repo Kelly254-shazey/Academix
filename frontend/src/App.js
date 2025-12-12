@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// StudentDashboard imported below once
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -14,7 +16,10 @@ import QRGenerator from './pages/QRGenerator';
 import NotificationPortal from './pages/NotificationPortal';
 import NotificationCenter from './pages/NotificationCenter';
 import AdminDashboard from './pages/AdminDashboard';
+import InstitutionAdminDashboard from './pages/admin/Dashboard';
 import Analytics from './pages/Analytics';
+import StudentDashboard from './pages/student/Dashboard';
+import LecturerDashboard from './pages/lecturer/Dashboard';
 import MissedLectureForm from './pages/MissedLectureForm';
 import AttendanceAnalysis from './pages/AttendanceAnalysis';
 import AdminMessaging from './pages/AdminMessaging';
@@ -49,7 +54,11 @@ function AppContent() {
             path="/"
             element={
               <ProtectedRoute>
-                <Dashboard user={user} />
+                {/* Route users to their role-specific dashboard */}
+                {user?.role === 'student' && <StudentDashboard />}
+                {user?.role === 'lecturer' && <LecturerDashboard />}
+                {(user?.role === 'admin' || user?.role === 'hod' || user?.role === 'superadmin') && <AdminDashboard />}
+                {!['student','lecturer','admin','hod','superadmin'].includes(user?.role) && <Dashboard user={user} />}
               </ProtectedRoute>
             }
           />
@@ -112,8 +121,16 @@ function AppContent() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={["hod","admin","superadmin"]}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-institution"
+            element={
+              <ProtectedRoute roles={["admin","superadmin"]}>
+                <InstitutionAdminDashboard />
               </ProtectedRoute>
             }
           />
@@ -122,6 +139,22 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student-dashboard"
+            element={
+              <ProtectedRoute roles={["student","admin","lecturer","hod","superadmin"]}>
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lecturer-dashboard"
+            element={
+              <ProtectedRoute roles={["lecturer","admin","hod","superadmin"]}>
+                <LecturerDashboard />
               </ProtectedRoute>
             }
           />
@@ -167,11 +200,14 @@ function AppContent() {
 }
 
 function App() {
+  const qc = new QueryClient();
   return (
     <Router>
       <AuthProvider>
         <NotificationProvider>
-          <AppContent />
+          <QueryClientProvider client={qc}>
+            <AppContent />
+          </QueryClientProvider>
         </NotificationProvider>
       </AuthProvider>
     </Router>

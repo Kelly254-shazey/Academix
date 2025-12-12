@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './AdminMessaging.css';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function AdminMessaging() {
   const { user } = useAuth();
@@ -11,7 +13,7 @@ function AdminMessaging() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ totalStudents: 0, totalMessages: 0, unreadMessages: 0 });
   const messagesEndRef = useRef(null);
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -21,6 +23,62 @@ function AdminMessaging() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Define fetch functions with stable identities
+  const fetchConversations = useCallback(async () => {
+    try {
+      if (user?.role !== 'admin') return;
+      const response = await fetch(`${API_URL}/admin/messages/all`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (data.success) setConversations(data.conversations || []);
+      else console.warn('Conversations fetch returned success: false');
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      setConversations([]);
+    }
+  }, [user]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/admin/communication/stats`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (data.success && data.stats) setStats(data.stats);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      setStats(null);
+    }
+  }, []);
+
+  const loadMessages = useCallback(async (studentId) => {
+    try {
+      setLoading(true);
+      if (!studentId) {
+        setMessages([]);
+        return;
+      }
+      const response = await fetch(`${API_URL}/admin/messages/student/${studentId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (data.success) setMessages(data.messages || []);
+      else setMessages([]);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setMessages([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Fetch conversations on load
   useEffect(() => {
@@ -33,86 +91,8 @@ function AdminMessaging() {
       // Initialize empty chat with admin for student
       loadMessages(user.id);
     }
-  }, [user]);
+  }, [user, fetchConversations, fetchStats, loadMessages]);
 
-  const fetchConversations = async () => {
-    try {
-      if (user?.role !== 'admin') return;
-      const response = await fetch(`${apiUrl}/admin/messages/all`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setConversations(data.conversations || []);
-      } else {
-        console.warn('Conversations fetch returned success: false');
-      }
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-      setConversations([]);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch(`${apiUrl}/admin/communication/stats`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.stats) {
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      setStats(null);
-    }
-  };
-
-  const loadMessages = async (studentId) => {
-    try {
-      setLoading(true);
-      if (!studentId) {
-        setMessages([]);
-        return;
-      }
-      
-      const response = await fetch(`${apiUrl}/admin/messages/student/${studentId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessages(data.messages || []);
-      } else {
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-      setMessages([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSelectStudent = (conversation) => {
     setSelectedStudent({
@@ -152,8 +132,7 @@ function AdminMessaging() {
         return;
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

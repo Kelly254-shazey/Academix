@@ -219,6 +219,18 @@
   font-weight: 500;
 }
 
+/* Improve touch targets and focus for accessibility */
+.mobile-menu-item, .dropdown-item, .nav-link, .user-button, .hamburger-menu, .mobile-menu-close {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-link:focus, .mobile-menu-item:focus, .dropdown-item:focus, .user-button:focus, .hamburger-menu:focus {
+  outline: 3px solid rgba(102,126,234,0.25);
+  outline-offset: 2px;
+}
+
 .mobile-menu-item:hover {
   background: rgba(255, 255, 255, 0.1);
   padding-left: 20px;
@@ -489,6 +501,8 @@
   .mobile-menu {
     display: block;
     top: 55px;
+    min-height: calc(100vh - 55px);
+    padding-bottom: 20px;
   }
 
   .user-avatar {

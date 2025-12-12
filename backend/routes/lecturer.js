@@ -12,7 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const lecturerService = require('../services/lecturerService');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
   lecturerOverviewSchema,
   lecturerStatsSchema,
@@ -35,7 +35,7 @@ const isLecturer = (req, res, next) => {
  * GET /api/lecturer/overview
  * Get lecturer dashboard overview
  */
-router.get('/overview', authMiddleware, isLecturer, async (req, res) => {
+router.get('/overview', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -59,7 +59,7 @@ router.get('/overview', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/today-classes
  * Get all classes for today
  */
-router.get('/today-classes', authMiddleware, isLecturer, async (req, res) => {
+router.get('/today-classes', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -84,7 +84,7 @@ router.get('/today-classes', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/next-class
  * Get next upcoming class with time remaining
  */
-router.get('/next-class', authMiddleware, isLecturer, async (req, res) => {
+router.get('/next-class', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -108,7 +108,7 @@ router.get('/next-class', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/stats
  * Get quick attendance statistics
  */
-router.get('/stats', authMiddleware, isLecturer, async (req, res) => {
+router.get('/stats', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -132,7 +132,7 @@ router.get('/stats', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/statistics
  * Get detailed statistics for date range
  */
-router.get('/statistics', authMiddleware, isLecturer, async (req, res) => {
+router.get('/statistics', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { startDate, endDate } = req.query;
@@ -169,7 +169,7 @@ router.get('/statistics', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/alerts
  * Get lecturer alerts (unread)
  */
-router.get('/alerts', authMiddleware, isLecturer, async (req, res) => {
+router.get('/alerts', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const limit = parseInt(req.query.limit) || 20;
@@ -195,7 +195,7 @@ router.get('/alerts', authMiddleware, isLecturer, async (req, res) => {
  * POST /api/lecturer/alerts/acknowledge
  * Mark alerts as read
  */
-router.post('/alerts/acknowledge', authMiddleware, isLecturer, async (req, res) => {
+router.post('/alerts/acknowledge', authenticateToken, isLecturer, async (req, res) => {
   try {
     const { error, value } = alertAcknowledgeSchema.validate(req.body);
 
@@ -234,7 +234,7 @@ router.post('/alerts/acknowledge', authMiddleware, isLecturer, async (req, res) 
  * GET /api/lecturer/profile
  * Get lecturer profile information
  */
-router.get('/profile', authMiddleware, isLecturer, async (req, res) => {
+router.get('/profile', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 

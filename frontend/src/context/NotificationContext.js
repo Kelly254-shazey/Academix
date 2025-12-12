@@ -4,6 +4,8 @@ import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -18,14 +20,10 @@ export const NotificationProvider = ({ children }) => {
   const [lecturerNotifications, setLecturerNotifications] = useState([]);
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
-
   // Initialize Socket.IO connection
   useEffect(() => {
     if (!user) return;
-
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002';
-    const wsUrl = apiUrl.replace(/^http/, 'ws');
+    const wsUrl = API_URL.replace(/^http/, 'ws');
     const newSocket = io(wsUrl, {
       reconnection: true,
       reconnectionDelay: 1000,
@@ -82,7 +80,7 @@ export const NotificationProvider = ({ children }) => {
 
     const fetchNotifications = async () => {
       try {
-        const response = await fetch(`${apiUrl}/notifications/user/${user.id}`);
+        const response = await fetch(`${API_URL}/notifications/user/${user.id}`);
         const data = await response.json();
         if (data.success) {
           setNotifications(data.notifications);
@@ -123,7 +121,7 @@ export const NotificationProvider = ({ children }) => {
 
     // Update on backend
     if (user) {
-      fetch(`${apiUrl}/notifications/${id}/read`, {
+      fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -136,7 +134,7 @@ export const NotificationProvider = ({ children }) => {
 
     // Delete from backend
     if (user) {
-      fetch(`${apiUrl}/notifications/${id}`, {
+      fetch(`${API_URL}/notifications/${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -154,7 +152,7 @@ export const NotificationProvider = ({ children }) => {
 
   const sendNotificationToStudents = useCallback(async (notification) => {
     try {
-      const response = await fetch(`${apiUrl}/notifications/send`, {
+      const response = await fetch(`${API_URL}/notifications/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

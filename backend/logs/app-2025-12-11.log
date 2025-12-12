@@ -34,3 +34,35 @@
 [INFO] 2025-12-11T13:36:57.970Z - User 6 joined notification room {"socketId":"8xwayq-Jl_IYu31sAAAP"}
 [INFO] 2025-12-11T13:36:57.972Z - Client joined course general {"socketId":"8xwayq-Jl_IYu31sAAAP"}
 [INFO] 2025-12-11T14:27:52.910Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-11T16:57:49.527Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-11T21:57:33.616Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-11T21:58:35.173Z - New client connected: ZA3FGfDosFQKglwXAAAB {}
+[INFO] 2025-12-11T21:58:35.178Z - User 6 joined notification room {"socketId":"ZA3FGfDosFQKglwXAAAB"}
+[INFO] 2025-12-11T21:58:35.182Z - Client joined course general {"socketId":"ZA3FGfDosFQKglwXAAAB"}
+[INFO] 2025-12-11T21:58:35.458Z - New client connected: WDQOX5kPkklFshRkAAAD {}
+[INFO] 2025-12-11T21:58:35.464Z - User 6 joined notification room {"socketId":"WDQOX5kPkklFshRkAAAD"}
+[INFO] 2025-12-11T21:58:35.467Z - Client joined course general {"socketId":"WDQOX5kPkklFshRkAAAD"}
+[INFO] 2025-12-11T21:59:10.408Z - Client disconnected: ZA3FGfDosFQKglwXAAAB {}
+[INFO] 2025-12-11T21:59:10.706Z - New client connected: SPYa4wIH9Y00jrVKAAAF {}
+[INFO] 2025-12-11T21:59:10.710Z - User 6 joined notification room {"socketId":"SPYa4wIH9Y00jrVKAAAF"}
+[INFO] 2025-12-11T21:59:10.714Z - Client joined course general {"socketId":"SPYa4wIH9Y00jrVKAAAF"}
+[INFO] 2025-12-11T21:59:15.382Z - Client disconnected: SPYa4wIH9Y00jrVKAAAF {}
+[INFO] 2025-12-11T21:59:15.676Z - New client connected: YOckcZwRUC9lIQZ-AAAH {}
+[INFO] 2025-12-11T21:59:15.686Z - User 6 joined notification room {"socketId":"YOckcZwRUC9lIQZ-AAAH"}
+[INFO] 2025-12-11T21:59:15.690Z - Client joined course general {"socketId":"YOckcZwRUC9lIQZ-AAAH"}
+[INFO] 2025-12-11T22:04:27.867Z - New client connected: DV2T1pMvSaJj-ypbAAAJ {}
+[INFO] 2025-12-11T22:04:27.875Z - User 8 joined notification room {"socketId":"DV2T1pMvSaJj-ypbAAAJ"}
+[INFO] 2025-12-11T22:04:27.879Z - Client joined course general {"socketId":"DV2T1pMvSaJj-ypbAAAJ"}
+[INFO] 2025-12-11T22:13:59.740Z - Client disconnected: DV2T1pMvSaJj-ypbAAAJ {}
+[INFO] 2025-12-11T22:14:00.762Z - New client connected: u00mjrAsuoZIE5vpAAAL {}
+[INFO] 2025-12-11T22:14:00.770Z - User 8 joined notification room {"socketId":"u00mjrAsuoZIE5vpAAAL"}
+[INFO] 2025-12-11T22:14:00.781Z - Client joined course general {"socketId":"u00mjrAsuoZIE5vpAAAL"}
+[INFO] 2025-12-11T22:25:08.954Z - Client disconnected: WDQOX5kPkklFshRkAAAD {}
+[INFO] 2025-12-11T22:25:13.244Z - Client disconnected: YOckcZwRUC9lIQZ-AAAH {}
+[INFO] 2025-12-11T23:15:34.603Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-11T23:17:40.562Z - New client connected: sOA1MOMTxBh9iXJOAAAB {}
+[INFO] 2025-12-11T23:17:40.568Z - User 6 joined notification room {"socketId":"sOA1MOMTxBh9iXJOAAAB"}
+[INFO] 2025-12-11T23:17:40.570Z - Client joined course general {"socketId":"sOA1MOMTxBh9iXJOAAAB"}
+[INFO] 2025-12-11T23:34:03.060Z - Client disconnected: sOA1MOMTxBh9iXJOAAAB {}
+[INFO] 2025-12-11T23:49:10.941Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-11T23:59:30.403Z - Server running on port 5002 {"env":"development"}

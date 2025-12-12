@@ -12,7 +12,7 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const qrGenerationService = require('../services/qrGenerationService');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
   lecturerQRCheckinSchema,
   qrGenerationSchema,
@@ -35,7 +35,7 @@ const isLecturer = (req, res, next) => {
  * POST /api/lecturer/checkin
  * Lecturer QR check-in for authentication
  */
-router.post('/checkin', authMiddleware, isLecturer, async (req, res) => {
+router.post('/checkin', authenticateToken, isLecturer, async (req, res) => {
   try {
     const { error, value } = lecturerQRCheckinSchema.validate(req.body);
 
@@ -107,7 +107,7 @@ router.post('/checkin', authMiddleware, isLecturer, async (req, res) => {
  */
 router.post(
   '/:classId/sessions/:sessionId/qr',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -166,7 +166,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/qr/rotate',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -208,7 +208,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/qr/validate',
-  authMiddleware,
+  authenticateToken,
   async (req, res) => {
     try {
       const { error, value } = qrValidationSchema.validate({
@@ -259,7 +259,7 @@ router.post(
  */
 router.get(
   '/:classId/sessions/:sessionId/qr',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -298,7 +298,7 @@ router.get(
  */
 router.get(
   '/:classId/sessions/:sessionId/qr/history',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {

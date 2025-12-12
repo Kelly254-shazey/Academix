@@ -125,34 +125,34 @@ function DataManagement() {
     }
   };
 
-  const handleDeleteStudent = async (studentId) => {
-    if (!window.confirm('Are you sure you want to delete this student record? This action cannot be undone.')) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/admin/data/student/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId, reason: 'Admin deletion' })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setMessage('✅ Student record deleted successfully');
-        fetchAuditLog();
-        setTimeout(() => setMessage(''), 3000);
-      } else {
-        setMessage('❌ Failed to delete record');
-      }
-    } catch (error) {
-      console.error('Error deleting student:', error);
-      setMessage('❌ Error: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // handleDeleteStudent feature disabled - not exposed in UI yet
+  // Uncomment when ready to implement student deletion UI
+  // const handleDeleteStudent = async (studentId) => {
+  //   if (!window.confirm('Are you sure you want to delete this student record? This action cannot be undone.')) {
+  //     return;
+  //   }
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch(`${API_URL}/admin/data/student/delete`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ studentId, reason: 'Admin deletion' })
+  //     });
+  //     const data = await response.json();
+  //     if (data.success) {
+  //       setMessage('✅ Student record deleted successfully');
+  //       fetchAuditLog();
+  //       setTimeout(() => setMessage(''), 3000);
+  //     } else {
+  //       setMessage('❌ Failed to delete record');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error deleting student:', error);
+  //     setMessage('❌ Error: ' + error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleExportData = async () => {
     if (selectedRecords.length === 0) {

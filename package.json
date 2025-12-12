@@ -8,8 +8,8 @@
   },
   "scripts": {
     "start": "concurrently \"npm:start-backend\" \"npm:start-frontend\"",
-    "start-backend": "cd backend && cross-env PORT=5000 npm start",
-    "start-frontend": "cd frontend && cross-env PORT=3000 npm start",
+    "start-backend": "cd backend && npm start",
+    "start-frontend": "cd frontend && npm start",
     "cy:run": "cypress run"
   }
 }

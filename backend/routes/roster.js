@@ -15,7 +15,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const rosterService = require('../services/rosterService');
 const attendanceVerificationService = require('../services/attendanceVerificationService');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
   markAttendanceSchema,
   bulkMarkAttendanceSchema,
@@ -42,7 +42,7 @@ const isLecturer = (req, res, next) => {
  */
 router.get(
   '/:classId/sessions/:sessionId/roster',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -75,7 +75,7 @@ router.get(
  */
 router.get(
   '/:classId/sessions/:sessionId/roster/summary',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -107,7 +107,7 @@ router.get(
  */
 router.post(
   '/:classId/sessions/:sessionId/roster/mark',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -149,6 +149,30 @@ router.post(
         deviceFingerprint
       );
 
+      // Emit real-time socket event
+      const io = global.io;
+      if (io && result.success) {
+        io.to(`session_${sessionId}`).emit('attendance-marked', {
+          sessionId,
+          classId,
+          studentId,
+          status,
+          timestamp: new Date().toISOString(),
+          markedBy: lecturerId,
+          reason,
+          notes
+        });
+
+        io.to(`class_${classId}`).emit('roster-updated', {
+          classId,
+          sessionId,
+          updateType: 'single-mark',
+          studentId,
+          status,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       res.status(200).json({
         success: result.success,
         message: 'Attendance marked successfully',
@@ -171,7 +195,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/roster/bulk-mark',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -207,6 +231,29 @@ router.post(
         deviceFingerprint
       );
 
+      // Emit real-time socket events for bulk marking
+      const io = global.io;
+      if (io && result.success) {
+        // Notify all clients in the session
+        io.to(`session_${sessionId}`).emit('bulk-attendance-marked', {
+          sessionId,
+          classId,
+          markingsCount: markings.length,
+          timestamp: new Date().toISOString(),
+          markedBy: lecturerId,
+          markings: markings.map(m => ({ studentId: m.studentId, status: m.status }))
+        });
+
+        // Notify all in class room
+        io.to(`class_${classId}`).emit('roster-updated', {
+          classId,
+          sessionId,
+          updateType: 'bulk-mark',
+          markingsCount: markings.length,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       res.status(200).json({
         success: result.success,
         message: 'Bulk marking completed',
@@ -229,7 +276,7 @@ router.post(
  */
 router.get(
   '/:classId/roster/at-risk',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -263,7 +310,7 @@ router.get(
  */
 router.get(
   '/:classId/roster/student/:studentId/history',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -297,7 +344,7 @@ router.get(
  */
 router.post(
   '/:classId/sessions/:sessionId/attendance/verify',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {
@@ -361,7 +408,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/attendance/unverify',
-  authMiddleware,
+  authenticateToken,
   isLecturer,
   async (req, res) => {
     try {

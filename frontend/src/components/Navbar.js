@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -27,8 +27,20 @@ function Navbar({ user, unreadMessages }) {
     setShowMobileMenu(false);
   };
 
+  // Close menus on Escape for accessibility
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowMobileMenu(false);
+        setShowDropdown(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
-    <nav className="navbar">
+    <nav className="navbar" role="navigation" aria-label="Main navigation">
       <div className="navbar-container">
         <div className="navbar-logo">
           <Link to="/">
@@ -39,7 +51,7 @@ function Navbar({ user, unreadMessages }) {
 
         <ul className="nav-menu">
           <li className="nav-item">
-            <Link to="/" className={`nav-link ${isActive('/')}`}>
+            <Link to="/" className={`nav-link ${isActive('/')}`} aria-current={isActive('/') ? 'page' : undefined}>
               <span className="nav-icon">🏠</span>
               Dashboard
             </Link>
@@ -143,9 +155,12 @@ function Navbar({ user, unreadMessages }) {
           </div>
 
           <button 
+            type="button"
             className="hamburger-menu"
             onClick={() => setShowMobileMenu(!showMobileMenu)}
             aria-label="Toggle menu"
+            aria-expanded={showMobileMenu}
+            aria-controls="mobile-menu"
           >
             <span className={`hamburger-line ${showMobileMenu ? 'active' : ''}`}></span>
             <span className={`hamburger-line ${showMobileMenu ? 'active' : ''}`}></span>
@@ -154,6 +169,10 @@ function Navbar({ user, unreadMessages }) {
 
           <div className="user-menu">
             <button 
+              type="button"
+              aria-haspopup="true"
+              aria-expanded={showDropdown}
+              aria-controls="user-dropdown"
               className="user-button"
               onClick={() => setShowDropdown(!showDropdown)}
             >
@@ -163,14 +182,14 @@ function Navbar({ user, unreadMessages }) {
             </button>
 
             {showDropdown && (
-              <div className="dropdown-menu">
+              <div id="user-dropdown" className="dropdown-menu" role="menu">
                 <div className="dropdown-header">
                   <span className="role-badge">{user.role.toUpperCase()}</span>
                 </div>
-                <Link to="/profile" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                <Link to="/profile" className="dropdown-item" role="menuitem" onClick={() => setShowDropdown(false)}>
                   👤 Profile
                 </Link>
-                <Link to="/" className="dropdown-item" onClick={() => setShowDropdown(false)}>
+                <Link to="/" className="dropdown-item" role="menuitem" onClick={() => setShowDropdown(false)}>
                   ⚙️ Settings
                 </Link>
                 <div className="dropdown-divider"></div>
@@ -183,10 +202,11 @@ function Navbar({ user, unreadMessages }) {
         </div>
 
         {showMobileMenu && (
-          <div className="mobile-menu">
+          <nav id="mobile-menu" className="mobile-menu" role="dialog" aria-modal="true">
             <div className="mobile-menu-header">
               <h3>Menu</h3>
               <button 
+                type="button"
                 className="mobile-menu-close"
                 onClick={closeMobileMenu}
                 aria-label="Close menu"
@@ -204,7 +224,7 @@ function Navbar({ user, unreadMessages }) {
                 🚪 Logout
               </button>
             </div>
-          </div>
+          </nav>
         )}
       </div>
     </nav>

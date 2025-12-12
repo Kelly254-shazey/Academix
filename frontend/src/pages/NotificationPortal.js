@@ -59,7 +59,7 @@ function NotificationPortal() {
           return;
         }
 
-        const response = await sendNotificationToStudents({
+        await sendNotificationToStudents({
           type: 'class-start',
           title: `${selectedCourse} Starting Soon`,
           message: formData.message,
@@ -87,7 +87,7 @@ function NotificationPortal() {
           return;
         }
 
-        const response = await sendNotificationToStudents({
+        await sendNotificationToStudents({
           type: 'missing-class',
           title: `⚠️ Attendance Issue: ${formData.studentName}`,
           message: formData.message,

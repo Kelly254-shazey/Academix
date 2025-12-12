@@ -161,6 +161,29 @@ router.post('/scan', (req, res) => {
     session.studentScans.push(scan);
     session.scansCount += 1;
 
+    // Emit real-time socket events to connected clients
+    const io = global.io;
+    if (io) {
+      // Notify lecturer in the same course room
+      io.to(`course_${session.courseId || sessionId}`).emit('student-scanned', {
+        sessionId: session.id,
+        studentId,
+        studentName: studentName || 'Unknown',
+        scannedAt: scan.scannedAt,
+        scansCount: session.scansCount,
+        maxScans: session.maxScans
+      });
+
+      // Notify all users in session room
+      io.to(`session_${sessionId}`).emit('attendance-updated', {
+        sessionId,
+        type: 'qr-scan',
+        student: { id: studentId, name: studentName || 'Unknown' },
+        timestamp: scan.scannedAt,
+        totalAttended: session.scansCount
+      });
+    }
+
     res.json({
       success: true,
       message: 'Attendance marked successfully',
@@ -195,6 +218,22 @@ router.post('/sessions/:id/end', (req, res) => {
 
     session.status = 'ended';
     session.endedAt = new Date().toISOString();
+
+    // Emit socket event when session ends
+    const io = global.io;
+    if (io) {
+      io.to(`session_${req.params.id}`).emit('session-ended', {
+        sessionId: req.params.id,
+        endedAt: session.endedAt,
+        totalAttendees: session.scansCount,
+        finalReport: {
+          courseName: session.courseName,
+          lectureId: session.lectureId,
+          totalScans: session.scansCount,
+          maxScans: session.maxScans
+        }
+      });
+    }
 
     res.json({
       success: true,
