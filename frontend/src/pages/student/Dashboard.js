@@ -10,11 +10,6 @@ import AIInsightsPanel from '../../components/student/AIInsightsPanel';
 const sampleCourses = [];
 const sampleClasses = [];
 
-const sampleClasses = [
-  { id:1, name: 'Data Structures', time: '10:00 AM', room: 'A101', lecturer: 'Dr. Smith', status: 'upcoming' },
-  { id:2, name: 'Web Dev', time: '11:30 AM', room: 'B205', lecturer: 'Prof. Johnson', status: 'ongoing' }
-];
-
 export default function StudentDashboard(){
   const [attendanceData] = useState(82);
   

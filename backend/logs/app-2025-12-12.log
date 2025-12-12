@@ -122,3 +122,5 @@
 [INFO] 2025-12-12T13:26:51.614Z - New client connected: gJwgO7GGsvdBTvAcAAAB {}
 [INFO] 2025-12-12T13:26:51.641Z - User 6 joined notification room {"socketId":"gJwgO7GGsvdBTvAcAAAB"}
 [INFO] 2025-12-12T13:26:51.665Z - Client joined course general {"socketId":"gJwgO7GGsvdBTvAcAAAB"}
+[INFO] 2025-12-12T13:54:14.594Z - Server running on port 3001 {"env":"development"}
+[INFO] 2025-12-12T13:55:43.464Z - Server running on port 5002 {"env":"development"}
