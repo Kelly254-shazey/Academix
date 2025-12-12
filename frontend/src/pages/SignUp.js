@@ -129,34 +129,13 @@ function SignUp() {
           <div className="form-group">
             <label htmlFor="role">Account Type</label>
             <div className="role-selector">
-              <button
-                type="button"
-                className={`role-button ${formData.role === 'student' ? 'active' : ''}`}
-                onClick={() => setFormData(prev => ({ ...prev, role: 'student' }))}
-                disabled={isLoading}
-              >
+              <div className="role-button active" aria-hidden>
                 <span className="role-icon">👨‍🎓</span>
                 <span className="role-label">Student</span>
-              </button>
-              <button
-                type="button"
-                className={`role-button ${formData.role === 'lecturer' ? 'active' : ''}`}
-                onClick={() => setFormData(prev => ({ ...prev, role: 'lecturer' }))}
-                disabled={isLoading}
-              >
-                <span className="role-icon">👨‍🏫</span>
-                <span className="role-label">Lecturer</span>
-              </button>
-              <button
-                type="button"
-                className={`role-button ${formData.role === 'admin' ? 'active' : ''}`}
-                onClick={() => setFormData(prev => ({ ...prev, role: 'admin' }))}
-                disabled={isLoading}
-              >
-                <span className="role-icon">👨‍💼</span>
-                <span className="role-label">Admin</span>
-              </button>
+              </div>
+              <input type="hidden" name="role" value="student" />
             </div>
+            <small className="muted">Only student accounts can be created here. Lecturer and admin accounts are provisioned by the institution.</small>
           </div>
 
           <div className="form-group">
@@ -200,20 +179,7 @@ function SignUp() {
             </div>
           )}
 
-          {formData.role === 'lecturer' && (
-            <div className="form-group">
-              <label htmlFor="subject">Subject/Department</label>
-              <input
-                type="text"
-                id="subject"
-                name="subject"
-                value={formData.subject}
-                onChange={handleChange}
-                placeholder="e.g., Computer Science, Mathematics"
-                disabled={isLoading}
-              />
-            </div>
-          )}
+          {/* Lecturer/admin fields are intentionally not shown; signups create student accounts only */}
 
           <div className="form-group">
             <label htmlFor="department">Department</label>

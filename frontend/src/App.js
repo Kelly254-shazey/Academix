@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
-import Dashboard from './pages/Dashboard';
 import Messages from './pages/Messages';
 import Attendance from './pages/Attendance';
 import Profile from './pages/Profile';
@@ -26,10 +25,32 @@ import AdminMessaging from './pages/AdminMessaging';
 import DataManagement from './pages/DataManagement';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import StudentPortal from './portals/StudentPortal';
+import LecturerPortal from './portals/LecturerPortal';
+import AdminPortal from './portals/AdminPortal';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
   const [unreadMessages, setUnreadMessages] = React.useState(3);
+
+  // Map various role strings into a canonical portal group
+  const getRoleGroup = (role) => {
+    if (!role) return null;
+    const r = String(role).toLowerCase();
+    if (r.includes('student') || r.includes('learner') || r.includes('pupil')) return 'student';
+    if (r.includes('lecturer') || r.includes('teacher') || r.includes('instructor')) return 'lecturer';
+    if (r.includes('admin') || r.includes('hod') || r.includes('super') || r.includes('manager')) return 'admin';
+    return null;
+  };
+
+  const RoleRedirect = () => {
+    const group = getRoleGroup(user?.role);
+    if (!group) {
+      // Default to student portal when role is not explicitly recognized
+      return <Navigate to={`/portal/student`} replace />;
+    }
+    return <Navigate to={`/portal/${group}`} replace />;
+  };
 
   if (isLoading) {
     return (
@@ -54,18 +75,14 @@ function AppContent() {
             path="/"
             element={
               <ProtectedRoute>
-                {/* Route users to their role-specific dashboard */}
-                {user?.role === 'student' && <StudentDashboard />}
-                {user?.role === 'lecturer' && <LecturerDashboard />}
-                {(user?.role === 'admin' || user?.role === 'hod' || user?.role === 'superadmin') && <AdminDashboard />}
-                {!['student','lecturer','admin','hod','superadmin'].includes(user?.role) && <Dashboard user={user} />}
+                <RoleRedirect />
               </ProtectedRoute>
             }
           />
           <Route
             path="/qr-scanner"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={["student"]}>
                 <QRScanner />
               </ProtectedRoute>
             }
@@ -78,6 +95,22 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+          <Route path="/portal">
+            <Route path="student" element={<ProtectedRoute roles={["student"]}><StudentPortal /></ProtectedRoute>}>
+              <Route index element={<StudentDashboard />} />
+              <Route path="attendance" element={<ProtectedRoute roles={["student"]}><Attendance user={user} /></ProtectedRoute>} />
+              <Route path="messages" element={<ProtectedRoute roles={["student"]}><Messages user={user} setUnreadMessages={() => {}} /></ProtectedRoute>} />
+            </Route>
+
+            <Route path="lecturer" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal /></ProtectedRoute>}>
+              <Route index element={<LecturerDashboard />} />
+            </Route>
+
+            <Route path="admin" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal /></ProtectedRoute>}>
+              <Route index element={<AdminDashboard />} />
+            </Route>
+          </Route>
+
           <Route
             path="/attendance"
             element={
@@ -121,9 +154,7 @@ function AppContent() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute roles={["hod","admin","superadmin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
+              <Navigate to="/portal/admin" replace />
             }
           />
           <Route
@@ -145,17 +176,13 @@ function AppContent() {
           <Route
             path="/student-dashboard"
             element={
-              <ProtectedRoute roles={["student","admin","lecturer","hod","superadmin"]}>
-                <StudentDashboard />
-              </ProtectedRoute>
+              <Navigate to="/portal/student" replace />
             }
           />
           <Route
             path="/lecturer-dashboard"
             element={
-              <ProtectedRoute roles={["lecturer","admin","hod","superadmin"]}>
-                <LecturerDashboard />
-              </ProtectedRoute>
+              <Navigate to="/portal/lecturer" replace />
             }
           />
           <Route

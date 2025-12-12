@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './Attendance.css';
 import QRScanner from '../components/QRScanner';
@@ -11,34 +11,51 @@ function Attendance() {
   const [classId, setClassId] = useState('1');
   const [sessionId, setSessionId] = useState('1');
 
-  const attendanceData = {
-    today: [
-      { id: 1, class: 'Data Structures', time: '10:00 AM', status: 'Present', duration: '1h 30m' },
-      { id: 2, class: 'Web Development', time: '11:30 AM', status: 'Present', duration: '1h 45m' },
-      { id: 3, class: 'AI & ML', time: '2:00 PM', status: 'Pending', duration: '-' }
-    ],
-    week: [
-      { date: 'Monday', present: 4, absent: 0, late: 1, total: 5, percentage: 80 },
-      { date: 'Tuesday', present: 5, absent: 0, late: 0, total: 5, percentage: 100 },
-      { date: 'Wednesday', present: 4, absent: 1, late: 0, total: 5, percentage: 80 },
-      { date: 'Thursday', present: 5, absent: 0, late: 0, total: 5, percentage: 100 },
-      { date: 'Friday', present: 4, absent: 0, late: 1, total: 5, percentage: 80 }
-    ],
-    month: [
-      { week: 'Week 1', present: 22, absent: 2, late: 1, total: 25, percentage: 88 },
-      { week: 'Week 2', present: 24, absent: 0, late: 1, total: 25, percentage: 96 },
-      { week: 'Week 3', present: 23, absent: 1, late: 1, total: 25, percentage: 92 },
-      { week: 'Week 4', present: 24, absent: 0, late: 1, total: 25, percentage: 96 }
-    ]
-  };
+  const [attendanceToday, setAttendanceToday] = useState([]);
+  const [attendanceWeek, setAttendanceWeek] = useState([]);
+  const [attendanceMonth, setAttendanceMonth] = useState([]);
+  const [overallStats, setOverallStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const overallStats = {
-    percentage: 91.5,
-    present: 93,
-    absent: 3,
-    late: 4,
-    total: 100
-  };
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
+  useEffect(() => {
+    let mounted = true;
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+    const fetchData = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        // Fetch today's scheduled classes (used to list today's entries)
+        const schedRes = await fetch(`${API_URL}/schedule/today`, { headers });
+        const schedJson = schedRes.ok ? await schedRes.json() : null;
+        const todayClasses = schedJson?.data || [];
+
+        // Fetch overall attendance analytics
+        const attendanceRes = await fetch(`${API_URL}/attendance-analytics/overall`, { headers });
+        const attendanceJson = attendanceRes.ok ? await attendanceRes.json() : null;
+        const overall = attendanceJson?.data?.overall ?? null;
+
+        if (!mounted) return;
+        setAttendanceToday(todayClasses);
+        setOverallStats(overall);
+        // week/month breakdowns may not be available from backend; set empty arrays for now
+        setAttendanceWeek([]);
+        setAttendanceMonth([]);
+      } catch (err) {
+        console.error('Error loading attendance:', err);
+        if (mounted) setError('Failed to load attendance data');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => { mounted = false; };
+  }, [user, API_URL]);
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -60,6 +77,8 @@ function Attendance() {
         <p>Track your class attendance and statistics</p>
       </div>
 
+      {error && <div className="error-alert" style={{margin: '12px 0'}}>{error}</div>}
+
       <div className="overall-stats">
         <div className="stat-box large">
           <div className="stat-label">Overall Attendance</div>
@@ -67,11 +86,11 @@ function Attendance() {
             <svg viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="45" className="circle-bg" />
               <circle cx="50" cy="50" r="45" className="circle-fill" 
-                style={{strokeDasharray: `${overallStats.percentage * 2.83} 283`}} />
+                style={{strokeDasharray: `${(overallStats?.percentage || 0) * 2.83} 283`}} />
             </svg>
             <div className="circle-text">
-              <div className="percentage">{overallStats.percentage}%</div>
-              <div className="label">Excellent</div>
+              <div className="percentage">{overallStats?.percentage ?? 0}%</div>
+              <div className="label">{overallStats ? 'Current' : 'No data'}</div>
             </div>
           </div>
         </div>
@@ -125,23 +144,26 @@ function Attendance() {
       </div>
 
       <div className="attendance-content">
-        {activeTab === 'today' && (
+        {loading && <div className="card"><p>Loading attendance...</p></div>}
+
+        {activeTab === 'today' && !loading && (
           <div className="card">
             <h2>Today's Classes</h2>
             <div className="attendance-list">
-              {attendanceData.today.map((item) => (
-                <div key={item.id} className="attendance-item">
+              {attendanceToday.length === 0 && <div className="muted">No classes found for today.</div>}
+              {attendanceToday.map((item, idx) => (
+                <div key={item.id || idx} className="attendance-item">
                   <div className="item-left">
-                    <h3>{item.class}</h3>
-                    <p>🕐 {item.time}</p>
+                    <h3>{item.course_name || item.class_name || item.name || 'Class'}</h3>
+                    <p>🕐 {item.start_time || item.time || '—'}</p>
                   </div>
                   <div className="item-middle">
-                    <span className={`status-badge ${getStatusColor(item.status)}`}>
-                      {item.status}
+                    <span className={`status-badge ${getStatusColor(item.status || item.attendance_status || 'Pending')}`}>
+                      {item.status || item.attendance_status || 'Pending'}
                     </span>
                   </div>
                   <div className="item-right">
-                    <p>{item.duration}</p>
+                    <p>{item.duration || item.length || '-'}</p>
                   </div>
                 </div>
               ))}
@@ -153,7 +175,8 @@ function Attendance() {
           <div className="card">
             <h2>Weekly Attendance</h2>
             <div className="weekly-stats">
-              {attendanceData.week.map((day, idx) => (
+              {attendanceWeek.length === 0 && <div className="muted">Weekly attendance data not available.</div>}
+              {attendanceWeek.map((day, idx) => (
                 <div key={idx} className="day-stat">
                   <div className="day-header">{day.date}</div>
                   <div className="day-bar">
@@ -199,7 +222,8 @@ function Attendance() {
           <div className="card">
             <h2>Monthly Attendance</h2>
             <div className="monthly-stats">
-              {attendanceData.month.map((week, idx) => (
+              {attendanceMonth.length === 0 && <div className="muted">Monthly attendance data not available.</div>}
+              {attendanceMonth.map((week, idx) => (
                 <div key={idx} className="week-stat">
                   <div className="week-header">
                     <span>{week.week}</span>

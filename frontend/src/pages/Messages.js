@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './Messages.css';
 
@@ -6,57 +6,47 @@ function Messages({ setUnreadMessages }) {
   const { user } = useAuth();
   const [selectedChat, setSelectedChat] = useState(null);
   const [messageText, setMessageText] = useState('');
-  const [conversations, setConversations] = useState([
-    {
-      id: 1,
-      name: 'Dr. Smith',
-      avatar: '👨‍🏫',
-      lastMessage: 'Great work on the assignment!',
-      time: '2 mins ago',
-      unread: true,
-      messages: [
-        { id: 1, sender: 'Dr. Smith', text: 'Hi, how are you doing?', time: '10:30 AM', own: false },
-        { id: 2, sender: user.name, text: 'I\'m doing well, thanks for asking!', time: '10:35 AM', own: true },
-        { id: 3, sender: 'Dr. Smith', text: 'Great work on the assignment!', time: '2 mins ago', own: false }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Prof. Johnson',
-      avatar: '👩‍🏫',
-      lastMessage: 'See you in class tomorrow',
-      time: '1 hour ago',
-      unread: true,
-      messages: [
-        { id: 1, sender: 'Prof. Johnson', text: 'Don\'t forget the homework!', time: '1 hour ago', own: false }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Study Group',
-      avatar: '👥',
-      lastMessage: 'Meet at library tomorrow',
-      time: '3 hours ago',
-      unread: true,
-      messages: [
-        { id: 1, sender: 'Alex', text: 'Let\'s meet at the library', time: '3 hours ago', own: false }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Dr. Patel',
-      avatar: '👨‍💼',
-      lastMessage: 'Your project looks great',
-      time: '1 day ago',
-      unread: false,
-      messages: [
-        { id: 1, sender: 'Dr. Patel', text: 'Your project looks great', time: '1 day ago', own: false }
-      ]
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
+  const fetchConversations = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch(`${API_URL}/messages?userId=${user.id}`, { headers });
+      if (!res.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
+      const data = await res.json();
+      // Expect an array of conversations
+      setConversations(data.conversations || data || []);
+    } catch (err) {
+      console.error('Error loading conversations:', err);
+      setConversations([]);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }, [user, API_URL]);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   const handleSelectChat = (chat) => {
     setSelectedChat(chat);
+    // Mark as read on backend if supported
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+        await fetch(`${API_URL}/messages/${chat.id}/mark-read`, { method: 'PUT', headers });
+      } catch (err) {
+        // ignore
+      }
+    })();
     if (chat.unread) {
       setConversations(conversations.map(c => 
         c.id === chat.id ? { ...c, unread: false } : c
@@ -67,31 +57,39 @@ function Messages({ setUnreadMessages }) {
   };
 
   const handleSendMessage = () => {
-    if (messageText.trim() && selectedChat) {
-      const updatedConversations = conversations.map(conv => {
-        if (conv.id === selectedChat.id) {
-          return {
-            ...conv,
-            messages: [
-              ...conv.messages,
-              {
-                id: conv.messages.length + 1,
-                sender: user.name,
-                text: messageText,
-                time: 'now',
-                own: true
-              }
-            ],
-            lastMessage: messageText
-          };
+    if (!messageText.trim() || !selectedChat) return;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+        const res = await fetch(`${API_URL}/messages/send`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ to: selectedChat.id, text: messageText })
+        });
+        if (!res.ok) throw new Error('Send failed');
+        const data = await res.json();
+        // If backend returns updated conversation, replace it; otherwise append locally
+        if (data.conversation) {
+          setConversations(prev => prev.map(c => c.id === data.conversation.id ? data.conversation : c));
+          setSelectedChat(data.conversation);
+        } else {
+          setConversations(prev => prev.map(conv => {
+            if (conv.id === selectedChat.id) {
+              const msgs = conv.messages ? [...conv.messages] : [];
+              msgs.push({ id: msgs.length + 1, sender: user.name, text: messageText, time: 'now', own: true });
+              return { ...conv, messages: msgs, lastMessage: messageText };
+            }
+            return conv;
+          }));
+          setSelectedChat(prev => ({ ...prev, messages: [...(prev.messages||[]), { id: (prev.messages||[]).length+1, sender: user.name, text: messageText, time: 'now', own: true }], lastMessage: messageText }));
         }
-        return conv;
-      });
-      
-      setConversations(updatedConversations);
-      setSelectedChat(updatedConversations.find(c => c.id === selectedChat.id));
-      setMessageText('');
-    }
+        setMessageText('');
+      } catch (err) {
+        console.error('Send message error:', err);
+      }
+    })();
+    
   };
 
   const unreadCount = conversations.filter(c => c.unread).length;
@@ -107,19 +105,21 @@ function Messages({ setUnreadMessages }) {
           <input type="text" placeholder="Search conversations..." />
         </div>
         <div className="conversations-list">
-          {conversations.map((conv) => (
+          {loading && <div className="muted">Loading conversations...</div>}
+          {!loading && conversations.length === 0 && <div className="muted">No conversations yet.</div>}
+          {!loading && conversations.map((conv) => (
             <div
               key={conv.id}
               className={`conversation-item ${selectedChat?.id === conv.id ? 'active' : ''} ${conv.unread ? 'unread' : ''}`}
               onClick={() => handleSelectChat(conv)}
             >
-              <div className="conv-avatar">{conv.avatar}</div>
+              <div className="conv-avatar">{conv.avatar || conv.name?.charAt(0) || '👤'}</div>
               <div className="conv-info">
-                <h3>{conv.name}</h3>
-                <p>{conv.lastMessage}</p>
+                <h3>{conv.name || conv.title || `Conversation ${conv.id}`}</h3>
+                <p>{conv.lastMessage || ''}</p>
               </div>
               <div className="conv-meta">
-                <span className="conv-time">{conv.time}</span>
+                <span className="conv-time">{conv.time || ''}</span>
                 {conv.unread && <div className="conv-dot"></div>}
               </div>
             </div>

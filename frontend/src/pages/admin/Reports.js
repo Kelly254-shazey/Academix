@@ -6,14 +6,15 @@ const Reports = () => {
   const { data: insights } = useGetAIInsightsQuery();
   const { data: summary } = useGetDashboardSummaryQuery();
 
-  const attendanceData = {
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+  // Build chart data from backend summary when available
+  const attendanceData = summary?.attendanceWeekly ? {
+    labels: summary.attendanceWeekly.map(s => s.week || s.label),
     datasets: [{
       label: 'Attendance Rate',
-      data: [85, 90, 88, 92],
+      data: summary.attendanceWeekly.map(s => s.rate || s.percentage || 0),
       backgroundColor: 'rgba(75, 192, 192, 0.6)',
     }]
-  };
+  } : null;
 
   return (
     <div className="p-6">
@@ -22,7 +23,7 @@ const Reports = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border rounded p-4">
           <h2 className="font-semibold mb-2">Attendance Trends</h2>
-          <Bar data={attendanceData} />
+          {attendanceData ? <Bar data={attendanceData} /> : <p className="muted">Attendance trend data not available.</p>}
         </div>
         
         <div className="border rounded p-4">

@@ -150,7 +150,7 @@ export default function StudentDashboard(){
           <div className="space-y-4 md:space-y-6">
             <SchedulePanel classes={classes} />
             <QRCheckInPanel lastCheckIn={null} />
-            <AIInsightsPanel insights={null} />
+            <AIInsightsPanel />
             <NotificationsPanel notifications={notifications} />
           </div>
         </div>

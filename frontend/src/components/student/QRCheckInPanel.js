@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import useSocket from '../../hooks/useSocket';
 
 export default function QRCheckInPanel({ lastCheckIn }){
-  const socketRef = useSocket();
   const [open, setOpen] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  const openScanner = () => setOpen(true);
-  const closeScanner = () => setOpen(false);
+  const openScanner = () => { setOpen(true); setFeedback(null); };
+  const closeScanner = () => { setOpen(false); setFeedback(null); };
 
   // Real scanner is provided by the dedicated QR scanner page/component.
   // Remove development mock actions to avoid fake check-ins in production.

@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const authMiddleware = require('../middleware/auth');
 const adminService = require('../services/adminService');
 const departmentService = require('../services/departmentService');
 const lecturerManagementService = require('../services/lecturerManagementService');
@@ -15,7 +16,8 @@ const { validateRequest } = require('../middlewares/validation');
 const schemas = require('../validators/adminSchemas');
 const logger = require('../utils/logger');
 
-// Middleware: Require admin role for all routes
+// Middleware: Apply authentication first, then require admin role
+router.use(authMiddleware);
 router.use(requireAdminRole);
 
 /**

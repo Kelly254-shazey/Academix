@@ -147,3 +147,89 @@
 [INFO] 2025-12-12T14:11:07.561Z - User 6 joined notification room {"socketId":"waPWqFMN2FTYHAZ_AAAF"}
 [INFO] 2025-12-12T14:11:07.564Z - Client joined course general {"socketId":"waPWqFMN2FTYHAZ_AAAF"}
 [ERROR] 2025-12-12T14:13:10.499Z - [2025-12-12T14:13:10.499Z] 500 - Invalid email or password {"url":"/auth/login","method":"POST"}
+[INFO] 2025-12-12T14:25:09.299Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-12T14:25:09.436Z - New client connected: RcmjwNJqi26TT3-UAAAB {}
+[INFO] 2025-12-12T14:25:09.439Z - User 6 joined notification room {"socketId":"RcmjwNJqi26TT3-UAAAB"}
+[INFO] 2025-12-12T14:25:09.441Z - Client joined course general {"socketId":"RcmjwNJqi26TT3-UAAAB"}
+[INFO] 2025-12-12T14:25:13.466Z - New client connected: 6bGnbo7VXIWg8hR7AAAD {}
+[INFO] 2025-12-12T14:25:13.469Z - User 8 joined notification room {"socketId":"6bGnbo7VXIWg8hR7AAAD"}
+[INFO] 2025-12-12T14:25:13.471Z - Client joined course general {"socketId":"6bGnbo7VXIWg8hR7AAAD"}
+[INFO] 2025-12-12T14:25:23.657Z - New client connected: siShWfG5E3hD1KRKAAAF {}
+[INFO] 2025-12-12T14:25:23.664Z - User 6 joined notification room {"socketId":"siShWfG5E3hD1KRKAAAF"}
+[INFO] 2025-12-12T14:25:23.666Z - Client joined course general {"socketId":"siShWfG5E3hD1KRKAAAF"}
+[INFO] 2025-12-12T14:53:08.406Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-12T14:53:25.120Z - New client connected: 30NxKJd-mjr2ALgbAAAB {}
+[INFO] 2025-12-12T14:53:25.154Z - User 6 joined notification room {"socketId":"30NxKJd-mjr2ALgbAAAB"}
+[INFO] 2025-12-12T14:53:25.155Z - Client joined course general {"socketId":"30NxKJd-mjr2ALgbAAAB"}
+[INFO] 2025-12-12T14:54:26.823Z - Client disconnected: 30NxKJd-mjr2ALgbAAAB {}
+[INFO] 2025-12-12T14:55:21.142Z - New client connected: elo9Vu6tOcs6-xhWAAAD {}
+[INFO] 2025-12-12T14:55:21.144Z - User 15 joined notification room {"socketId":"elo9Vu6tOcs6-xhWAAAD"}
+[INFO] 2025-12-12T14:55:21.146Z - Client joined course general {"socketId":"elo9Vu6tOcs6-xhWAAAD"}
+[INFO] 2025-12-12T14:55:21.240Z - Client disconnected: elo9Vu6tOcs6-xhWAAAD {}
+[INFO] 2025-12-12T15:02:10.833Z - New client connected: TXtw3NPrmNzRSCC6AAAF {}
+[INFO] 2025-12-12T15:02:10.837Z - User 15 joined notification room {"socketId":"TXtw3NPrmNzRSCC6AAAF"}
+[INFO] 2025-12-12T15:02:10.838Z - Client joined course general {"socketId":"TXtw3NPrmNzRSCC6AAAF"}
+[INFO] 2025-12-12T15:02:10.899Z - Client disconnected: TXtw3NPrmNzRSCC6AAAF {}
+[INFO] 2025-12-12T15:02:16.957Z - New client connected: K_sduBu39V-oRHE9AAAH {}
+[INFO] 2025-12-12T15:02:16.960Z - User 15 joined notification room {"socketId":"K_sduBu39V-oRHE9AAAH"}
+[INFO] 2025-12-12T15:02:16.961Z - Client joined course general {"socketId":"K_sduBu39V-oRHE9AAAH"}
+[INFO] 2025-12-12T15:02:17.002Z - Client disconnected: K_sduBu39V-oRHE9AAAH {}
+[INFO] 2025-12-12T15:02:18.223Z - New client connected: QgVRD1JxLwrdWp_9AAAJ {}
+[INFO] 2025-12-12T15:02:18.227Z - User 15 joined notification room {"socketId":"QgVRD1JxLwrdWp_9AAAJ"}
+[INFO] 2025-12-12T15:02:18.229Z - Client joined course general {"socketId":"QgVRD1JxLwrdWp_9AAAJ"}
+[INFO] 2025-12-12T15:02:18.265Z - Client disconnected: QgVRD1JxLwrdWp_9AAAJ {}
+[INFO] 2025-12-12T15:02:18.460Z - New client connected: OKNDp08ev7QaW88WAAAL {}
+[INFO] 2025-12-12T15:02:18.463Z - User 15 joined notification room {"socketId":"OKNDp08ev7QaW88WAAAL"}
+[INFO] 2025-12-12T15:02:18.465Z - Client joined course general {"socketId":"OKNDp08ev7QaW88WAAAL"}
+[INFO] 2025-12-12T15:02:18.504Z - Client disconnected: OKNDp08ev7QaW88WAAAL {}
+[INFO] 2025-12-12T15:02:18.628Z - New client connected: nlnlSWKvUQyjVbzFAAAN {}
+[INFO] 2025-12-12T15:02:18.630Z - User 15 joined notification room {"socketId":"nlnlSWKvUQyjVbzFAAAN"}
+[INFO] 2025-12-12T15:02:18.632Z - Client joined course general {"socketId":"nlnlSWKvUQyjVbzFAAAN"}
+[INFO] 2025-12-12T15:02:18.682Z - Client disconnected: nlnlSWKvUQyjVbzFAAAN {}
+[INFO] 2025-12-12T15:02:19.232Z - New client connected: OanTSFTTxYh0HtgQAAAP {}
+[INFO] 2025-12-12T15:02:19.237Z - User 15 joined notification room {"socketId":"OanTSFTTxYh0HtgQAAAP"}
+[INFO] 2025-12-12T15:02:19.239Z - Client joined course general {"socketId":"OanTSFTTxYh0HtgQAAAP"}
+[INFO] 2025-12-12T15:02:19.278Z - Client disconnected: OanTSFTTxYh0HtgQAAAP {}
+[INFO] 2025-12-12T15:02:19.811Z - New client connected: wHecQwAV6V_SvNBbAAAR {}
+[INFO] 2025-12-12T15:02:19.815Z - User 15 joined notification room {"socketId":"wHecQwAV6V_SvNBbAAAR"}
+[INFO] 2025-12-12T15:02:19.816Z - Client joined course general {"socketId":"wHecQwAV6V_SvNBbAAAR"}
+[INFO] 2025-12-12T15:02:19.846Z - Client disconnected: wHecQwAV6V_SvNBbAAAR {}
+[INFO] 2025-12-12T15:02:20.785Z - New client connected: didqn_IpqWXfyBpIAAAT {}
+[INFO] 2025-12-12T15:02:20.788Z - User 15 joined notification room {"socketId":"didqn_IpqWXfyBpIAAAT"}
+[INFO] 2025-12-12T15:02:20.790Z - Client joined course general {"socketId":"didqn_IpqWXfyBpIAAAT"}
+[INFO] 2025-12-12T15:02:20.839Z - Client disconnected: didqn_IpqWXfyBpIAAAT {}
+[INFO] 2025-12-12T15:02:22.442Z - New client connected: SHgZV--y72zQYXriAAAV {}
+[INFO] 2025-12-12T15:02:22.444Z - User 15 joined notification room {"socketId":"SHgZV--y72zQYXriAAAV"}
+[INFO] 2025-12-12T15:02:22.446Z - Client joined course general {"socketId":"SHgZV--y72zQYXriAAAV"}
+[INFO] 2025-12-12T15:02:22.491Z - Client disconnected: SHgZV--y72zQYXriAAAV {}
+[INFO] 2025-12-12T15:03:20.464Z - New client connected: Nzvw2WE3zwx_oWg8AAAX {}
+[INFO] 2025-12-12T15:03:20.465Z - User 15 joined notification room {"socketId":"Nzvw2WE3zwx_oWg8AAAX"}
+[INFO] 2025-12-12T15:03:20.466Z - Client joined course general {"socketId":"Nzvw2WE3zwx_oWg8AAAX"}
+[INFO] 2025-12-12T15:03:20.509Z - Client disconnected: Nzvw2WE3zwx_oWg8AAAX {}
+[INFO] 2025-12-12T15:03:29.443Z - New client connected: pCrGCXd5t8ZFPhyrAAAZ {}
+[INFO] 2025-12-12T15:03:29.446Z - User 15 joined notification room {"socketId":"pCrGCXd5t8ZFPhyrAAAZ"}
+[INFO] 2025-12-12T15:03:29.448Z - Client joined course general {"socketId":"pCrGCXd5t8ZFPhyrAAAZ"}
+[INFO] 2025-12-12T15:03:29.526Z - Client disconnected: pCrGCXd5t8ZFPhyrAAAZ {}
+[INFO] 2025-12-12T15:03:36.480Z - New client connected: BHeb29uVoOL3FaIRAAAb {}
+[INFO] 2025-12-12T15:03:36.484Z - User 15 joined notification room {"socketId":"BHeb29uVoOL3FaIRAAAb"}
+[INFO] 2025-12-12T15:03:36.485Z - Client joined course general {"socketId":"BHeb29uVoOL3FaIRAAAb"}
+[INFO] 2025-12-12T15:22:42.226Z - Client disconnected: BHeb29uVoOL3FaIRAAAb {}
+[INFO] 2025-12-12T15:22:43.235Z - New client connected: 9z7HWgzOnC8Rth1FAAAd {}
+[INFO] 2025-12-12T15:22:43.239Z - User 15 joined notification room {"socketId":"9z7HWgzOnC8Rth1FAAAd"}
+[INFO] 2025-12-12T15:22:43.241Z - Client joined course general {"socketId":"9z7HWgzOnC8Rth1FAAAd"}
+[INFO] 2025-12-12T15:25:45.450Z - Client disconnected: 9z7HWgzOnC8Rth1FAAAd {}
+[INFO] 2025-12-12T15:25:49.415Z - New client connected: v2oFSK5JnUD0btWNAAAf {}
+[INFO] 2025-12-12T15:25:49.417Z - User 15 joined notification room {"socketId":"v2oFSK5JnUD0btWNAAAf"}
+[INFO] 2025-12-12T15:25:49.419Z - Client joined course general {"socketId":"v2oFSK5JnUD0btWNAAAf"}
+[INFO] 2025-12-12T15:25:56.561Z - Client disconnected: v2oFSK5JnUD0btWNAAAf {}
+[INFO] 2025-12-12T15:26:11.485Z - New client connected: adObXcD9O7WLnue9AAAh {}
+[INFO] 2025-12-12T15:26:11.486Z - User 15 joined notification room {"socketId":"adObXcD9O7WLnue9AAAh"}
+[INFO] 2025-12-12T15:26:11.490Z - Client joined course general {"socketId":"adObXcD9O7WLnue9AAAh"}
+[INFO] 2025-12-12T15:40:50.423Z - Client disconnected: adObXcD9O7WLnue9AAAh {}
+[INFO] 2025-12-12T15:40:54.497Z - New client connected: t925MaEX_uZFCl3gAAAj {}
+[INFO] 2025-12-12T15:40:54.508Z - User 15 joined notification room {"socketId":"t925MaEX_uZFCl3gAAAj"}
+[INFO] 2025-12-12T15:40:54.515Z - Client joined course general {"socketId":"t925MaEX_uZFCl3gAAAj"}
+[INFO] 2025-12-12T15:41:04.993Z - Client disconnected: t925MaEX_uZFCl3gAAAj {}
+[INFO] 2025-12-12T15:41:17.740Z - New client connected: oLB9gv35ufk-hbVnAAAl {}
+[INFO] 2025-12-12T15:41:17.744Z - User 15 joined notification room {"socketId":"oLB9gv35ufk-hbVnAAAl"}
+[INFO] 2025-12-12T15:41:17.745Z - Client joined course general {"socketId":"oLB9gv35ufk-hbVnAAAl"}
