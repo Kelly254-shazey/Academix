@@ -30,8 +30,8 @@ function QRGenerator() {
       }
     } catch (error) {
       console.warn('Could not fetch sessions from backend:', error);
-      // Use local demo data
-      setSessions(JSON.parse(localStorage.getItem('qrSessions') || '[]'));
+      // Sessions not available if backend is offline
+      setSessions([]);
     }
   };
 

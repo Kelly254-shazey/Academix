@@ -1,24 +1,91 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import AdminOverview from '../../components/admin/AdminOverview';
 import UserManagement from '../../components/admin/UserManagement';
 import DepartmentManagement from '../../components/admin/DepartmentManagement';
 import AnalyticsPanel from '../../components/admin/AnalyticsPanel';
 
-export default function AdminDashboard(){
-  const users = [{id:1,name:'Dr. Smith',role:'lecturer',department:'CS'}, {id:2,name:'Jane Doe',role:'HOD',department:'Math'}];
-  const depts = [{id:1,name:'Computer Science',hod:'Dr. Smith',lecturers:20,students:400}];
-  const analytics = [{name:'Dept A',value:80},{name:'Dept B',value:60}];
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 
+export default function AdminDashboard(){
+  const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [stats, setStats] = useState({ students: 0, lecturers: 0, departments: 0, courses: 0 });
+  const [analytics, setAnalytics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+        // Fetch admin overview stats
+        const overviewRes = await fetch(`${API_URL}/admin/overview`, { headers });
+        const overviewData = await overviewRes.json();
+        setStats(overviewData.data || {});
+
+        // Fetch lecturers list
+        const lecturersRes = await fetch(`${API_URL}/admin/lecturers`, { headers });
+        const lecturersData = await lecturersRes.json();
+        setUsers(lecturersData.data || []);
+
+        // Fetch departments list
+        const deptsRes = await fetch(`${API_URL}/admin/departments`, { headers });
+        const deptsData = await deptsRes.json();
+        setDepartments(deptsData.data || []);
+
+        // Prepare analytics data from departments
+        if (deptsData.data) {
+          setAnalytics(deptsData.data.slice(0, 5).map(d => ({
+            name: d.name,
+            value: d.students || 0
+          })));
+        }
+      } catch (err) {
+        console.error('Error fetching admin dashboard data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⏳</div>
+          <p className="text-gray-600">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-800 max-w-md">
+          <p className="font-bold mb-2">Error loading dashboard</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Admin Dashboard</h1>
       
-      <AdminOverview stats={{students:1240,lecturers:86,departments:12,courses:240}} />
+      <AdminOverview stats={stats} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <div className="md:col-span-2 lg:col-span-2 space-y-3 sm:space-y-4">
           <UserManagement users={users} />
-          <DepartmentManagement departments={depts} />
+          <DepartmentManagement departments={departments} />
         </div>
         <div className="space-y-3 sm:space-y-4">
           <AnalyticsPanel data={analytics} />

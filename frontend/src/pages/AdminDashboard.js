@@ -27,9 +27,12 @@ function AdminDashboard() {
   const fetchAllData = async () => {
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
       const [usersRes, analyticsRes] = await Promise.all([
-        fetch(`${apiUrl}/auth/demo-users`),
-        fetch(`${apiUrl}/feedback/analytics/realtime`)
+        fetch(`${apiUrl}/admin/students`, { headers }),
+        fetch(`${apiUrl}/feedback/analytics/realtime`, { headers })
       ]);
 
       if (usersRes.ok) {
@@ -178,7 +181,7 @@ function AdminDashboard() {
               <div className="overview-card">
                 <h3>Database</h3>
                 <p className="status-indicator">🟢 Connected</p>
-                <p className="status-text">In-memory database (Demo)</p>
+                <p className="status-text">MySQL Database</p>
               </div>
 
               <div className="overview-card">
@@ -303,7 +306,7 @@ function AdminDashboard() {
 
               <div className="setting-item">
                 <label>Database Type</label>
-                <input type="text" value="In-Memory (Demo)" readOnly />
+                <input type="text" value="MySQL" readOnly />
               </div>
 
               <div className="setting-item">
