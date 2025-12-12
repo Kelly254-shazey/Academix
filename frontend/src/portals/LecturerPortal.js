@@ -1,20 +1,72 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 
 export default function LecturerPortal(){
+  const location = useLocation();
+  const isHome = location.pathname === '/portal/lecturer';
+  const isClasses = location.pathname.includes('/classes');
+  const isMessages = location.pathname.includes('/messages');
+
+  const navItems = [
+    { path: '/portal/lecturer', label: 'Home', icon: '🏠' },
+    { path: '/portal/lecturer/classes', label: 'Classes', icon: '📚' },
+    { path: '/portal/lecturer/messages', label: 'Messages', icon: '💬' }
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Lecturer Portal</h2>
-          <div className="space-x-2">
-            <Link to="/portal/lecturer" className="text-sm text-indigo-600">Home</Link>
-            <Link to="/portal/lecturer/classes" className="text-sm text-indigo-600">Classes</Link>
-            <Link to="/portal/lecturer/messages" className="text-sm text-indigo-600">Messages</Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
+      {/* Header */}
+      <header className="bg-white shadow-md sticky top-0 z-40 border-b border-purple-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center text-white text-lg font-bold">👨‍🏫</div>
+              <h1 className="text-2xl font-bold text-gray-900">Lecturer Portal</h1>
+            </div>
+            <nav className="hidden md:flex space-x-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
+                    (item.path === '/portal/lecturer' && isHome) ||
+                    (item.label === 'Classes' && isClasses) ||
+                    (item.label === 'Messages' && isMessages)
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>{item.icon}</span>
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+          {/* Mobile nav */}
+          <div className="md:hidden flex space-x-2 mt-3 overflow-x-auto">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`px-3 py-1.5 rounded-lg transition-all text-sm whitespace-nowrap ${
+                  (item.path === '/portal/lecturer' && isHome) ||
+                  (item.label === 'Classes' && isClasses) ||
+                  (item.label === 'Messages' && isMessages)
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {item.icon} {item.label}
+              </Link>
+            ))}
           </div>
         </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-8">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 }
