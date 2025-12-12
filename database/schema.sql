@@ -287,18 +287,4 @@ CREATE TABLE active_sessions (
     INDEX idx_expires_at (expires_at)
 );
 
--- Sample Data (Optional, for quick testing)
--- Note: Hashed password for 'password123'
-INSERT INTO users (name, email, password_hash, role, student_id) VALUES ('John Student', 'student@university.edu', '$2a$10$k.wS.a.m4gL8i5J8i.gL8e.wS.a.m4gL8i5J8i.gL8e.wS.a.m4gL', 'student', 'STU001');
-INSERT INTO users (name, email, password_hash, role, employee_id) VALUES ('Jane Lecturer', 'lecturer@university.edu', '$2a$10$k.wS.a.m4gL8i5J8i.gL8e.wS.a.m4gL8i5J8i.gL8e.wS.a.m4gL', 'lecturer', 'EMP001');
-INSERT INTO users (name, email, password_hash, role, employee_id) VALUES ('Jack Admin', 'admin@university.edu', '$2a$10$k.wS.a.m4gL8i5J8i.gL8e.wS.a.m4gL8i5J8i.gL8e.wS.a.m4gL', 'admin', 'ADM001');
-
-INSERT INTO admin_messages (student_id, sender_id, sender_type, message, is_read) VALUES (1, '1', 'student', 'Hello Admin, I have a question about my attendance.', 0);
-INSERT INTO admin_messages (student_id, sender_id, sender_type, message, is_read) VALUES (1, '3', 'admin', 'Hi John, how can I help?', 1);
-
--- Insert sample badges
-INSERT INTO badges (name, description, icon_url, requirement_type, requirement_value) VALUES
-('Perfect Attendee', 'Achieved 100% attendance for a course', '/badges/perfect-attendee.png', 'perfect_attendance', 100),
-('Streak Master', 'Maintained a 10-day attendance streak', '/badges/streak-master.png', 'attendance_streak', 10),
-('Punctuality Pro', 'Never late for 30 consecutive classes', '/badges/punctuality.png', 'perfect_punctuality', 30),
-('Consistent Scholar', 'Completed entire semester with 90%+ attendance', '/badges/consistent.png', 'semester_attendance', 90);
+-- No sample INSERTs included. Load real seed data via controlled migrations or admin scripts.

@@ -67,16 +67,7 @@ function Login() {
     }
   };
 
-  const handleQuickLogin = (email, password) => {
-    setEmail(email);
-    setPassword(password);
-    
-    // Auto-submit after setting state
-    setTimeout(() => {
-      const form = document.querySelector('.auth-form');
-      if (form) form.dispatchEvent(new Event('submit'));
-    }, 100);
-  };
+  // Removed quick-login helper (demo credentials removed)
 
   return (
     <div className="auth-container">
@@ -131,61 +122,7 @@ function Login() {
           </button>
         </form>
 
-        <div className="auth-divider">
-          <span>OR</span>
-        </div>
-
-        <div className="demo-credentials">
-          <h4>📝 Demo Credentials - Quick Login:</h4>
-          
-          <div className="demo-role">
-            <div className="role-header">
-              <span className="role-badge">👨‍🎓 STUDENT</span>
-            </div>
-            <p className="role-details">student@university.edu</p>
-            <p className="role-details small">password123</p>
-            <button
-              type="button"
-              className="btn-demo"
-              onClick={() => handleQuickLogin('student@university.edu', 'password123')}
-              disabled={isLoading}
-            >
-              Login as Student
-            </button>
-          </div>
-
-          <div className="demo-role">
-            <div className="role-header">
-              <span className="role-badge">👨‍🏫 LECTURER</span>
-            </div>
-            <p className="role-details">lecturer@university.edu</p>
-            <p className="role-details small">password123</p>
-            <button
-              type="button"
-              className="btn-demo"
-              onClick={() => handleQuickLogin('lecturer@university.edu', 'password123')}
-              disabled={isLoading}
-            >
-              Login as Lecturer
-            </button>
-          </div>
-
-          <div className="demo-role">
-            <div className="role-header">
-              <span className="role-badge">👨‍💼 ADMIN</span>
-            </div>
-            <p className="role-details">admin@university.edu</p>
-            <p className="role-details small">password123</p>
-            <button
-              type="button"
-              className="btn-demo"
-              onClick={() => handleQuickLogin('admin@university.edu', 'password123')}
-              disabled={isLoading}
-            >
-              Login as Admin
-            </button>
-          </div>
-        </div>
+        {/* Removed demo credentials UI for production - use real accounts */}
 
         <div className="auth-footer">
           <p>Don't have an account? <Link to="/signup" className="auth-link">Sign up here</Link></p>

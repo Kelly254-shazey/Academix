@@ -6,72 +6,7 @@ const anonymousMessages = [];
 const attendanceRecords = {};
 const lectureSchedule = {};
 
-// Initialize sample data
-function initializeSampleData() {
-  // Sample anonymous messages
-  anonymousMessages.push(
-    {
-      id: 'msg_1',
-      lectureId: 'lec_001',
-      studentName: 'Anonymous Student',
-      courseName: 'Computer Science 101',
-      reason: 'Had a family emergency that day, unable to attend. Plan to catch up with lecture notes.',
-      timestamp: new Date(Date.now() - 86400000).toISOString(),
-      status: 'unread',
-      createdAt: new Date(Date.now() - 86400000).toISOString()
-    },
-    {
-      id: 'msg_2',
-      lectureId: 'lec_002',
-      studentName: 'Anonymous Student',
-      courseName: 'Advanced Mathematics',
-      reason: 'Was sick that morning, had fever and couldn\'t leave bed. Have medical excuse to provide.',
-      timestamp: new Date(Date.now() - 172800000).toISOString(),
-      status: 'reviewed',
-      adminNotes: 'Contact student to provide medical certificate',
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      reviewedAt: new Date(Date.now() - 86400000).toISOString()
-    },
-    {
-      id: 'msg_3',
-      lectureId: 'lec_003',
-      studentName: 'Anonymous Student',
-      courseName: 'Data Science',
-      reason: 'Transportation issue - bus was late and I missed the class time.',
-      timestamp: new Date(Date.now() - 259200000).toISOString(),
-      status: 'unread',
-      createdAt: new Date(Date.now() - 259200000).toISOString()
-    }
-  );
-
-  // Sample attendance records for multiple students
-  const sampleStudents = ['STU001', 'STU002', 'STU003', 'STU004', 'STU005', 'STU006'];
-  const courses = ['Computer Science 101', 'Advanced Mathematics', 'Data Science', 'Physics I'];
-  const statuses = ['present', 'absent', 'late', 'excused'];
-
-  sampleStudents.forEach((studentId, idx) => {
-    attendanceRecords[studentId] = [];
-    
-    // Generate 15 attendance records per student
-    for (let i = 0; i < 15; i++) {
-      const courseIdx = i % courses.length;
-      const statusIdx = idx === 0 ? (i % 2 === 0 ? 0 : 3) : (idx === 1 ? (i < 5 ? 1 : 0) : Math.floor(Math.random() * statuses.length));
-      
-      attendanceRecords[studentId].push({
-        id: `att_${studentId}_${i}`,
-        studentId,
-        lectureId: `lec_${String(i).padStart(3, '0')}`,
-        courseName: courses[courseIdx],
-        date: new Date(Date.now() - (15 - i) * 86400000).toISOString().split('T')[0],
-        status: statuses[statusIdx],
-        timestamp: new Date(Date.now() - (15 - i) * 86400000).toISOString()
-      });
-    }
-  });
-}
-
-// Initialize data on module load
-initializeSampleData();
+// No sample/demo data initialized by default. Data should be provided by the real system or migrations.
 
 // POST: Submit anonymous message about missed lecture
 router.post('/anonymous-message', (req, res) => {

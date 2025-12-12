@@ -81,19 +81,11 @@ class AIIntegrationService {
 
       conn.end();
 
-      // In production, would call actual ML microservice
-      // For now, return template response
-      const mockPrediction = {
-        jobId,
-        modelName,
-        prediction: 'pending',
-        confidence: 0.85,
-        timestamp: new Date(),
-      };
-
+      // ML microservice is not configured in this environment.
+      // Avoid returning fabricated predictions — surface explicit not-implemented response.
       return {
-        success: true,
-        data: mockPrediction,
+        success: false,
+        message: 'Prediction service not configured. Configure ML microservice to enable predictions.'
       };
     } catch (error) {
       logger.error('Error in getPrediction:', error);
@@ -309,19 +301,10 @@ class AIIntegrationService {
         records: history,
       };
 
-      // Would call ML microservice here
-      const prediction = {
-        jobId,
-        studentId,
-        predictionDays: daysAhead,
-        riskLevel: history.length < 5 ? 'high' : 'medium',
-        predictedAttendancePercent: 75,
-        confidence: 0.82,
-      };
-
+      // ML microservice not configured — do not return mock results.
       return {
-        success: true,
-        data: prediction,
+        success: false,
+        message: 'Attendance prediction service not configured in this environment.'
       };
     } catch (error) {
       logger.error('Error in predictStudentAttendance:', error);

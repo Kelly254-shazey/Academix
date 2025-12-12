@@ -98,31 +98,9 @@ export const AuthProvider = ({ children }) => {
         login(data.user);
         return data;
       } catch (backendError) {
-        // If backend fails, create user locally (demo mode)
-        console.warn('Backend registration failed, using demo mode:', backendError.message);
-        
-        const localUser = {
-          id: `${userData.role}_${Date.now()}`,
-          name: userData.name,
-          email: userData.email,
-          role: userData.role || 'student',
-          avatar: userData.avatar || '👨‍🎓',
-          department: userData.department || 'General',
-          studentId: userData.studentId,
-          subject: userData.subject,
-          enrolledCourses: [],
-          courses: [],
-          permissions: userData.role === 'admin' ? ['all'] : []
-        };
-
-        login(localUser);
-        
-        // Generate a demo token
-        const demoToken = 'demo_token_' + Date.now();
-        localStorage.setItem('token', demoToken);
-        setToken(demoToken);
-
-        return { user: localUser, token: demoToken };
+        // Backend registration failed — do not fall back to demo mode.
+        console.error('Backend registration failed:', backendError.message);
+        throw backendError;
       }
     } catch (error) {
       console.error('Signup error:', error);
