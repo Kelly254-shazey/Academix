@@ -84,7 +84,7 @@ export default function LecturerDashboard(){
             </div>
             <div className="space-y-3 sm:space-y-4">
               <LecturerControls onStart={()=>{}} onDelay={()=>{}} onCancel={()=>{}} onChangeRoom={()=>{}} />
-              <LecturerQRDisplay token={overview.sessionToken || 'LECT12345'} expiry={overview.sessionExpiry || '00:10:00'} onRotate={()=>{}} />
+              <LecturerQRDisplay token={overview.sessionToken} expiry={overview.sessionExpiry} onRotate={()=>{}} />
             </div>
           </div>
 

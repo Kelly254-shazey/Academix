@@ -7,11 +7,8 @@ import CourseList from '../../components/student/CourseList';
 import CalendarView from '../../components/student/CalendarView';
 import AIInsightsPanel from '../../components/student/AIInsightsPanel';
 
-const sampleCourses = [
-  { id:1, name: 'Data Structures', attended: 18, total: 20, percentage: 90 },
-  { id:2, name: 'Web Dev', attended: 14, total: 20, percentage: 70, risk: 'At Risk' },
-  { id:3, name: 'AI & ML', attended: 19, total: 20, percentage: 95 }
-];
+const sampleCourses = [];
+const sampleClasses = [];
 
 const sampleClasses = [
   { id:1, name: 'Data Structures', time: '10:00 AM', room: 'A101', lecturer: 'Dr. Smith', status: 'upcoming' },
@@ -64,7 +61,7 @@ export default function StudentDashboard(){
               </div>
               <div className="text-3xl opacity-30">📅</div>
             </div>
-            <p className="text-xs text-gray-500 mt-3">Next: Web Dev at 11:30 AM</p>
+            <p className="text-xs text-gray-500 mt-3">{sampleClasses.length > 0 ? `Next: ${sampleClasses[0].name} at ${sampleClasses[0].time}` : 'No upcoming classes'}</p>
           </div>
           
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow p-4 sm:p-6">
@@ -91,9 +88,9 @@ export default function StudentDashboard(){
           {/* Right Column - Sidebar */}
           <div className="space-y-4 md:space-y-6">
             <SchedulePanel classes={sampleClasses} />
-            <QRCheckInPanel lastCheckIn={'Today 09:55 AM'} />
-            <AIInsightsPanel insights={{ riskLevel: 'Medium', recommendation: 'Attend 2 extra classes this week', requiredClasses: 2 }} />
-            <NotificationsPanel notifications={[{id:1, title:'Lecture started', message:'Data Structures has started' }]} />
+            <QRCheckInPanel lastCheckIn={null} />
+            <AIInsightsPanel insights={null} />
+            <NotificationsPanel notifications={[]} />
           </div>
         </div>
       </div>

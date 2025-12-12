@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import QRCode from 'react-qr-code';
 
-export default function LecturerQRDisplay({ token='ABC123', expiry='00:15:00', onRotate }){
+export default function LecturerQRDisplay({ token, expiry, onRotate }){
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
+    if (!token) return;
     navigator.clipboard?.writeText(String(token));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -23,14 +24,18 @@ export default function LecturerQRDisplay({ token='ABC123', expiry='00:15:00', o
       {/* QR Display */}
       <div className="p-4 sm:p-5 md:p-6 flex flex-col items-center">
         {/* QR Code Box */}
-        <div className="p-3 sm:p-4 bg-white rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow mb-4 sm:mb-6">
-          <QRCode value={String(token)} size={180} level="H" includeMargin={true} />
+          <div className="p-3 sm:p-4 bg-white rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow mb-4 sm:mb-6">
+          {token ? (
+            <QRCode value={String(token)} size={180} level="H" includeMargin={true} />
+          ) : (
+            <div className="w-44 h-44 flex items-center justify-center text-gray-400">No active session</div>
+          )}
         </div>
 
         {/* Expiry Timer */}
         <div className="w-full bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-3 sm:p-4 border border-orange-200 mb-4">
           <p className="text-xs sm:text-sm text-gray-600 font-medium">⏱️ Session Expires In</p>
-          <p className="text-2xl sm:text-3xl font-bold text-orange-600 mt-1 font-mono">{expiry}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-orange-600 mt-1 font-mono">{expiry || '—'}</p>
           <div className="h-1 bg-gray-200 rounded-full mt-2 overflow-hidden">
             <div className="h-full w-3/4 bg-gradient-to-r from-orange-500 to-red-500 animate-pulse"></div>
           </div>
@@ -39,7 +44,7 @@ export default function LecturerQRDisplay({ token='ABC123', expiry='00:15:00', o
         {/* Token Display */}
         <div className="w-full bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 mb-4">
           <p className="text-xs sm:text-sm text-gray-600 font-medium">Token</p>
-          <p className="text-sm sm:text-base font-mono font-bold text-gray-800 mt-1 break-all">{token}</p>
+          <p className="text-sm sm:text-base font-mono font-bold text-gray-800 mt-1 break-all">{token || '—'}</p>
         </div>
 
         {/* Action Buttons */}
