@@ -104,10 +104,12 @@ function AppContent() {
 
             <Route path="lecturer" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal /></ProtectedRoute>}>
               <Route index element={<LecturerDashboard />} />
+              <Route path="messages" element={<ProtectedRoute roles={["lecturer"]}><Messages user={user} setUnreadMessages={() => {}} /></ProtectedRoute>} />
             </Route>
 
             <Route path="admin" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal /></ProtectedRoute>}>
               <Route index element={<AdminDashboard />} />
+              <Route path="messages" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminMessaging /></ProtectedRoute>} />
             </Route>
           </Route>
 

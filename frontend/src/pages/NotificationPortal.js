@@ -20,18 +20,26 @@ function NotificationPortal() {
   const [successMessage, setSuccessMessage] = useState('');
   const [sentNotifications, setSentNotifications] = useState([]);
 
-  const courses = [
-    { id: 1, name: 'Data Structures', code: 'CS101', students: 30 },
-    { id: 2, name: 'Web Development', code: 'CS201', students: 25 },
-    { id: 3, name: 'AI & Machine Learning', code: 'CS301', students: 20 },
-    { id: 4, name: 'Database Systems', code: 'CS401', students: 22 }
-  ];
+  const [courses, setCourses] = React.useState([]);
 
-  const missingStudents = [
-    { id: 1, name: 'John Student', studentId: 'CS2024001', course: 'Data Structures' },
-    { id: 2, name: 'Sarah Johnson', studentId: 'CS2024002', course: 'Data Structures' },
-    { id: 3, name: 'Mike Davis', studentId: 'CS2024003', course: 'Web Development' }
-  ];
+  React.useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5002'}/classes`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setCourses(data.data || []);
+          if (data.data?.length > 0) setSelectedCourse(data.data[0].name || data.data[0].course_name);
+        }
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+        setCourses([]);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -223,15 +231,14 @@ function NotificationPortal() {
               ) : (
                 <>
                   <div className="form-group">
-                    <label>Select Student</label>
-                    <select value={formData.studentName} onChange={(e) => setFormData(prev => ({ ...prev, studentName: e.target.value }))}>
-                      <option value="">-- Select a student --</option>
-                      {missingStudents.map(student => (
-                        <option key={student.id} value={student.name}>
-                          {student.name} ({student.studentId})
-                        </option>
-                      ))}
-                    </select>
+                    <label>Student ID or Email</label>
+                    <input
+                      type="text"
+                      name="studentName"
+                      value={formData.studentName}
+                      onChange={handleInputChange}
+                      placeholder="Enter student ID or email"
+                    />
                   </div>
 
                   <div className="form-group">
