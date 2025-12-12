@@ -22,25 +22,28 @@ export default function AdminDashboard(){
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
         // Fetch admin overview stats
-        const overviewRes = await fetch(`${API_URL}/admin/overview`, { headers });
+        const overviewRes = await fetch(`${API_URL}/api/admin/overview`, { headers });
+        if (!overviewRes.ok) throw new Error('Failed to fetch overview');
         const overviewData = await overviewRes.json();
         setStats(overviewData.data || {});
 
         // Fetch lecturers list
-        const lecturersRes = await fetch(`${API_URL}/admin/lecturers`, { headers });
+        const lecturersRes = await fetch(`${API_URL}/api/admin/lecturers`, { headers });
+        if (!lecturersRes.ok) throw new Error('Failed to fetch lecturers');
         const lecturersData = await lecturersRes.json();
         setUsers(lecturersData.data || []);
 
         // Fetch departments list
-        const deptsRes = await fetch(`${API_URL}/admin/departments`, { headers });
+        const deptsRes = await fetch(`${API_URL}/api/admin/departments`, { headers });
+        if (!deptsRes.ok) throw new Error('Failed to fetch departments');
         const deptsData = await deptsRes.json();
         setDepartments(deptsData.data || []);
 
         // Prepare analytics data from departments
         if (deptsData.data) {
           setAnalytics(deptsData.data.slice(0, 5).map(d => ({
-            name: d.name,
-            value: d.students || 0
+            name: d.name || d.department_name,
+            value: d.students || d.student_count || 0
           })));
         }
       } catch (err) {

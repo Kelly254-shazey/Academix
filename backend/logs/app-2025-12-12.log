@@ -128,3 +128,22 @@
 [INFO] 2025-12-12T14:05:01.969Z - User 6 joined notification room {"socketId":"255yudc5rHsnHYFdAAAB"}
 [INFO] 2025-12-12T14:05:01.971Z - Client joined course general {"socketId":"255yudc5rHsnHYFdAAAB"}
 [INFO] 2025-12-12T14:05:02.037Z - Client disconnected: 255yudc5rHsnHYFdAAAB {}
+[INFO] 2025-12-12T14:08:24.708Z - New client connected: kLW42gKmWeZvWa0MAAAD {}
+[INFO] 2025-12-12T14:08:24.710Z - User 8 joined notification room {"socketId":"kLW42gKmWeZvWa0MAAAD"}
+[INFO] 2025-12-12T14:08:24.712Z - Client joined course general {"socketId":"kLW42gKmWeZvWa0MAAAD"}
+[ERROR] 2025-12-12T14:08:24.795Z - Error in getTodayClasses: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:08:24.795Z - Error fetching today classes: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:08:24.797Z - Error in getLiveRoster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:08:24.799Z - Error fetching roster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:08:24.800Z - Error in getLecturerOverview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:08:24.800Z - Error fetching lecturer overview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:09:42.401Z - Error in getLecturerOverview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:09:42.402Z - Error fetching lecturer overview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:09:42.404Z - Error in getTodayClasses: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:09:42.405Z - Error fetching today classes: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:09:42.408Z - Error in getLiveRoster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-12T14:09:42.409Z - Error fetching roster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[INFO] 2025-12-12T14:11:07.558Z - New client connected: waPWqFMN2FTYHAZ_AAAF {}
+[INFO] 2025-12-12T14:11:07.561Z - User 6 joined notification room {"socketId":"waPWqFMN2FTYHAZ_AAAF"}
+[INFO] 2025-12-12T14:11:07.564Z - Client joined course general {"socketId":"waPWqFMN2FTYHAZ_AAAF"}
+[ERROR] 2025-12-12T14:13:10.499Z - [2025-12-12T14:13:10.499Z] 500 - Invalid email or password {"url":"/auth/login","method":"POST"}

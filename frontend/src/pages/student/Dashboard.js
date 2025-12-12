@@ -26,21 +26,25 @@ export default function StudentDashboard(){
 
         // Fetch classes for today
         const classesRes = await fetch(`${API_URL}/schedule/today`, { headers });
+        if (!classesRes.ok) throw new Error('Failed to fetch classes');
         const classesData = await classesRes.json();
         setClasses(classesData.data || []);
 
         // Fetch overall attendance
         const attendanceRes = await fetch(`${API_URL}/attendance-analytics/overall`, { headers });
+        if (!attendanceRes.ok) throw new Error('Failed to fetch attendance');
         const attendanceData = await attendanceRes.json();
         setAttendance(attendanceData.data?.overall || 0);
 
-        // Fetch enrolled courses
-        const coursesRes = await fetch(`${API_URL}/courses`, { headers });
+        // Fetch enrolled courses from dashboard
+        const coursesRes = await fetch(`${API_URL}/dashboard/student`, { headers });
+        if (!coursesRes.ok) throw new Error('Failed to fetch courses');
         const coursesData = await coursesRes.json();
-        setCourses(coursesData.data || []);
+        setCourses(coursesData.data?.courses || []);
 
         // Fetch notifications
-        const notificationsRes = await fetch(`${API_URL}/notifications`, { headers });
+        const notificationsRes = await fetch(`${API_URL}/notifications?limit=10`, { headers });
+        if (!notificationsRes.ok) throw new Error('Failed to fetch notifications');
         const notificationsData = await notificationsRes.json();
         setNotifications(notificationsData.data || []);
       } catch (err) {
