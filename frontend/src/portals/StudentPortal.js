@@ -1,10 +1,8 @@
 import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import PortalHeader from '../components/PortalHeader';
-import { useAuth } from '../context/AuthContext';
 
 export default function StudentPortal(){
-  const { user } = useAuth();
 
   const navItems = [
     { path: '/portal/student', label: 'Dashboard', icon: '📊' },

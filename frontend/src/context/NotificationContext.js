@@ -33,23 +33,29 @@ export const NotificationProvider = ({ children }) => {
     });
 
     newSocket.on('connect', () => {
-      console.log('✅ Connected to notification server');
+      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+        console.log('✅ Connected to notification server');
+      }
       setConnected(true);
       // Join user's notification room for personal notifications
-      newSocket.emit('join-user-room', user.id);
+      newSocket.emit('join-user-room', user?.id || 'anonymous');
       // Join course room for course-wide notifications
-      newSocket.emit('join-course-room', user.courseId || 'general');
+      newSocket.emit('join-course-room', user?.courseId || 'general');
     });
 
     // INSTANT notification listener - receives in real-time
     newSocket.on('new-notification', (notification) => {
-      console.log('🔔 INSTANT notification received:', notification);
+      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+        console.log('🔔 INSTANT notification received:', notification);
+      }
       // Add to state immediately
       setNotifications(prev => [notification, ...prev]);
     });
 
     newSocket.on('connection-confirmed', (data) => {
-      console.log('✅ Connection confirmed:', data);
+      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+        console.log('✅ Connection confirmed:', data);
+      }
     });
 
     newSocket.on('notification-read', ({ notificationId }) => {
@@ -63,7 +69,9 @@ export const NotificationProvider = ({ children }) => {
     });
 
     newSocket.on('disconnect', () => {
-      console.log('❌ Disconnected from notification server');
+      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+        console.log('❌ Disconnected from notification server');
+      }
       setConnected(false);
     });
 

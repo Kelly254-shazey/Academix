@@ -26,7 +26,8 @@ const pool = mysql.createPool({
   password: DB_PASSWORD,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  authPlugin: 'mysql_native_password'
 });
 
 const promisePool = pool.promise();

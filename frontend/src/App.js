@@ -6,23 +6,14 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
-import Messages from './pages/Messages';
-import Attendance from './pages/Attendance';
-import QRScanner from './pages/QRScanner';
-import NotificationPortal from './pages/NotificationPortal';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminMessaging from './pages/AdminMessaging';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import StudentPortal from './portals/StudentPortal';
 import LecturerPortal from './portals/LecturerPortal';
 import AdminPortal from './portals/AdminPortal';
-import StudentDashboard from './pages/student/Dashboard';
-import LecturerDashboard from './pages/lecturer/Dashboard';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
-  const [unreadMessages, setUnreadMessages] = React.useState(3);
 
   // Map various role strings into a canonical portal group
   const getRoleGroup = (role) => {
@@ -68,54 +59,17 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/qr-scanner"
-          element={
-            <ProtectedRoute roles={["student"]}>
-              <QRScanner />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/portal">
-          <Route path="student" element={<ProtectedRoute roles={["student"]}><StudentPortal /></ProtectedRoute>}>
-              <Route index element={<StudentDashboard />} />
-              <Route path="attendance" element={<ProtectedRoute roles={["student"]}><Attendance user={user} /></ProtectedRoute>} />
-              <Route path="messages" element={<ProtectedRoute roles={["student"]}><Messages user={user} setUnreadMessages={() => {}} /></ProtectedRoute>} />
-            </Route>
 
-            <Route path="lecturer" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal /></ProtectedRoute>}>
-              <Route index element={<LecturerDashboard />} />
-              <Route path="messages" element={<ProtectedRoute roles={["lecturer"]}><Messages user={user} setUnreadMessages={() => {}} /></ProtectedRoute>} />
-            </Route>
+        {/* Portal Routes */}
+        <Route path="/portal/student" element={<ProtectedRoute roles={["student"]}><StudentPortal /></ProtectedRoute>} />
+        <Route path="/portal/lecturer" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal /></ProtectedRoute>} />
+        <Route path="/portal/admin" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal /></ProtectedRoute>} />
 
-            <Route path="admin" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal /></ProtectedRoute>}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="messages" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminMessaging /></ProtectedRoute>} />
-            </Route>
-          </Route>
-
-          <Route
-            path="/attendance"
-            element={
-              <ProtectedRoute>
-                <Attendance user={user} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/messages"
-            element={
-              <ProtectedRoute>
-                <Messages user={user} setUnreadMessages={setUnreadMessages} />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Catch all - redirect to login */}
-          <Route path="*" element={<Navigate to={user ? "/portal/student" : "/login"} />} />
-        </Routes>
-      </main>
-    );
+        {/* Catch all - redirect to login */}
+        <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
+      </Routes>
+    </main>
+  );
   }
 
   function App() {

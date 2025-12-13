@@ -23,7 +23,9 @@ export default function QRScanner({ classId, sessionId, onSuccess }) {
       .then((devices) => {
         const cameraId = devices && devices.length ? devices[0].id : null;
         if (!cameraId) {
-          console.error('No cameras found for QR scanner');
+          if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+            console.error('No cameras found for QR scanner');
+          }
           return;
         }
         html5QrCode.start(
@@ -31,7 +33,9 @@ export default function QRScanner({ classId, sessionId, onSuccess }) {
           config,
           (decodedText, decodedResult) => {
             // decodedText is the scanned QR payload
-            console.log('QR decoded:', decodedText);
+            if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+              console.log('QR decoded:', decodedText);
+            }
             // Expect QR payload to be JSON or plain student id or signature
             let payload;
             try {
@@ -52,22 +56,30 @@ export default function QRScanner({ classId, sessionId, onSuccess }) {
             // Send to backend (backend mounts classes routes at `/classes`)
             api.post(`/classes/${classId}/sessions/${sessionId}/scan`, body)
               .then((resp) => {
-                console.log('Scan recorded:', resp.data);
+                if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+                  console.log('Scan recorded:', resp.data);
+                }
                 if (onSuccess) onSuccess(resp.data);
               })
               .catch((err) => {
-                console.error('Failed to send scan to backend:', err.response ? err.response.data : err.message);
+                if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+                  console.error('Failed to send scan to backend:', err.response ? err.response.data : err.message);
+                }
               });
           },
           (errorMessage) => {
             // parse errors, ignore for now
           }
         ).catch((err) => {
-          console.error('Failed to start QR scanner:', err);
+          if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+            console.error('Failed to start QR scanner:', err);
+          }
         });
       })
       .catch((err) => {
-        console.error('Error fetching cameras:', err);
+        if (process.env.REACT_APP_DEBUG_MODE === 'true') {
+          console.error('Error fetching cameras:', err);
+        }
       });
 
     return () => {

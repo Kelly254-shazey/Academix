@@ -16,7 +16,6 @@ export default function PortalHeader({ portalTitle, navItems }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [liveUpdates, setLiveUpdates] = useState('Connected');
-  const [systemHealth, setSystemHealth] = useState('Online');
   const userMenuRef = useRef(null);
   const notifRef = useRef(null);
 
@@ -29,18 +28,15 @@ export default function PortalHeader({ portalTitle, navItems }) {
     const socket = socketRef.current;
     if (!socket) {
       setLiveUpdates('Disconnected');
-      setSystemHealth('Offline');
       return;
     }
 
     const handleConnect = () => {
       setLiveUpdates('Connected');
-      setSystemHealth('Online');
     };
 
     const handleDisconnect = () => {
       setLiveUpdates('Connecting...');
-      setSystemHealth('Reconnecting');
     };
 
     socket.on('connect', handleConnect);

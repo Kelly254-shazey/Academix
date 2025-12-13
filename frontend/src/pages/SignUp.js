@@ -129,13 +129,29 @@ function SignUp() {
           <div className="form-group">
             <label htmlFor="role">Account Type</label>
             <div className="role-selector">
-              <div className="role-button active" aria-hidden>
+              <div
+                className={`role-button ${formData.role === 'student' ? 'active' : ''}`}
+                onClick={() => handleChange({ target: { name: 'role', value: 'student' } })}
+              >
                 <span className="role-icon">👨‍🎓</span>
                 <span className="role-label">Student</span>
               </div>
-              <input type="hidden" name="role" value="student" />
+              <div
+                className={`role-button ${formData.role === 'lecturer' ? 'active' : ''}`}
+                onClick={() => handleChange({ target: { name: 'role', value: 'lecturer' } })}
+              >
+                <span className="role-icon">👨‍🏫</span>
+                <span className="role-label">Lecturer</span>
+              </div>
+              <div
+                className={`role-button ${formData.role === 'admin' ? 'active' : ''}`}
+                onClick={() => handleChange({ target: { name: 'role', value: 'admin' } })}
+              >
+                <span className="role-icon">👔</span>
+                <span className="role-label">Admin</span>
+              </div>
             </div>
-            <small className="muted">Only student accounts can be created here. Lecturer and admin accounts are provisioned by the institution.</small>
+            <small className="muted">Select your account type to get started.</small>
           </div>
 
           <div className="form-group">

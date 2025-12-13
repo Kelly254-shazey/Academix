@@ -1,5 +1,9 @@
 const express = require('express');
+const authMiddleware = require('../middleware/auth');
 const router = express.Router();
+
+// All notification routes require authentication
+router.use(authMiddleware);
 
 // In-memory storage for notifications (replace with database in production)
 const notifications = {};
