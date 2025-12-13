@@ -1,0 +1,170 @@
+[INFO] 2025-12-13T07:31:22.886Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T07:31:55.148Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T07:38:36.787Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T07:40:14.116Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T07:42:21.306Z - New client connected: MJt6mqc24u_DJCsSAAAB {}
+[INFO] 2025-12-13T07:42:21.309Z - User 18 joined notification room {"socketId":"MJt6mqc24u_DJCsSAAAB"}
+[INFO] 2025-12-13T07:42:21.311Z - Client joined course general {"socketId":"MJt6mqc24u_DJCsSAAAB"}
+[INFO] 2025-12-13T07:42:58.645Z - Client disconnected: MJt6mqc24u_DJCsSAAAB {}
+[INFO] 2025-12-13T07:42:58.726Z - New client connected: sunISX_tVFNZuW0rAAAD {}
+[INFO] 2025-12-13T07:42:58.728Z - User 18 joined notification room {"socketId":"sunISX_tVFNZuW0rAAAD"}
+[INFO] 2025-12-13T07:42:58.730Z - Client joined course general {"socketId":"sunISX_tVFNZuW0rAAAD"}
+[INFO] 2025-12-13T07:43:00.997Z - Client disconnected: sunISX_tVFNZuW0rAAAD {}
+[INFO] 2025-12-13T07:43:01.048Z - New client connected: vc8qqpf2CExOEdVaAAAF {}
+[INFO] 2025-12-13T07:43:01.050Z - User 18 joined notification room {"socketId":"vc8qqpf2CExOEdVaAAAF"}
+[INFO] 2025-12-13T07:43:01.052Z - Client joined course general {"socketId":"vc8qqpf2CExOEdVaAAAF"}
+[INFO] 2025-12-13T07:43:02.368Z - Client disconnected: vc8qqpf2CExOEdVaAAAF {}
+[INFO] 2025-12-13T07:43:02.417Z - New client connected: tGjVFuI1yd5aJ_kcAAAH {}
+[INFO] 2025-12-13T07:43:02.419Z - User 18 joined notification room {"socketId":"tGjVFuI1yd5aJ_kcAAAH"}
+[INFO] 2025-12-13T07:43:02.420Z - Client joined course general {"socketId":"tGjVFuI1yd5aJ_kcAAAH"}
+[INFO] 2025-12-13T07:43:03.239Z - Client disconnected: tGjVFuI1yd5aJ_kcAAAH {}
+[INFO] 2025-12-13T07:43:03.296Z - New client connected: nHXvCp9baYB2Hp-IAAAJ {}
+[INFO] 2025-12-13T07:43:03.298Z - User 18 joined notification room {"socketId":"nHXvCp9baYB2Hp-IAAAJ"}
+[INFO] 2025-12-13T07:43:03.299Z - Client joined course general {"socketId":"nHXvCp9baYB2Hp-IAAAJ"}
+[INFO] 2025-12-13T07:43:04.664Z - Client disconnected: nHXvCp9baYB2Hp-IAAAJ {}
+[INFO] 2025-12-13T07:43:04.718Z - New client connected: I_jlGT61drVxGM-7AAAL {}
+[INFO] 2025-12-13T07:43:04.719Z - User 18 joined notification room {"socketId":"I_jlGT61drVxGM-7AAAL"}
+[INFO] 2025-12-13T07:43:04.721Z - Client joined course general {"socketId":"I_jlGT61drVxGM-7AAAL"}
+[INFO] 2025-12-13T07:43:05.568Z - Client disconnected: I_jlGT61drVxGM-7AAAL {}
+[INFO] 2025-12-13T07:43:05.638Z - New client connected: pyyUbqQk1u5pTWmTAAAN {}
+[INFO] 2025-12-13T07:43:05.639Z - User 18 joined notification room {"socketId":"pyyUbqQk1u5pTWmTAAAN"}
+[INFO] 2025-12-13T07:43:05.642Z - Client joined course general {"socketId":"pyyUbqQk1u5pTWmTAAAN"}
+[INFO] 2025-12-13T07:43:06.994Z - Client disconnected: pyyUbqQk1u5pTWmTAAAN {}
+[INFO] 2025-12-13T07:43:07.040Z - New client connected: Z043uXGtz89U3Pq2AAAP {}
+[INFO] 2025-12-13T07:43:07.044Z - User 18 joined notification room {"socketId":"Z043uXGtz89U3Pq2AAAP"}
+[INFO] 2025-12-13T07:43:07.045Z - Client joined course general {"socketId":"Z043uXGtz89U3Pq2AAAP"}
+[INFO] 2025-12-13T07:43:08.998Z - Client disconnected: Z043uXGtz89U3Pq2AAAP {}
+[INFO] 2025-12-13T07:43:09.055Z - New client connected: tC-CeqEFVDDEBARRAAAR {}
+[INFO] 2025-12-13T07:43:09.057Z - User 18 joined notification room {"socketId":"tC-CeqEFVDDEBARRAAAR"}
+[INFO] 2025-12-13T07:43:09.059Z - Client joined course general {"socketId":"tC-CeqEFVDDEBARRAAAR"}
+[INFO] 2025-12-13T07:43:10.198Z - Client disconnected: tC-CeqEFVDDEBARRAAAR {}
+[INFO] 2025-12-13T07:43:10.243Z - New client connected: pj8IkcAijHs1UQfPAAAT {}
+[INFO] 2025-12-13T07:43:10.245Z - User 18 joined notification room {"socketId":"pj8IkcAijHs1UQfPAAAT"}
+[INFO] 2025-12-13T07:43:10.246Z - Client joined course general {"socketId":"pj8IkcAijHs1UQfPAAAT"}
+[INFO] 2025-12-13T07:43:12.931Z - Client disconnected: pj8IkcAijHs1UQfPAAAT {}
+[INFO] 2025-12-13T07:43:13.000Z - New client connected: dbg9qo2h3j191X38AAAV {}
+[INFO] 2025-12-13T07:43:13.002Z - User 18 joined notification room {"socketId":"dbg9qo2h3j191X38AAAV"}
+[INFO] 2025-12-13T07:43:13.003Z - Client joined course general {"socketId":"dbg9qo2h3j191X38AAAV"}
+[INFO] 2025-12-13T07:46:53.082Z - Client disconnected: dbg9qo2h3j191X38AAAV {}
+[INFO] 2025-12-13T07:47:26.596Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T07:48:17.767Z - New client connected: _OGbZUJNllMNMikYAAAB {}
+[INFO] 2025-12-13T07:48:17.769Z - User 18 joined notification room {"socketId":"_OGbZUJNllMNMikYAAAB"}
+[INFO] 2025-12-13T07:48:17.772Z - Client joined course general {"socketId":"_OGbZUJNllMNMikYAAAB"}
+[INFO] 2025-12-13T07:48:18.941Z - Client disconnected: _OGbZUJNllMNMikYAAAB {}
+[INFO] 2025-12-13T07:50:04.423Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T07:50:11.933Z - New client connected: hdh3oFTEOgNRSmHzAAAB {}
+[INFO] 2025-12-13T07:50:11.944Z - User 17 joined notification room {"socketId":"hdh3oFTEOgNRSmHzAAAB"}
+[INFO] 2025-12-13T07:50:11.948Z - Client joined course general {"socketId":"hdh3oFTEOgNRSmHzAAAB"}
+[INFO] 2025-12-13T07:50:16.122Z - Client disconnected: hdh3oFTEOgNRSmHzAAAB {}
+[INFO] 2025-12-13T07:50:16.211Z - New client connected: LW2O7dhtbGsvuzVuAAAD {}
+[INFO] 2025-12-13T07:50:16.212Z - User 17 joined notification room {"socketId":"LW2O7dhtbGsvuzVuAAAD"}
+[INFO] 2025-12-13T07:50:16.213Z - Client joined course general {"socketId":"LW2O7dhtbGsvuzVuAAAD"}
+[INFO] 2025-12-13T07:50:26.001Z - Client disconnected: LW2O7dhtbGsvuzVuAAAD {}
+[INFO] 2025-12-13T07:50:26.044Z - New client connected: 6SnvCKAoQySyVC0lAAAF {}
+[INFO] 2025-12-13T07:50:26.046Z - User 17 joined notification room {"socketId":"6SnvCKAoQySyVC0lAAAF"}
+[INFO] 2025-12-13T07:50:26.047Z - Client joined course general {"socketId":"6SnvCKAoQySyVC0lAAAF"}
+[INFO] 2025-12-13T07:50:28.221Z - Client disconnected: 6SnvCKAoQySyVC0lAAAF {}
+[INFO] 2025-12-13T07:50:28.270Z - New client connected: 0Q0MJKDZcNUoVQGAAAAH {}
+[INFO] 2025-12-13T07:50:28.274Z - User 17 joined notification room {"socketId":"0Q0MJKDZcNUoVQGAAAAH"}
+[INFO] 2025-12-13T07:50:28.274Z - Client joined course general {"socketId":"0Q0MJKDZcNUoVQGAAAAH"}
+[INFO] 2025-12-13T07:53:55.116Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T07:54:03.041Z - New client connected: 8HxLiJR5jC0vdaerAAAB {}
+[INFO] 2025-12-13T07:54:03.045Z - User 17 joined notification room {"socketId":"8HxLiJR5jC0vdaerAAAB"}
+[INFO] 2025-12-13T07:54:03.048Z - Client joined course general {"socketId":"8HxLiJR5jC0vdaerAAAB"}
+[INFO] 2025-12-13T07:54:12.768Z - Client disconnected: 8HxLiJR5jC0vdaerAAAB {}
+[INFO] 2025-12-13T07:54:13.174Z - New client connected: P_Jh-1p6yPTr7Q28AAAD {}
+[INFO] 2025-12-13T07:54:13.177Z - User 17 joined notification room {"socketId":"P_Jh-1p6yPTr7Q28AAAD"}
+[INFO] 2025-12-13T07:54:13.179Z - Client joined course general {"socketId":"P_Jh-1p6yPTr7Q28AAAD"}
+[INFO] 2025-12-13T07:55:21.382Z - Client disconnected: P_Jh-1p6yPTr7Q28AAAD {}
+[INFO] 2025-12-13T07:55:36.818Z - New client connected: 7F9f8hlpIv-KZMm-AAAF {}
+[INFO] 2025-12-13T07:55:36.823Z - User 17 joined notification room {"socketId":"7F9f8hlpIv-KZMm-AAAF"}
+[INFO] 2025-12-13T07:55:36.825Z - Client joined course general {"socketId":"7F9f8hlpIv-KZMm-AAAF"}
+[INFO] 2025-12-13T07:57:47.963Z - Client disconnected: 7F9f8hlpIv-KZMm-AAAF {}
+[INFO] 2025-12-13T07:57:48.325Z - New client connected: 8wxPte53svcUp5hpAAAH {}
+[INFO] 2025-12-13T07:57:48.328Z - User 17 joined notification room {"socketId":"8wxPte53svcUp5hpAAAH"}
+[INFO] 2025-12-13T07:57:48.330Z - Client joined course general {"socketId":"8wxPte53svcUp5hpAAAH"}
+[INFO] 2025-12-13T07:58:28.268Z - Client disconnected: 8wxPte53svcUp5hpAAAH {}
+[INFO] 2025-12-13T07:58:28.668Z - New client connected: 99t-YpPbL-Woc4wcAAAJ {}
+[INFO] 2025-12-13T07:58:28.673Z - User 17 joined notification room {"socketId":"99t-YpPbL-Woc4wcAAAJ"}
+[INFO] 2025-12-13T07:58:28.682Z - Client joined course general {"socketId":"99t-YpPbL-Woc4wcAAAJ"}
+[INFO] 2025-12-13T07:58:31.393Z - Client disconnected: 99t-YpPbL-Woc4wcAAAJ {}
+[INFO] 2025-12-13T07:58:31.784Z - New client connected: NDO7Jmzp0eHK5r8yAAAL {}
+[INFO] 2025-12-13T07:58:31.787Z - User 17 joined notification room {"socketId":"NDO7Jmzp0eHK5r8yAAAL"}
+[INFO] 2025-12-13T07:58:31.792Z - Client joined course general {"socketId":"NDO7Jmzp0eHK5r8yAAAL"}
+[INFO] 2025-12-13T07:58:34.381Z - Client disconnected: NDO7Jmzp0eHK5r8yAAAL {}
+[INFO] 2025-12-13T07:58:34.801Z - New client connected: yIWXOETX_vPmmAx-AAAN {}
+[INFO] 2025-12-13T07:58:34.845Z - User 17 joined notification room {"socketId":"yIWXOETX_vPmmAx-AAAN"}
+[INFO] 2025-12-13T07:58:34.854Z - Client joined course general {"socketId":"yIWXOETX_vPmmAx-AAAN"}
+[INFO] 2025-12-13T08:00:07.428Z - Client disconnected: yIWXOETX_vPmmAx-AAAN {}
+[INFO] 2025-12-13T08:00:08.127Z - New client connected: 6I2OFvV2M8YV1tAkAAAP {}
+[INFO] 2025-12-13T08:00:08.130Z - User 17 joined notification room {"socketId":"6I2OFvV2M8YV1tAkAAAP"}
+[INFO] 2025-12-13T08:00:08.133Z - Client joined course general {"socketId":"6I2OFvV2M8YV1tAkAAAP"}
+[INFO] 2025-12-13T08:01:45.910Z - Client disconnected: 6I2OFvV2M8YV1tAkAAAP {}
+[INFO] 2025-12-13T08:01:59.394Z - New client connected: On4SoZtZh1wg8u4oAAAR {}
+[INFO] 2025-12-13T08:01:59.469Z - User 17 joined notification room {"socketId":"On4SoZtZh1wg8u4oAAAR"}
+[INFO] 2025-12-13T08:01:59.473Z - Client joined course general {"socketId":"On4SoZtZh1wg8u4oAAAR"}
+[INFO] 2025-12-13T08:02:45.899Z - Client disconnected: On4SoZtZh1wg8u4oAAAR {}
+[INFO] 2025-12-13T08:02:46.867Z - New client connected: QQkjm21c2nwdUhvjAAAT {}
+[INFO] 2025-12-13T08:02:46.889Z - User 17 joined notification room {"socketId":"QQkjm21c2nwdUhvjAAAT"}
+[INFO] 2025-12-13T08:02:46.897Z - Client joined course general {"socketId":"QQkjm21c2nwdUhvjAAAT"}
+[INFO] 2025-12-13T08:04:10.106Z - Client disconnected: QQkjm21c2nwdUhvjAAAT {}
+[INFO] 2025-12-13T08:04:11.376Z - New client connected: q12rLJRlioVK3VsjAAAV {}
+[INFO] 2025-12-13T08:04:11.381Z - User 17 joined notification room {"socketId":"q12rLJRlioVK3VsjAAAV"}
+[INFO] 2025-12-13T08:04:11.385Z - Client joined course general {"socketId":"q12rLJRlioVK3VsjAAAV"}
+[INFO] 2025-12-13T08:09:31.529Z - Client disconnected: q12rLJRlioVK3VsjAAAV {}
+[INFO] 2025-12-13T08:11:10.391Z - New client connected: ZmIKJ7g29dBUtYgcAAAX {}
+[INFO] 2025-12-13T08:11:10.401Z - User 17 joined notification room {"socketId":"ZmIKJ7g29dBUtYgcAAAX"}
+[INFO] 2025-12-13T08:11:10.411Z - Client joined course general {"socketId":"ZmIKJ7g29dBUtYgcAAAX"}
+[INFO] 2025-12-13T08:14:13.105Z - Client disconnected: ZmIKJ7g29dBUtYgcAAAX {}
+[INFO] 2025-12-13T08:17:45.227Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T08:18:58.232Z - New client connected: cX7-EAu2r9h5CKKpAAAB {}
+[INFO] 2025-12-13T08:18:58.243Z - User 17 joined notification room {"socketId":"cX7-EAu2r9h5CKKpAAAB"}
+[INFO] 2025-12-13T08:18:58.250Z - Client joined course general {"socketId":"cX7-EAu2r9h5CKKpAAAB"}
+[INFO] 2025-12-13T08:21:04.549Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T08:21:09.926Z - New client connected: 3dhqI0qHluJwQmkpAAAB {}
+[INFO] 2025-12-13T08:21:09.934Z - User 17 joined notification room {"socketId":"3dhqI0qHluJwQmkpAAAB"}
+[INFO] 2025-12-13T08:21:09.940Z - Client joined course general {"socketId":"3dhqI0qHluJwQmkpAAAB"}
+[INFO] 2025-12-13T08:21:21.272Z - Client disconnected: 3dhqI0qHluJwQmkpAAAB {}
+[INFO] 2025-12-13T08:21:21.689Z - New client connected: xhzU3OWoTw1lvKLkAAAD {}
+[INFO] 2025-12-13T08:21:21.692Z - User 17 joined notification room {"socketId":"xhzU3OWoTw1lvKLkAAAD"}
+[INFO] 2025-12-13T08:21:21.694Z - Client joined course general {"socketId":"xhzU3OWoTw1lvKLkAAAD"}
+[INFO] 2025-12-13T08:24:08.085Z - Server running on port 5001 {"env":"development"}
+[INFO] 2025-12-13T08:27:24.357Z - Server running on port 5001 {"env":"development"}
+[INFO] 2025-12-13T08:29:37.928Z - Server running on port 5001 {"env":"development"}
+[INFO] 2025-12-13T08:32:15.884Z - Server running on port 5001 {"env":"development"}
+[INFO] 2025-12-13T08:33:51.959Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-13T08:34:36.527Z - New client connected: F3-Wh7WczUz6VxcvAAAB {}
+[INFO] 2025-12-13T08:34:36.532Z - User 17 joined notification room {"socketId":"F3-Wh7WczUz6VxcvAAAB"}
+[INFO] 2025-12-13T08:34:36.535Z - Client joined course general {"socketId":"F3-Wh7WczUz6VxcvAAAB"}
+[INFO] 2025-12-13T09:04:45.445Z - Server running on port 5002 {"env":"development"}
+[ERROR] 2025-12-13T09:05:42.050Z - Error in getTodayClasses: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:42.051Z - Error fetching today classes: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:42.053Z - Error in getLecturerOverview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:42.054Z - Error fetching lecturer overview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[INFO] 2025-12-13T09:05:42.066Z - New client connected: sm0aOBmu996dH_0tAAAB {}
+[ERROR] 2025-12-13T09:05:42.068Z - Error in getLiveRoster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:42.069Z - Error fetching roster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[INFO] 2025-12-13T09:05:42.073Z - User 20 joined notification room {"socketId":"sm0aOBmu996dH_0tAAAB"}
+[INFO] 2025-12-13T09:05:42.075Z - Client joined course general {"socketId":"sm0aOBmu996dH_0tAAAB"}
+[ERROR] 2025-12-13T09:05:50.766Z - Error in getLecturerOverview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:50.771Z - Error fetching lecturer overview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:50.780Z - Error in getTodayClasses: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:50.781Z - Error fetching today classes: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:50.784Z - Error in getLiveRoster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:05:50.785Z - Error fetching roster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:06:23.896Z - Error in getTodayClasses: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:06:23.897Z - Error fetching today classes: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:06:23.899Z - Error in getLecturerOverview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:06:23.900Z - Error fetching lecturer overview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:06:23.905Z - Error in getLiveRoster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:06:23.906Z - Error fetching roster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:08:04.799Z - Error in getLecturerOverview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:08:04.800Z - Error fetching lecturer overview: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:08:04.801Z - Error in getTodayClasses: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:08:04.803Z - Error fetching today classes: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:08:04.806Z - Error in getLiveRoster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[ERROR] 2025-12-13T09:08:04.807Z - Error fetching roster: {"message":"Server requests authentication using unknown plugin auth_gssapi_client. See TODO: add plugins doco here on how to configure or author authentication plugins.","code":"AUTH_SWITCH_PLUGIN_ERROR"}
+[INFO] 2025-12-13T09:08:58.099Z - Client disconnected: sm0aOBmu996dH_0tAAAB {}
+[INFO] 2025-12-13T09:10:00.251Z - New client connected: pm3992YYf_deY7dgAAAD {}
+[INFO] 2025-12-13T09:10:00.264Z - User 21 joined notification room {"socketId":"pm3992YYf_deY7dgAAAD"}
+[INFO] 2025-12-13T09:10:00.265Z - Client joined course general {"socketId":"pm3992YYf_deY7dgAAAD"}

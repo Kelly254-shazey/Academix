@@ -13,8 +13,7 @@ function SignUp() {
     confirmPassword: '',
     role: 'student', // 'student', 'lecturer', 'admin'
     studentId: '',
-    department: 'Computer Science',
-    subject: '' // For lecturers
+    department: 'Computer Science'
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,8 +47,8 @@ function SignUp() {
       return;
     }
 
-    if (formData.role === 'lecturer' && !formData.subject) {
-      setError('Subject is required for lecturer accounts');
+    if (formData.role === 'lecturer' && !formData.department) {
+      setError('Subject/Specialization is required for lecturer accounts');
       setIsLoading(false);
       return;
     }
@@ -195,24 +194,34 @@ function SignUp() {
             </div>
           )}
 
-          {/* Lecturer/admin fields are intentionally not shown; signups create student accounts only */}
-
           <div className="form-group">
-            <label htmlFor="department">Department</label>
-            <select
-              id="department"
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              disabled={isLoading}
-            >
-              <option>Computer Science</option>
-              <option>Information Technology</option>
-              <option>Engineering</option>
-              <option>Business</option>
-              <option>Liberal Arts</option>
-              <option>Other</option>
-            </select>
+            <label htmlFor="department">{formData.role === 'lecturer' ? 'Subject/Specialization' : 'Department'}</label>
+            {formData.role === 'lecturer' ? (
+              <input
+                type="text"
+                id="department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                placeholder="Enter your subject/specialization"
+                disabled={isLoading}
+              />
+            ) : (
+              <select
+                id="department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                disabled={isLoading}
+              >
+                <option>Computer Science</option>
+                <option>Information Technology</option>
+                <option>Engineering</option>
+                <option>Business</option>
+                <option>Liberal Arts</option>
+                <option>Other</option>
+              </select>
+            )}
           </div>
 
           <div className="form-group">

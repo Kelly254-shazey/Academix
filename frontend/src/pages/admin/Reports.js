@@ -1,20 +1,43 @@
-import React from 'react';
-import { useGetAIInsightsQuery, useGetDashboardSummaryQuery } from '../../features/apiSlice';
-import { Bar, Line } from 'react-chartjs-2'; // You'll need to install chart.js and react-chartjs-2
+import React, { useState, useEffect } from 'react';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 
 const Reports = () => {
-  const { data: insights } = useGetAIInsightsQuery();
-  const { data: summary } = useGetDashboardSummaryQuery();
+  const [insights, setInsights] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Build chart data from backend summary when available
-  const attendanceData = summary?.attendanceWeekly ? {
-    labels: summary.attendanceWeekly.map(s => s.week || s.label),
-    datasets: [{
-      label: 'Attendance Rate',
-      data: summary.attendanceWeekly.map(s => s.rate || s.percentage || 0),
-      backgroundColor: 'rgba(75, 192, 192, 0.6)',
-    }]
-  } : null;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+        // Fetch AI insights
+        const insightsRes = await fetch(`${API_URL}/ai/insights`, { headers });
+        if (insightsRes.ok) {
+          const insightsData = await insightsRes.json();
+          setInsights(insightsData.data);
+        }
+
+        // Fetch dashboard summary (assuming there's an endpoint)
+        const summaryRes = await fetch(`${API_URL}/admin/dashboard`, { headers });
+        if (summaryRes.ok) {
+          const summaryData = await summaryRes.json();
+          setSummary(summaryData.data);
+        }
+      } catch (err) {
+        console.error('Error fetching reports data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) return <div className="p-6">Loading...</div>;
 
   return (
     <div className="p-6">
@@ -23,23 +46,19 @@ const Reports = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border rounded p-4">
           <h2 className="font-semibold mb-2">Attendance Trends</h2>
-          {attendanceData ? <Bar data={attendanceData} /> : <p className="muted">Attendance trend data not available.</p>}
+          <p>Attendance trend data visualization coming soon.</p>
         </div>
         
         <div className="border rounded p-4">
           <h2 className="font-semibold mb-2">AI Insights</h2>
-          <p>Absenteeism Predictions: {insights?.absenteeism_predictions?.length || 0}</p>
-          <p>Anomalies Detected: {insights?.anomalies?.length || 0}</p>
+          {insights ? (
+            <div>
+              <p>{insights.summary || 'AI insights data available.'}</p>
+            </div>
+          ) : (
+            <p>AI insights not available.</p>
+          )}
         </div>
-      </div>
-      
-      <div className="mt-6">
-        <button className="bg-blue-500 text-white px-4 py-2 rounded">
-          Export CSV
-        </button>
-        <button className="bg-green-500 text-white px-4 py-2 rounded ml-2">
-          Export PDF
-        </button>
       </div>
     </div>
   );

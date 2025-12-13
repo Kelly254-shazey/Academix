@@ -13,6 +13,7 @@ export default function StudentDashboard(){
   const [classes, setClasses] = useState([]);
   const [courses, setCourses] = useState([]);
   const [attendance, setAttendance] = useState(0);
+  const [perCourseAttendance, setPerCourseAttendance] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,7 +42,18 @@ export default function StudentDashboard(){
           const attendanceRes = await fetch(`${API_URL}/attendance-analytics/overall`, { headers });
           if (attendanceRes.ok) {
             const attendanceData = await attendanceRes.json();
-            setAttendance(attendanceData.data?.overall || 0);
+            setAttendance(attendanceData.data?.percentage || 0);
+          }
+        } catch (err) {
+          // Continue if this endpoint fails
+        }
+
+        // Fetch per-course attendance
+        try {
+          const perCourseRes = await fetch(`${API_URL}/attendance-analytics/per-course`, { headers });
+          if (perCourseRes.ok) {
+            const perCourseData = await perCourseRes.json();
+            setPerCourseAttendance(perCourseData.data || []);
           }
         } catch (err) {
           // Continue if this endpoint fails
@@ -164,8 +176,8 @@ export default function StudentDashboard(){
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Left Column - Wide */}
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
-            <AttendanceOverview overall={Math.round(attendance)} perCourse={courses} />
-            <CourseList courses={courses} />
+            <AttendanceOverview overall={Math.round(attendance)} perCourse={perCourseAttendance} />
+            <CourseList courses={perCourseAttendance} />
             <CalendarView events={[]} />
           </div>
 

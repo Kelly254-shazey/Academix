@@ -22,7 +22,7 @@ exports.login = async (data) => {
 };
 
 exports.register = async (data) => {
-  const { email, password, name, role } = data;
+  const { email, password, name, role, department, studentId } = data;
   if (!email || !password || !name || !role) throw new Error('Email, password, name, and role are required');
   if (!['student', 'lecturer', 'admin'].includes(role)) throw new Error('Invalid role');
   
@@ -30,10 +30,29 @@ exports.register = async (data) => {
   if (existingUser.length > 0) throw new Error('User already exists');
   
   const hashedPassword = bcrypt.hashSync(password, 10);
-  await db.execute('INSERT INTO users (name, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, NOW())', 
-    [name, email.toLowerCase(), hashedPassword, role]);
   
-  const [newUserRows] = await db.execute('SELECT id, name, email, role, created_at FROM users WHERE email = ?', [email.toLowerCase()]);
+  // Build the insert query based on role
+  let insertQuery = 'INSERT INTO users (name, email, password_hash, role';
+  let values = [name, email.toLowerCase(), hashedPassword, role];
+  
+  if (department) {
+    insertQuery += ', department';
+    values.push(department);
+  }
+  
+  if (role === 'student' && studentId) {
+    insertQuery += ', student_id';
+    values.push(studentId);
+  }
+  
+  insertQuery += ', created_at) VALUES (?, ?, ?, ?';
+  if (department) insertQuery += ', ?';
+  if (role === 'student' && studentId) insertQuery += ', ?';
+  insertQuery += ', NOW())';
+  
+  await db.execute(insertQuery, values);
+  
+  const [newUserRows] = await db.execute('SELECT id, name, email, role, department, student_id, created_at FROM users WHERE email = ?', [email.toLowerCase()]);
   const newUser = newUserRows[0];
   
   const token = jwt.sign({ id: newUser.id, email: newUser.email, role: newUser.role }, JWT_SECRET, { expiresIn: '24h' });

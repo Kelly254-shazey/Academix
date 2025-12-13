@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function QRCheckInPanel({ lastCheckIn }){
   const [open, setOpen] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const navigate = useNavigate();
 
-  const openScanner = () => { setOpen(true); setFeedback(null); };
+  const openScanner = () => {
+    navigate('/portal/student/qr-scanner');
+  };
   const closeScanner = () => { setOpen(false); setFeedback(null); };
-
-  // Real scanner is provided by the dedicated QR scanner page/component.
-  // Remove development mock actions to avoid fake check-ins in production.
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-sm">

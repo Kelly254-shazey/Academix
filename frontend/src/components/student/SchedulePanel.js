@@ -25,21 +25,20 @@ export default function SchedulePanel({ classes = [] }){
           </div>
         ) : (
           classes.map((c, idx) => (
-            <div key={c.id} className="p-4 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
+            <div key={c.classId || c.id} className="p-4 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all group">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">📚</span>
-                    <h4 className="font-semibold text-gray-900 group-hover:text-indigo-700">{c.name}</h4>
+                    <h4 className="font-semibold text-gray-900 group-hover:text-indigo-700">{c.courseName || c.course_name}</h4>
                   </div>
                   <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
-                    <span>🏢 {c.room}</span>
-                    <span>👨‍🏫 {c.lecturer}</span>
+                    <span>👨‍🏫 {c.lecturerName || c.lecturer_name}</span>
                   </div>
                 </div>
                 <div className="text-right ml-3">
-                  <div className="text-xl font-bold text-indigo-600">{c.time}</div>
-                  <div className="mt-2"><StatusBadge status={c.status} /></div>
+                  <div className="text-xl font-bold text-indigo-600">{c.startTime || c.start_time}</div>
+                  <div className="mt-2"><StatusBadge status={c.checkinStatus || c.checkin_status || 'upcoming'} /></div>
                 </div>
               </div>
             </div>

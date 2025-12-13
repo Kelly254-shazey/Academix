@@ -61,9 +61,9 @@ function AppContent() {
         />
 
         {/* Portal Routes */}
-        <Route path="/portal/student" element={<ProtectedRoute roles={["student"]}><StudentPortal /></ProtectedRoute>} />
-        <Route path="/portal/lecturer" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal /></ProtectedRoute>} />
-        <Route path="/portal/admin" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal /></ProtectedRoute>} />
+        <Route path="/portal/student/*" element={<ProtectedRoute roles={["student"]}><StudentPortal /></ProtectedRoute>} />
+        <Route path="/portal/lecturer/*" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal /></ProtectedRoute>} />
+        <Route path="/portal/admin/*" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal /></ProtectedRoute>} />
 
         {/* Catch all - redirect to login */}
         <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />

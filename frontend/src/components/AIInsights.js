@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AIInsights() {
@@ -10,11 +10,7 @@ export default function AIInsights() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchAIInsights();
-  }, [user]);
-
-  const fetchAIInsights = async () => {
+  const fetchAIInsights = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -39,7 +35,11 @@ export default function AIInsights() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAIInsights();
+  }, [user, fetchAIInsights]);
 
   if (loading) {
     return (

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Routes, Route } from 'react-router-dom';
+import Dashboard from '../pages/lecturer/Dashboard';
+import Messages from '../pages/Messages';
 import PortalHeader from '../components/PortalHeader';
 
 export default function LecturerPortal(){
@@ -8,7 +10,12 @@ export default function LecturerPortal(){
     { path: '/portal/lecturer', label: 'Dashboard', icon: '📊' },
     { path: '/portal/lecturer/classes', label: 'Classes', icon: '📚' },
     { path: '/portal/lecturer/messages', label: 'Messages', icon: '💬' },
-    { path: '/portal/lecturer/qr', label: 'QR Code', icon: '🔲' }
+    { path: '/portal/lecturer/qr', label: 'QR Code', icon: '🔲' },
+    { path: '/portal/lecturer/attendance', label: 'Attendance', icon: '📋' },
+    { path: '/portal/lecturer/profile', label: 'Profile', icon: '👤' },
+    { path: '/portal/lecturer/settings', label: 'Settings', icon: '⚙️' },
+    { path: '/portal/lecturer/support', label: 'Support', icon: '🆘' },
+    { path: '/portal/lecturer/reports', label: 'Reports', icon: '📋' }
   ];
 
   return (
@@ -17,7 +24,17 @@ export default function LecturerPortal(){
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-8">
-        <Outlet />
+        <Routes>
+          <Route index element={<Dashboard />} />
+          <Route path="classes" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Classes Page</h2><p>Coming Soon</p></div>} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="qr" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">QR Code Page</h2><p>Coming Soon</p></div>} />
+          <Route path="attendance" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Attendance Page</h2><p>Coming Soon</p></div>} />
+          <Route path="profile" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Profile Page</h2><p>Coming Soon</p></div>} />
+          <Route path="settings" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Settings Page</h2><p>Coming Soon</p></div>} />
+          <Route path="support" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Support Page</h2><p>Coming Soon</p></div>} />
+          <Route path="reports" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Reports Page</h2><p>Coming Soon</p></div>} />
+        </Routes>
       </main>
 
       {/* Footer */}
