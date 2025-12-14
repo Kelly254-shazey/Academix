@@ -236,7 +236,7 @@ router.post('/users', authMiddleware, isAdmin, async (req, res) => {
 router.put('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, email, role, status, department_id } = req.body;
+    const { name, email, role, department_id } = req.body;
 
     if (!name || !email || !role) {
       return res.status(400).json({
@@ -246,8 +246,8 @@ router.put('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
     }
 
     await db.execute(
-      `UPDATE users SET name = ?, email = ?, role = ?, status = ?, department_id = ? WHERE id = ?`,
-      [name, email, role, status || 'active', department_id || null, userId]
+      `UPDATE users SET name = ?, email = ?, role = ?, department_id = ? WHERE id = ?`,
+      [name, email, role, department_id || null, userId]
     );
 
     res.status(200).json({
@@ -514,7 +514,6 @@ router.get('/profile', authMiddleware, isAdmin, async (req, res) => {
         email,
         phone,
         role,
-        status,
         created_at,
         department_id
       FROM users
@@ -565,7 +564,7 @@ router.put('/profile', authMiddleware, isAdmin, async (req, res) => {
     `, [name, email, phone || null, adminId]);
 
     const [updated] = await db.execute(`
-      SELECT id, name, email, phone, role, status, created_at, department_id
+      SELECT id, name, email, phone, role, created_at, department_id
       FROM users
       WHERE id = ?
     `, [adminId]);
