@@ -152,8 +152,7 @@ router.get('/users', authMiddleware, isAdmin, async (req, res) => {
         u.name,
         u.email,
         u.role,
-        u.created_at,
-        u.phone
+        u.created_at
       FROM users u
       WHERE 1=1
         ${role && role !== 'all' ? `AND u.role = '${role}'` : ''}
@@ -512,7 +511,6 @@ router.get('/profile', authMiddleware, isAdmin, async (req, res) => {
         id,
         name,
         email,
-        phone,
         role,
         created_at,
         department_id
@@ -548,7 +546,7 @@ router.get('/profile', authMiddleware, isAdmin, async (req, res) => {
 router.put('/profile', authMiddleware, isAdmin, async (req, res) => {
   try {
     const adminId = req.user.id;
-    const { name, phone, email } = req.body;
+    const { name, email } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({
@@ -559,12 +557,12 @@ router.put('/profile', authMiddleware, isAdmin, async (req, res) => {
 
     await db.execute(`
       UPDATE users
-      SET name = ?, email = ?, phone = ?
+      SET name = ?, email = ?
       WHERE id = ? AND (role = 'admin' OR role = 'superadmin')
-    `, [name, email, phone || null, adminId]);
+    `, [name, email, adminId]);
 
     const [updated] = await db.execute(`
-      SELECT id, name, email, phone, role, created_at, department_id
+      SELECT id, name, email, role, created_at, department_id
       FROM users
       WHERE id = ?
     `, [adminId]);
