@@ -152,14 +152,12 @@ router.get('/users', authMiddleware, isAdmin, async (req, res) => {
         u.name,
         u.email,
         u.role,
-        u.status,
         u.created_at,
         u.phone
       FROM users u
       WHERE 1=1
         ${role && role !== 'all' ? `AND u.role = '${role}'` : ''}
         ${search ? `AND (u.name LIKE '%${search}%' OR u.email LIKE '%${search}%')` : ''}
-        ${status && status !== 'all' ? `AND u.status = '${status}'` : ''}
       LIMIT ?, ?
     `, [(page - 1) * limit, parseInt(limit)]);
 

@@ -591,6 +591,21 @@ class LecturerService {
           GROUP BY c.id
           ORDER BY c.course_code
         `;
+      } else {
+        // Default query if no specific reportType
+        query = `
+          SELECT 
+            c.course_name, c.course_code,
+            COUNT(DISTINCT s.id) as sessions_held,
+            COUNT(DISTINCT al.student_id) as total_students,
+            ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as avg_attendance
+          FROM classes c
+          LEFT JOIN sessions s ON c.id = s.class_id
+          LEFT JOIN attendance_logs al ON s.id = al.session_id
+          WHERE c.lecturer_id = ?
+          GROUP BY c.id
+          ORDER BY c.course_code
+        `;
       }
 
       const [results] = await db.execute(query, params);
@@ -617,7 +632,7 @@ class LecturerService {
           id, subject, description, status, priority, category,
           created_at, updated_at, resolved_at
         FROM support_tickets
-        WHERE created_by = ?
+        WHERE lecturer_id = ?
         ORDER BY created_at DESC
       `;
 
@@ -641,7 +656,7 @@ class LecturerService {
       
 
       const [result] = await db.execute(
-        'INSERT INTO support_tickets (created_by, subject, description, priority, category, status) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO support_tickets (lecturer_id, subject, description, priority, category, status) VALUES (?, ?, ?, ?, ?, ?)',
         [lecturerId, subject, description, priority, category, 'open']
       );
 
