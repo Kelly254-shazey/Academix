@@ -258,12 +258,10 @@ class LecturerService {
         SELECT 
           c.id, c.course_code, c.course_name, c.description,
           c.room_number, c.latitude, c.longitude, c.capacity,
-          d.name as department_name,
           COUNT(DISTINCT al.student_id) as enrolled_students,
           COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_today,
           ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as attendance_rate
         FROM classes c
-        LEFT JOIN departments d ON c.department_id = d.id
         LEFT JOIN attendance_logs al ON c.id = al.class_id AND DATE(al.checkin_time) = DATE(NOW())
         WHERE c.lecturer_id = ?
         GROUP BY c.id
