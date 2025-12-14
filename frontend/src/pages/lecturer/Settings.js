@@ -3,7 +3,7 @@ import { Settings, Bell, Shield, Save } from 'lucide-react';
 import apiClient from '../../utils/apiClient';
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState({
+  const defaultSettings = {
     notifications: {
       emailNotifications: true,
       pushNotifications: true,
@@ -23,7 +23,9 @@ export default function SettingsPage() {
       attendanceVisibility: 'private',
       dataSharing: false
     }
-  });
+  };
+
+  const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('notifications');
@@ -38,10 +40,15 @@ export default function SettingsPage() {
       setLoading(true);
       const result = await apiClient.get('/settings');
       if (result.success) {
-        setSettings(result.data);
+        // Handle both response formats (data or settings)
+        const settingsData = result.data || result.settings;
+        if (settingsData) {
+          setSettings(prev => ({ ...prev, ...settingsData }));
+        }
       }
     } catch (err) {
       console.error('Error fetching settings:', err);
+      // Use default settings on error
     } finally {
       setLoading(false);
     }

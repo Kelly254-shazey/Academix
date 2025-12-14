@@ -229,22 +229,38 @@ class AdminService {
    */
   async getAdminDashboardSummary() {
     try {
-      
-
-      // Get key metrics
+      // Get key metrics for admin dashboard
       const [metrics] = await db.execute(`
         SELECT 
-          (SELECT COUNT(*) FROM users WHERE role = 'student' AND is_active = TRUE) as active_students,
-          (SELECT COUNT(*) FROM users WHERE role = 'lecturer' AND is_active = TRUE) as active_lecturers,
-          (SELECT COUNT(*) FROM export_jobs WHERE status = 'pending') as pending_exports,
-          (SELECT COUNT(*) FROM ai_jobs WHERE status = 'running') as running_ai_jobs,
-          (SELECT COUNT(*) FROM audit_logs WHERE DATE(action_timestamp) = CURDATE()) as today_actions,
-          (SELECT COUNT(*) FROM privacy_requests WHERE status = 'pending') as pending_privacy_requests
+          (SELECT COUNT(*) FROM users) as totalUsers,
+          (SELECT COUNT(*) FROM users WHERE role = 'student') as totalStudents,
+          (SELECT COUNT(*) FROM users WHERE role = 'lecturer') as totalLecturers,
+          (SELECT COUNT(*) FROM users WHERE role = 'admin' OR role = 'superadmin') as totalAdmins,
+          (SELECT COUNT(*) FROM departments) as totalDepartments,
+          (SELECT COUNT(*) FROM classes) as totalClasses,
+          (SELECT COUNT(*) FROM attendance_logs) as totalAttendanceRecords,
+          (SELECT COUNT(DISTINCT session_id) FROM attendance_logs WHERE DATE(created_at) = CURDATE()) as todaySessions,
+          (SELECT COUNT(*) FROM attendance_logs WHERE DATE(created_at) = CURDATE() AND verification_status = 'verified') as todayAttendance,
+          (SELECT COUNT(DISTINCT user_id) FROM notifications WHERE is_read = FALSE) as unreadMessages
       `);
 
+      const dashboardData = metrics[0] || {};
+      
       return {
-        success: true,
-        data: metrics[0],
+        totalUsers: dashboardData.totalUsers || 0,
+        totalLecturers: dashboardData.totalLecturers || 0,
+        totalStudents: dashboardData.totalStudents || 0,
+        totalAdmins: dashboardData.totalAdmins || 0,
+        totalDepartments: dashboardData.totalDepartments || 0,
+        totalClasses: dashboardData.totalClasses || 0,
+        totalAttendanceRecords: dashboardData.totalAttendanceRecords || 0,
+        activeSessions: dashboardData.todaySessions || 0,
+        todaySessions: dashboardData.todaySessions || 0,
+        todayAttendance: dashboardData.todayAttendance || 0,
+        avgAttendanceToday: dashboardData.todayAttendance || 0,
+        lowAttendanceStudents: 0,
+        unreadMessages: dashboardData.unreadMessages || 0,
+        systemAlerts: 0
       };
     } catch (error) {
       logger.error('Error in getAdminDashboardSummary:', error);

@@ -76,7 +76,7 @@ function AppContent() {
     const qc = new QueryClient();
     return (
       <ErrorBoundary>
-        <Router>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <NotificationProvider>
               <QueryClientProvider client={qc}>

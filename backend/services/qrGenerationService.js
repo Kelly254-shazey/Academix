@@ -12,16 +12,7 @@ class QRGenerationService {
    * Generate QR code for student check-in
    */
   async generateQR(classId, sessionId, lecturerId, options = {}) {
-    let conn;
     try {
-      conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
-
       // Verify session belongs to lecturer's class and is started
       const sessionQuery = `
         SELECT s.id, s.scanning_enabled, c.lecturer_id
@@ -63,7 +54,7 @@ class QRGenerationService {
       ]);
 
       // Log audit
-      await this.auditLog(conn, {
+      await this.auditLog({
         user_id: lecturerId,
         action: 'QR_GENERATED',
         resource_type: 'qr_code',
@@ -156,7 +147,7 @@ class QRGenerationService {
       ]);
 
       // Log audit
-      await this.auditLog(conn, {
+      await this.auditLog({
         user_id: lecturerId,
         action: 'QR_ROTATED',
         resource_type: 'qr_code',
@@ -293,7 +284,7 @@ class QRGenerationService {
   /**
    * Audit log helper
    */
-  async auditLog(conn, data) {
+  async auditLog(data) {
     const query = `
       INSERT INTO audit_logs (
         user_id, action, resource_type, resource_id, class_id, session_id,

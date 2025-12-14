@@ -33,22 +33,23 @@ const Reports = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch AI insights
-      const insightsResponse = await apiClient.get('/ai/insights');
-      if (insightsResponse.success) {
-        setInsights(insightsResponse.data);
+      // Fetch admin dashboard overview
+      const overviewResponse = await apiClient.get('/api/admin/overview');
+      if (overviewResponse.success) {
+        setSummary(overviewResponse.data);
       }
 
-      // Fetch dashboard summary
-      const summaryResponse = await apiClient.get('/admin/dashboard-summary');
-      if (summaryResponse.success) {
-        setSummary(summaryResponse.data);
+      // Fetch admin reports
+      const reportsResponse = await apiClient.get('/api/admin/reports?type=overview');
+      if (reportsResponse.success) {
+        setInsights(reportsResponse.data);
       }
 
-      // Fetch attendance trends
-      const trendsResponse = await apiClient.get(`/admin/reports/attendance-trends?days=${dateRange}`);
-      if (trendsResponse.success) {
-        setAttendanceTrends(trendsResponse.data || []);
+      // Use reports data as trends if available
+      if (reportsResponse.success && reportsResponse.data) {
+        setAttendanceTrends([
+          { date: new Date().toISOString(), present: reportsResponse.data?.attendance?.verified || 0 }
+        ]);
       }
 
     } catch (err) {
@@ -63,7 +64,7 @@ const Reports = () => {
     try {
       setLoading(true);
       const extension = type === 'csv' ? 'csv' : 'pdf';
-      const response = await apiClient.get(`/api/reports/export?type=${type}&days=${dateRange}`, {
+      const response = await apiClient.get(`/reports/export?type=${type}&days=${dateRange}`, {
         responseType: 'blob'
       });
 
@@ -87,7 +88,7 @@ const Reports = () => {
   const handleExportCSV = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/reports/export-csv?days=${dateRange}`, {
+      const response = await apiClient.get(`/reports/export?type=csv&days=${dateRange}`, {
         responseType: 'blob'
       });
 
