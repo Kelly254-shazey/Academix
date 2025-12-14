@@ -35,7 +35,7 @@ export default function QRCodePage() {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const result = await apiClient.get('/classes/lecturer');
+      const result = await apiClient.get('/api/lecturer/classes');
       if (result.success) {
         setSessions(result.data || []);
       } else {
@@ -54,7 +54,7 @@ export default function QRCodePage() {
       setGenerating(true);
       setError(null);
 
-      const result = await apiClient.post(`/qr/generate`, {
+      const result = await apiClient.post(`/api/qr/generate`, {
         class_id: classId
       });
       if (result.success) {

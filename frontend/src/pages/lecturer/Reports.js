@@ -12,7 +12,7 @@ export default function Reports() {
 
   const fetchClasses = async () => {
     try {
-      const result = await apiClient.get('/classes/lecturer');
+      const result = await apiClient.get('/api/lecturer/classes');
       if (result.success) {
         setClasses(result.data || []);
       }
@@ -30,7 +30,7 @@ export default function Reports() {
       if (selectedClass !== 'all') params.append('classId', selectedClass);
       params.append('dateRange', dateRange);
 
-      const result = await apiClient.get(`/api/reports/lecturer?${params.toString()}`);
+      const result = await apiClient.get(`/api/lecturer/reports?${params.toString()}`);
       if (result.success) {
         // Report data retrieved
       } else {

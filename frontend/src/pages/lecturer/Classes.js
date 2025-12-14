@@ -16,7 +16,7 @@ export default function Classes() {
     try {
       setLoading(true);
       setError(null);
-      const result = await apiClient.get('/classes/lecturer');
+      const result = await apiClient.get('/api/lecturer/classes');
       if (result.success) {
         const classData = result.data || [];
         setClasses(Array.isArray(classData) ? classData : []);

@@ -31,7 +31,7 @@ export default function LecturerDashboard(){
         setError(null);
 
         // Fetch classes from database
-        const classesRes = await apiClient.get('/classes/lecturer');
+        const classesRes = await apiClient.get('/api/lecturer/classes');
         
         if (classesRes.success) {
           const classes = classesRes.data || [];
