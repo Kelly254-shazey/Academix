@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class LecturerService {
@@ -12,13 +12,7 @@ class LecturerService {
    */
   async getLecturerOverview(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -36,8 +30,7 @@ class LecturerService {
         GROUP BY u.id
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       if (!results || results.length === 0) {
         throw new Error('Lecturer not found');
@@ -58,13 +51,7 @@ class LecturerService {
    */
   async getTodayClasses(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -90,8 +77,7 @@ class LecturerService {
         ORDER BY s.start_time ASC
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       return {
         success: true,
@@ -108,13 +94,7 @@ class LecturerService {
    */
   async getNextClass(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -132,8 +112,7 @@ class LecturerService {
         LIMIT 1
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       return {
         success: true,
@@ -150,13 +129,7 @@ class LecturerService {
    */
   async getQuickAttendanceStats(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -171,8 +144,7 @@ class LecturerService {
         WHERE c.lecturer_id = ?
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       return {
         success: true,
@@ -189,13 +161,7 @@ class LecturerService {
    */
   async getLecturerAlerts(lecturerId, limit = 10) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT id, class_id, alert_type, title, message, severity, is_read,
@@ -206,8 +172,7 @@ class LecturerService {
         LIMIT ?
       `;
 
-      const [results] = await conn.query(query, [lecturerId, limit]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId, limit]);
 
       return {
         success: true,
@@ -224,13 +189,7 @@ class LecturerService {
    */
   async markAlertsAsRead(lecturerId, alertIds) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const placeholders = alertIds.map(() => '?').join(',');
       const query = `
@@ -240,8 +199,7 @@ class LecturerService {
       `;
 
       const params = [lecturerId, ...alertIds];
-      const [result] = await conn.query(query, params);
-      conn.end();
+      const [result] = await db.execute(query, params);
 
       return {
         success: true,
@@ -258,13 +216,7 @@ class LecturerService {
    */
   async getLecturerStatistics(lecturerId, startDate, endDate) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -283,8 +235,7 @@ class LecturerService {
         ORDER BY date DESC
       `;
 
-      const [results] = await conn.query(query, [lecturerId, startDate, endDate]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId, startDate, endDate]);
 
       return {
         success: true,
@@ -301,13 +252,7 @@ class LecturerService {
    */
   async getLecturerClasses(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -325,8 +270,7 @@ class LecturerService {
         ORDER BY c.course_code
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       return {
         success: true,
@@ -343,16 +287,10 @@ class LecturerService {
    */
   async getClassRoster(lecturerId, classId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       // First verify the class belongs to the lecturer
-      const [classCheck] = await conn.query(
+      const [classCheck] = await db.execute(
         'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
         [classId, lecturerId]
       );
@@ -376,8 +314,7 @@ class LecturerService {
         ORDER BY u.name
       `;
 
-      const [results] = await conn.query(query, [classId]);
-      conn.end();
+      const [results] = await db.execute(query, [classId]);
 
       return {
         success: true,
@@ -394,16 +331,10 @@ class LecturerService {
    */
   async startClassSession(lecturerId, classId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       // Verify the class belongs to the lecturer
-      const [classCheck] = await conn.query(
+      const [classCheck] = await db.execute(
         'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
         [classId, lecturerId]
       );
@@ -413,18 +344,16 @@ class LecturerService {
       }
 
       // Create a new session
-      const [result] = await conn.query(
+      const [result] = await db.execute(
         'INSERT INTO sessions (class_id, start_time, status) VALUES (?, NOW(), ?)',
         [classId, 'in_progress']
       );
 
       // Update class status if needed
-      await conn.query(
+      await db.execute(
         'UPDATE classes SET status = ? WHERE id = ?',
         ['active', classId]
       );
-
-      conn.end();
 
       return {
         success: true,
@@ -441,16 +370,10 @@ class LecturerService {
    */
   async delayClassSession(lecturerId, classId, delayMinutes, reason) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       // Verify the class belongs to the lecturer
-      const [classCheck] = await conn.query(
+      const [classCheck] = await db.execute(
         'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
         [classId, lecturerId]
       );
@@ -460,12 +383,10 @@ class LecturerService {
       }
 
       // Update session with delay
-      await conn.query(
+      await db.execute(
         'UPDATE sessions SET start_time = DATE_ADD(start_time, INTERVAL ? MINUTE), status = ? WHERE class_id = ? AND status = ?',
         [delayMinutes, 'delayed', classId, 'not_started']
       );
-
-      conn.end();
 
       return {
         success: true,
@@ -482,16 +403,10 @@ class LecturerService {
    */
   async cancelClassSession(lecturerId, classId, reason) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       // Verify the class belongs to the lecturer
-      const [classCheck] = await conn.query(
+      const [classCheck] = await db.execute(
         'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
         [classId, lecturerId]
       );
@@ -501,12 +416,10 @@ class LecturerService {
       }
 
       // Cancel session
-      await conn.query(
+      await db.execute(
         'UPDATE sessions SET status = ?, cancelled_at = NOW() WHERE class_id = ? AND status IN (?, ?)',
         ['cancelled', classId, 'not_started', 'delayed']
       );
-
-      conn.end();
 
       return {
         success: true,
@@ -523,16 +436,10 @@ class LecturerService {
    */
   async changeClassRoom(lecturerId, classId, newRoom) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       // Verify the class belongs to the lecturer
-      const [classCheck] = await conn.query(
+      const [classCheck] = await db.execute(
         'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
         [classId, lecturerId]
       );
@@ -542,12 +449,10 @@ class LecturerService {
       }
 
       // Update room
-      await conn.query(
+      await db.execute(
         'UPDATE classes SET room_number = ? WHERE id = ?',
         [newRoom, classId]
       );
-
-      conn.end();
 
       return {
         success: true,
@@ -564,16 +469,10 @@ class LecturerService {
    */
   async markManualAttendance(lecturerId, studentId, classId, sessionId, status, reason) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       // Verify the class belongs to the lecturer
-      const [classCheck] = await conn.query(
+      const [classCheck] = await db.execute(
         'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
         [classId, lecturerId]
       );
@@ -583,14 +482,12 @@ class LecturerService {
       }
 
       // Insert or update attendance record
-      await conn.query(
+      await db.execute(
         `INSERT INTO attendance_logs (student_id, session_id, class_id, status, checkin_time, manual_entry, reason)
          VALUES (?, ?, ?, ?, NOW(), TRUE, ?)
          ON DUPLICATE KEY UPDATE status = VALUES(status), checkin_time = NOW(), manual_entry = TRUE, reason = VALUES(reason)`,
         [studentId, sessionId, classId, status, reason]
       );
-
-      conn.end();
 
       return {
         success: true,
@@ -607,13 +504,7 @@ class LecturerService {
    */
   async getLecturerMessages(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -628,8 +519,7 @@ class LecturerService {
         LIMIT 50
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       return {
         success: true,
@@ -646,20 +536,12 @@ class LecturerService {
    */
   async sendLecturerMessage(lecturerId, recipientId, subject, message, classId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
-      const [result] = await conn.query(
+      const [result] = await db.execute(
         'INSERT INTO messages (sender_id, recipient_id, subject, message, class_id) VALUES (?, ?, ?, ?, ?)',
         [lecturerId, recipientId, subject, message, classId]
       );
-
-      conn.end();
 
       return {
         success: true,
@@ -676,13 +558,7 @@ class LecturerService {
    */
   async getLecturerReports(lecturerId, startDate, endDate, reportType) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       let query = '';
       let params = [lecturerId];
@@ -719,8 +595,7 @@ class LecturerService {
         `;
       }
 
-      const [results] = await conn.query(query, params);
-      conn.end();
+      const [results] = await db.execute(query, params);
 
       return {
         success: true,
@@ -737,13 +612,7 @@ class LecturerService {
    */
   async getLecturerSupportTickets(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -754,8 +623,7 @@ class LecturerService {
         ORDER BY created_at DESC
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       return {
         success: true,
@@ -772,20 +640,12 @@ class LecturerService {
    */
   async createLecturerSupportTicket(lecturerId, subject, description, priority, category) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
-      const [result] = await conn.query(
+      const [result] = await db.execute(
         'INSERT INTO support_tickets (created_by, subject, description, priority, category, status) VALUES (?, ?, ?, ?, ?, ?)',
         [lecturerId, subject, description, priority, category, 'open']
       );
-
-      conn.end();
 
       return {
         success: true,

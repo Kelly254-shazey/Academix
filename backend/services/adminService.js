@@ -198,13 +198,7 @@ class AdminService {
    */
   async getSystemNotifications(adminId, limit = 50) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -217,8 +211,7 @@ class AdminService {
         LIMIT ?
       `;
 
-      const [results] = await conn.query(query, [limit]);
-      conn.end();
+      const [results] = await db.execute(query, [limit]);
 
       return {
         success: true,
@@ -236,16 +229,10 @@ class AdminService {
    */
   async getAdminDashboardSummary() {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       // Get key metrics
-      const [metrics] = await conn.query(`
+      const [metrics] = await db.execute(`
         SELECT 
           (SELECT COUNT(*) FROM users WHERE role = 'student' AND is_active = TRUE) as active_students,
           (SELECT COUNT(*) FROM users WHERE role = 'lecturer' AND is_active = TRUE) as active_lecturers,
@@ -254,8 +241,6 @@ class AdminService {
           (SELECT COUNT(*) FROM audit_logs WHERE DATE(action_timestamp) = CURDATE()) as today_actions,
           (SELECT COUNT(*) FROM privacy_requests WHERE status = 'pending') as pending_privacy_requests
       `);
-
-      conn.end();
 
       return {
         success: true,
@@ -272,13 +257,7 @@ class AdminService {
    */
   async getKPITrends(startDate, endDate) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
+      
 
       const query = `
         SELECT 
@@ -300,8 +279,7 @@ class AdminService {
         ORDER BY date ASC
       `;
 
-      const [results] = await conn.query(query, [startDate, endDate]);
-      conn.end();
+      const [results] = await db.execute(query, [startDate, endDate]);
 
       return {
         success: true,
@@ -1296,7 +1274,7 @@ class AdminService {
     `;
 
     try {
-      await conn.query(query, [
+      await db.execute(query, [
         data.user_id,
         data.actor_role || 'admin',
         data.action,

@@ -676,3 +676,28 @@
 [INFO] 2025-12-14T06:55:36.335Z - ::1 - - [14/Dec/2025:06:55:36 +0000] "GET /admin/messages/all HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
 [INFO] 2025-12-14T07:11:07.669Z - Server running on port 5002 {"env":"development"}
 [INFO] 2025-12-14T07:18:48.112Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-14T07:58:46.522Z - Server running on port 5002 {"env":"development"}
+[INFO] 2025-12-14T07:59:00.431Z - ::1 - - [14/Dec/2025:07:59:00 +0000] "OPTIONS /admin/support/tickets HTTP/1.1" 204 0 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:00.440Z - ::1 - - [14/Dec/2025:07:59:00 +0000] "GET /admin/support/tickets HTTP/1.1" 404 45 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:00.447Z - ::1 - - [14/Dec/2025:07:59:00 +0000] "GET /notifications/user/46 HTTP/1.1" 401 70 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:00.451Z - ::1 - - [14/Dec/2025:07:59:00 +0000] "OPTIONS /admin/support/tickets HTTP/1.1" 204 0 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:00.470Z - ::1 - - [14/Dec/2025:07:59:00 +0000] "GET /admin/support/tickets HTTP/1.1" 404 45 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:00.488Z - New client connected: 8qB3eb-Ux2nwOqT2AAAB {}
+[INFO] 2025-12-14T07:59:00.492Z - User 46 joined notification room {"socketId":"8qB3eb-Ux2nwOqT2AAAB"}
+[INFO] 2025-12-14T07:59:00.495Z - Client joined course general {"socketId":"8qB3eb-Ux2nwOqT2AAAB"}
+[INFO] 2025-12-14T07:59:02.647Z - Client disconnected: 8qB3eb-Ux2nwOqT2AAAB {}
+[INFO] 2025-12-14T07:59:02.922Z - ::1 - - [14/Dec/2025:07:59:02 +0000] "GET /admin/support/tickets HTTP/1.1" 404 45 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:02.931Z - ::1 - - [14/Dec/2025:07:59:02 +0000] "GET /admin/support/tickets HTTP/1.1" 404 45 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:02.938Z - ::1 - - [14/Dec/2025:07:59:02 +0000] "GET /notifications/user/46 HTTP/1.1" 401 70 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T07:59:02.952Z - New client connected: WvtXYxHoPsqNk2TJAAAD {}
+[INFO] 2025-12-14T07:59:02.956Z - User 46 joined notification room {"socketId":"WvtXYxHoPsqNk2TJAAAD"}
+[INFO] 2025-12-14T07:59:02.960Z - Client joined course general {"socketId":"WvtXYxHoPsqNk2TJAAAD"}
+[INFO] 2025-12-14T08:00:42.560Z - Client disconnected: WvtXYxHoPsqNk2TJAAAD {}
+[INFO] 2025-12-14T08:00:42.700Z - ::1 - - [14/Dec/2025:08:00:42 +0000] "OPTIONS /admin/support/tickets HTTP/1.1" 204 0 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T08:00:42.707Z - ::1 - - [14/Dec/2025:08:00:42 +0000] "GET /notifications/user/46 HTTP/1.1" 401 70 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T08:00:42.710Z - ::1 - - [14/Dec/2025:08:00:42 +0000] "OPTIONS /admin/support/tickets HTTP/1.1" 204 0 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T08:00:42.715Z - ::1 - - [14/Dec/2025:08:00:42 +0000] "GET /admin/support/tickets HTTP/1.1" 404 45 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T08:00:42.718Z - ::1 - - [14/Dec/2025:08:00:42 +0000] "GET /admin/support/tickets HTTP/1.1" 404 45 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36" {}
+[INFO] 2025-12-14T08:00:42.732Z - New client connected: wbwLXadKJQjboVPmAAAF {}
+[INFO] 2025-12-14T08:00:42.735Z - User 46 joined notification room {"socketId":"wbwLXadKJQjboVPmAAAF"}
+[INFO] 2025-12-14T08:00:42.736Z - Client joined course general {"socketId":"wbwLXadKJQjboVPmAAAF"}
