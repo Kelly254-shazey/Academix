@@ -1,11 +1,14 @@
 import React from 'react';
-import { Outlet, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Dashboard from '../pages/student/Dashboard';
 import AttendanceHistory from '../pages/student/AttendanceHistory';
 import QRScanner from '../pages/student/QRScanner';
 import Messages from '../pages/Messages';
-import NotificationPortal from '../pages/NotificationPortal';
 import PortalHeader from '../components/PortalHeader';
+import ProfilePanel from '../components/student/ProfilePanel';
+import SettingsPanel from '../components/student/SettingsPanel';
+import ReportsPanel from '../components/student/ReportsPanel';
+import SupportPanel from '../components/student/SupportPanel';
 
 export default function StudentPortal(){
 
@@ -31,10 +34,10 @@ export default function StudentPortal(){
           <Route path="attendance" element={<AttendanceHistory />} />
           <Route path="messages" element={<Messages />} />
           <Route path="qr-scanner" element={<QRScanner />} />
-          <Route path="profile" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Profile Page</h2><p>Coming Soon</p></div>} />
-          <Route path="settings" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Settings Page</h2><p>Coming Soon</p></div>} />
-          <Route path="support" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Support Page</h2><p>Coming Soon</p></div>} />
-          <Route path="reports" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Reports Page</h2><p>Coming Soon</p></div>} />
+          <Route path="profile" element={<ProfilePanel />} />
+          <Route path="settings" element={<SettingsPanel />} />
+          <Route path="support" element={<SupportPanel />} />
+          <Route path="reports" element={<ReportsPanel />} />
         </Routes>
       </main>
 

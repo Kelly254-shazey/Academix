@@ -55,6 +55,33 @@ const assignCoursesSchema = Joi.object({
     .min(1),
 });
 
+// Class schemas
+const createClassSchema = Joi.object({
+  class_name: Joi.string().required().min(3).max(100),
+  course_code: Joi.string().required().min(2).max(20),
+  department_id: Joi.number().required().integer().positive(),
+  lecturer_id: Joi.number().optional().integer().positive().allow(null),
+  schedule: Joi.string().optional().max(500),
+  capacity: Joi.number().optional().integer().min(1).max(1000),
+  description: Joi.string().optional().max(1000),
+  room: Joi.string().optional().max(50),
+  semester: Joi.string().optional().max(20),
+  academic_year: Joi.string().optional().max(20),
+});
+
+const updateClassSchema = Joi.object({
+  class_name: Joi.string().optional().min(3).max(100),
+  course_code: Joi.string().optional().min(2).max(20),
+  department_id: Joi.number().optional().integer().positive(),
+  lecturer_id: Joi.number().optional().integer().positive().allow(null),
+  schedule: Joi.string().optional().max(500),
+  capacity: Joi.number().optional().integer().min(1).max(1000),
+  description: Joi.string().optional().max(1000),
+  room: Joi.string().optional().max(50),
+  semester: Joi.string().optional().max(20),
+  academic_year: Joi.string().optional().max(20),
+});
+
 // Student schemas
 const createStudentSchema = Joi.object({
   name: Joi.string().required().min(3).max(100),
@@ -212,6 +239,33 @@ const dateRangeSchema = Joi.object({
   endDate: Joi.date().optional().iso(),
 });
 
+// Messaging schemas
+const sendMessageSchema = Joi.object({
+  participant_id: Joi.number().required().integer().positive(),
+  message: Joi.string().required().min(1).max(1000),
+});
+
+const createConversationSchema = Joi.object({
+  participant_id: Joi.number().required().integer().positive(),
+  initial_message: Joi.string().optional().min(1).max(1000),
+});
+
+// Support schemas
+const createSupportTicketSchema = Joi.object({
+  student_id: Joi.number().required().integer().positive(),
+  subject: Joi.string().required().min(5).max(255),
+  description: Joi.string().required().min(10).max(2000),
+  priority: Joi.string().optional().valid('low', 'medium', 'high', 'urgent').default('medium'),
+});
+
+const replySupportTicketSchema = Joi.object({
+  response: Joi.string().required().min(1).max(2000),
+});
+
+const updateSupportTicketStatusSchema = Joi.object({
+  status: Joi.string().required().valid('open', 'in_progress', 'resolved', 'closed'),
+});
+
 module.exports = {
   // Department
   createDepartmentSchema,
@@ -222,6 +276,10 @@ module.exports = {
   createLecturerSchema,
   updateLecturerSchema,
   assignCoursesSchema,
+
+  // Class
+  createClassSchema,
+  updateClassSchema,
 
   // Student
   createStudentSchema,
@@ -251,6 +309,15 @@ module.exports = {
 
   // AI
   createAIJobSchema,
+
+  // Messaging
+  sendMessageSchema,
+  createConversationSchema,
+
+  // Support
+  createSupportTicketSchema,
+  replySupportTicketSchema,
+  updateSupportTicketStatusSchema,
 
   // Helpers
   paginationSchema,

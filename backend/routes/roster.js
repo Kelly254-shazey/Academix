@@ -15,7 +15,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const rosterService = require('../services/rosterService');
 const attendanceVerificationService = require('../services/attendanceVerificationService');
-const { authenticateToken } = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middleware/auth');
 const {
   markAttendanceSchema,
   bulkMarkAttendanceSchema,
@@ -42,7 +42,7 @@ const isLecturer = (req, res, next) => {
  */
 router.get(
   '/:classId/sessions/:sessionId/roster',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -75,7 +75,7 @@ router.get(
  */
 router.get(
   '/:classId/sessions/:sessionId/roster/summary',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -107,7 +107,7 @@ router.get(
  */
 router.post(
   '/:classId/sessions/:sessionId/roster/mark',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -195,7 +195,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/roster/bulk-mark',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -276,7 +276,7 @@ router.post(
  */
 router.get(
   '/:classId/roster/at-risk',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -310,7 +310,7 @@ router.get(
  */
 router.get(
   '/:classId/roster/student/:studentId/history',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -344,7 +344,7 @@ router.get(
  */
 router.post(
   '/:classId/sessions/:sessionId/attendance/verify',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -408,7 +408,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/attendance/unverify',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {

@@ -10,7 +10,10 @@ export default function PortalHeader({ portalTitle, navItems }) {
   const { notifications, getUnreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
-  const socketRef = useSocket();
+  const { socket, isConnected, connectionError } = useSocket();
+  // Socket used for real-time updates
+  // eslint-disable-next-line no-unused-vars
+  const socketRef = socket;
   
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -25,28 +28,14 @@ export default function PortalHeader({ portalTitle, navItems }) {
 
   // Monitor WebSocket connection
   useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) {
-      setLiveUpdates('Disconnected');
-      return;
-    }
-
-    const handleConnect = () => {
+    if (isConnected) {
       setLiveUpdates('Connected');
-    };
-
-    const handleDisconnect = () => {
+    } else if (connectionError) {
+      setLiveUpdates('Connection Error');
+    } else {
       setLiveUpdates('Connecting...');
-    };
-
-    socket.on('connect', handleConnect);
-    socket.on('disconnect', handleDisconnect);
-
-    return () => {
-      socket.off('connect', handleConnect);
-      socket.off('disconnect', handleDisconnect);
-    };
-  }, [socketRef]);
+    }
+  }, [isConnected, connectionError]);
 
   // Close menus on click outside
   useEffect(() => {

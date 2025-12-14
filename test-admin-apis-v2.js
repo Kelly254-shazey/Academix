@@ -3,7 +3,7 @@ const http = require('http');
 const jwt = require('jsonwebtoken');
 
 const API_URL = 'http://localhost:5002';
-const JWT_SECRET = 'your-secret-key-change-in-production';
+const { JWT_SECRET_FOR_JWT: JWT_SECRET } = require('./backend/config/jwtSecret');
 let adminToken = null;
 
 function makeRequest(method, path, body = null, headers = {}) {

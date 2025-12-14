@@ -43,7 +43,7 @@ class QRGenerationService {
       // Generate QR token and signature
       const qrToken = this.generateQRToken();
       const signature = this.generateSignature(qrToken, sessionId, classId);
-      const expiresAt = new Date(Date.now() + (options.validityMinutes || 10) * 60000);
+      const expiresAt = new Date(Date.now() + (options.validitySeconds || 35) * 1000); // Default 35 seconds
 
       // Insert QR record
       const insertQuery = `
@@ -73,7 +73,7 @@ class QRGenerationService {
         new_value: {
           qr_token: qrToken,
           expires_at: expiresAt.toISOString(),
-          validity_minutes: options.validityMinutes || 10,
+          validity_seconds: options.validitySeconds || 35,
         },
       });
 
@@ -89,7 +89,7 @@ class QRGenerationService {
           sessionId,
           classId,
           expiresAt: expiresAt.toISOString(),
-          validityMinutes: options.validityMinutes || 10,
+          validitySeconds: options.validitySeconds || 35,
           qrPayload: {
             token: qrToken,
             sessionId,
@@ -357,9 +357,9 @@ class QRGenerationService {
    * Generate HMAC signature for QR validation
    */
   generateSignature(token, sessionId, classId) {
-    const secret = process.env.JWT_SECRET || 'default-secret';
+    const { JWT_SECRET_FOR_CRYPTO } = require('../config/jwtSecret');
     const data = `${token}:${sessionId}:${classId}`;
-    return crypto.createHmac('sha256', secret).update(data).digest('hex');
+    return crypto.createHmac('sha256', JWT_SECRET_FOR_CRYPTO).update(data).digest('hex');
   }
 }
 

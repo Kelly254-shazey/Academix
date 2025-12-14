@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import apiClient from '../utils/apiClient';
 import './Attendance.css';
 import QRScanner from '../components/QRScanner';
 
@@ -18,25 +19,19 @@ function Attendance() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
-
   useEffect(() => {
     let mounted = true;
-    const token = localStorage.getItem('token');
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     const fetchData = async () => {
       setLoading(true);
       setError('');
       try {
         // Fetch today's scheduled classes (used to list today's entries)
-        const schedRes = await fetch(`${API_URL}/schedule/today`, { headers });
-        const schedJson = schedRes.ok ? await schedRes.json() : null;
+        const schedJson = await apiClient.get('/schedule/today');
         const todayClasses = schedJson?.data || [];
 
         // Fetch overall attendance analytics
-        const attendanceRes = await fetch(`${API_URL}/attendance-analytics/overall`, { headers });
-        const attendanceJson = attendanceRes.ok ? await attendanceRes.json() : null;
+        const attendanceJson = await apiClient.get('/attendance-analytics/overall');
         const overall = attendanceJson?.data?.overall ?? null;
 
         if (!mounted) return;
@@ -55,7 +50,7 @@ function Attendance() {
 
     fetchData();
     return () => { mounted = false; };
-  }, [user, API_URL]);
+  }, [user]);
 
   const getStatusColor = (status) => {
     switch(status) {

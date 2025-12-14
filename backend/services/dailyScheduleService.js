@@ -29,9 +29,9 @@ const dailyScheduleService = {
         LEFT JOIN users l ON c.lecturer_id = l.id
         LEFT JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.session_date) = CURDATE()
         LEFT JOIN attendance_logs al ON cs.id = al.session_id AND al.student_id = ?
-        WHERE c.day_of_week = ?
+        WHERE cs.id IS NOT NULL
         ORDER BY c.start_time ASC`,
-        [studentId, dayName]
+        [studentId]
       );
 
       return classes.map(cls => ({

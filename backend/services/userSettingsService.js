@@ -22,12 +22,25 @@ const userSettingsService = {
 
       const settings = results[0];
       return {
-        notificationsEnabled: settings.notifications_enabled,
-        emailNotifications: settings.email_notifications,
-        pushNotifications: settings.push_notifications,
-        smsNotifications: settings.sms_notifications,
-        darkMode: settings.dark_mode,
-        timezone: settings.timezone,
+        notifications: {
+          emailNotifications: settings.email_notifications,
+          pushNotifications: settings.push_notifications,
+          classReminders: settings.class_reminders !== false,
+          attendanceAlerts: settings.attendance_alerts !== false,
+          systemUpdates: settings.system_updates || false
+        },
+        preferences: {
+          theme: settings.theme || 'light',
+          language: settings.language || 'en',
+          timezone: settings.timezone || 'UTC',
+          dateFormat: settings.date_format || 'MM/DD/YYYY',
+          timeFormat: settings.time_format || '12h'
+        },
+        privacy: {
+          profileVisibility: settings.profile_visibility || 'private',
+          attendanceVisibility: settings.attendance_visibility || 'private',
+          dataSharing: settings.data_sharing || false
+        }
       };
     } catch (error) {
       logger.error('Error fetching user settings:', error);
@@ -41,19 +54,33 @@ const userSettingsService = {
       const updateFields = [];
       const values = [];
 
+      // Flatten nested structure to database fields
       const fieldMap = {
-        notifications_enabled: 'notificationsEnabled',
-        email_notifications: 'emailNotifications',
-        push_notifications: 'pushNotifications',
-        sms_notifications: 'smsNotifications',
-        dark_mode: 'darkMode',
-        timezone: 'timezone',
+        'notifications.emailNotifications': 'email_notifications',
+        'notifications.pushNotifications': 'push_notifications',
+        'notifications.classReminders': 'class_reminders',
+        'notifications.attendanceAlerts': 'attendance_alerts',
+        'notifications.systemUpdates': 'system_updates',
+        'preferences.theme': 'theme',
+        'preferences.language': 'language',
+        'preferences.timezone': 'timezone',
+        'preferences.dateFormat': 'date_format',
+        'preferences.timeFormat': 'time_format',
+        'privacy.profileVisibility': 'profile_visibility',
+        'privacy.attendanceVisibility': 'attendance_visibility',
+        'privacy.dataSharing': 'data_sharing'
       };
 
-      for (const [dbField, dataField] of Object.entries(fieldMap)) {
-        if (settingsData[dataField] !== undefined) {
+      // Helper function to get nested value
+      const getNestedValue = (obj, path) => {
+        return path.split('.').reduce((current, key) => current?.[key], obj);
+      };
+
+      for (const [dataPath, dbField] of Object.entries(fieldMap)) {
+        const value = getNestedValue(settingsData, dataPath);
+        if (value !== undefined) {
           updateFields.push(`${dbField} = ?`);
-          values.push(settingsData[dataField]);
+          values.push(value);
         }
       }
 
@@ -239,12 +266,25 @@ const userSettingsService = {
   // Get default settings
   getDefaultSettings() {
     return {
-      notificationsEnabled: true,
-      emailNotifications: true,
-      pushNotifications: true,
-      smsNotifications: false,
-      darkMode: false,
-      timezone: 'UTC',
+      notifications: {
+        emailNotifications: true,
+        pushNotifications: true,
+        classReminders: true,
+        attendanceAlerts: true,
+        systemUpdates: false
+      },
+      preferences: {
+        theme: 'light',
+        language: 'en',
+        timezone: 'UTC',
+        dateFormat: 'MM/DD/YYYY',
+        timeFormat: '12h'
+      },
+      privacy: {
+        profileVisibility: 'private',
+        attendanceVisibility: 'private',
+        dataSharing: false
+      }
     };
   },
 };

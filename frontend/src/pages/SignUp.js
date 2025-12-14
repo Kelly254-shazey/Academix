@@ -83,8 +83,8 @@ function SignUp() {
           email: formData.email.toLowerCase(),
           password: formData.password,
           role: formData.role,
-          department: formData.department,
-          studentId: formData.role === 'student' ? formData.studentId : null
+          ...(formData.department && { department: formData.department }),
+          ...(formData.role === 'student' && formData.studentId && { studentId: formData.studentId })
         })
       });
 

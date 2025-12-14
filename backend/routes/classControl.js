@@ -13,7 +13,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const classSessionService = require('../services/classSessionService');
 const classService = require('../services/classService');
-const { authenticateToken } = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middleware/auth');
 const {
   sessionStartSchema,
   sessionDelaySchema,
@@ -52,7 +52,7 @@ const validateLecturerAccess = async (req, res, next) => {
  */
 router.post(
   '/:classId/sessions/:sessionId/start',
-  authenticateToken,
+  authMiddleware,
   validateLecturerAccess,
   async (req, res) => {
     try {
@@ -103,7 +103,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/delay',
-  authenticateToken,
+  authMiddleware,
   validateLecturerAccess,
   async (req, res) => {
     try {
@@ -163,7 +163,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/cancel',
-  authenticateToken,
+  authMiddleware,
   validateLecturerAccess,
   async (req, res) => {
     try {
@@ -221,7 +221,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/room-change',
-  authenticateToken,
+  authMiddleware,
   validateLecturerAccess,
   async (req, res) => {
     try {
@@ -288,7 +288,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/scanning',
-  authenticateToken,
+  authMiddleware,
   validateLecturerAccess,
   async (req, res) => {
     try {
@@ -341,7 +341,7 @@ router.post(
  */
 router.get(
   '/:classId/sessions/:sessionId/state',
-  authenticateToken,
+  authMiddleware,
   validateLecturerAccess,
   async (req, res) => {
     try {

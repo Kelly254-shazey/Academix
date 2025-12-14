@@ -3,19 +3,26 @@ const authMiddleware = require('../middleware/auth');
 const { validateRequest } = require('../middlewares/validation');
 const schemas = require('../validators/schemas');
 const studentProfileService = require('../services/studentProfileService');
+const lecturerProfileService = require('../services/lecturerProfileService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
 router.use(authMiddleware);
 
 // GET /api/profile
-// Get student profile
+// Get profile (student or lecturer based on role)
 router.get('/', async (req, res) => {
   try {
-    const result = await studentProfileService.getProfile(req.user.id);
+    let result;
+    if (req.user.role === 'lecturer') {
+      result = await lecturerProfileService.getProfile(req.user.id);
+    } else {
+      result = await studentProfileService.getProfile(req.user.id);
+    }
+
     res.json({
       success: true,
-      data: result,
+      profile: result,
     });
   } catch (error) {
     logger.error('Error fetching profile:', error);
@@ -23,10 +30,50 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/profile/student
+// Get student profile explicitly
+router.get('/student', async (req, res) => {
+  try {
+    const result = await studentProfileService.getProfile(req.user.id);
+    res.json({
+      success: true,
+      profile: result,
+    });
+  } catch (error) {
+    logger.error('Error fetching student profile:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // PUT /api/profile
-// Update student profile
+// Update profile (student or lecturer based on role)
 router.put(
   '/',
+  validateRequest(schemas.updateProfileSchema),
+  async (req, res) => {
+    try {
+      let result;
+      if (req.user.role === 'lecturer') {
+        result = await lecturerProfileService.updateProfile(req.user.id, req.validatedData);
+      } else {
+        result = await studentProfileService.updateProfile(req.user.id, req.validatedData);
+      }
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Error updating profile:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+);
+
+// PUT /api/profile/student
+// Update student profile explicitly
+router.put(
+  '/student',
   validateRequest(schemas.updateProfileSchema),
   async (req, res) => {
     try {
@@ -36,7 +83,7 @@ router.put(
         data: result,
       });
     } catch (error) {
-      logger.error('Error updating profile:', error);
+      logger.error('Error updating student profile:', error);
       res.status(500).json({ success: false, message: error.message });
     }
   }

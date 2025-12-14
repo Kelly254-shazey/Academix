@@ -1,14 +1,28 @@
 import React from 'react';
 
-function StatusBadge({ status }){
-  const map = {
-    upcoming: { bg: 'bg-blue-100', text: 'text-blue-800', icon: '⏰' },
-    ongoing: { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: '🔴' },
-    cancelled: { bg: 'bg-red-100', text: 'text-red-800', icon: '❌' },
-    completed: { bg: 'bg-gray-100', text: 'text-gray-800', icon: '✅' }
-  };
-  const style = map[status] || map.upcoming;
-  return <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold ${style.bg} ${style.text}`}>{style.icon} {status}</span>;
+function StatusBadge({ status, delayed, delayMinutes }){
+  let style;
+  let text;
+  let icon;
+
+  if (status === 'active' || status === 'ongoing') {
+    style = { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: '🔴' };
+    text = 'Active';
+  } else if (status === 'checked_in') {
+    style = { bg: 'bg-green-100', text: 'text-green-800', icon: '✅' };
+    text = 'Checked In';
+  } else if (status === 'not_checked_in') {
+    style = { bg: 'bg-blue-100', text: 'text-blue-800', icon: '⏰' };
+    text = delayed ? `Delayed ${delayMinutes}min` : 'Upcoming';
+  } else if (status === 'cancelled') {
+    style = { bg: 'bg-red-100', text: 'text-red-800', icon: '❌' };
+    text = 'Cancelled';
+  } else {
+    style = { bg: 'bg-gray-100', text: 'text-gray-800', icon: '⏰' };
+    text = delayed ? `Delayed ${delayMinutes}min` : 'Upcoming';
+  }
+
+  return <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold ${style.bg} ${style.text}`}>{style.icon} {text}</span>;
 }
 
 export default function SchedulePanel({ classes = [] }){
@@ -38,7 +52,7 @@ export default function SchedulePanel({ classes = [] }){
                 </div>
                 <div className="text-right ml-3">
                   <div className="text-xl font-bold text-indigo-600">{c.startTime || c.start_time}</div>
-                  <div className="mt-2"><StatusBadge status={c.checkinStatus || c.checkin_status || 'upcoming'} /></div>
+                  <div className="mt-2"><StatusBadge status={c.checkinStatus || c.checkin_status || c.status || 'upcoming'} delayed={c.delayed} delayMinutes={c.delayMinutes} /></div>
                 </div>
               </div>
             </div>

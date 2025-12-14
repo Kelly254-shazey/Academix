@@ -1,7 +1,14 @@
 import React from 'react';
-import { Outlet, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Dashboard from '../pages/lecturer/Dashboard';
+import Classes from '../pages/lecturer/Classes';
+import QRCode from '../pages/lecturer/QRCode';
+import Attendance from '../pages/lecturer/Attendance';
+import Profile from '../pages/lecturer/Profile';
+import Settings from '../pages/lecturer/Settings';
 import Messages from '../pages/Messages';
+import Reports from '../pages/lecturer/Reports';
+import Support from '../pages/lecturer/Support';
 import PortalHeader from '../components/PortalHeader';
 
 export default function LecturerPortal(){
@@ -26,14 +33,14 @@ export default function LecturerPortal(){
       <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-8">
         <Routes>
           <Route index element={<Dashboard />} />
-          <Route path="classes" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Classes Page</h2><p>Coming Soon</p></div>} />
+          <Route path="classes" element={<Classes />} />
           <Route path="messages" element={<Messages />} />
-          <Route path="qr" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">QR Code Page</h2><p>Coming Soon</p></div>} />
-          <Route path="attendance" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Attendance Page</h2><p>Coming Soon</p></div>} />
-          <Route path="profile" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Profile Page</h2><p>Coming Soon</p></div>} />
-          <Route path="settings" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Settings Page</h2><p>Coming Soon</p></div>} />
-          <Route path="support" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Support Page</h2><p>Coming Soon</p></div>} />
-          <Route path="reports" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Reports Page</h2><p>Coming Soon</p></div>} />
+          <Route path="qr" element={<QRCode />} />
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="support" element={<Support />} />
+          <Route path="reports" element={<Reports />} />
         </Routes>
       </main>
 

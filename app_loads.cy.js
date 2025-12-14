@@ -1,4 +1,5 @@
 /// <reference types="cypress" />
+// cSpell:ignore Academix
 
 describe('Academix Application', () => {
   it('should load the homepage successfully', () => {

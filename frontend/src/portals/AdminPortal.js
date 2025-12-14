@@ -1,8 +1,15 @@
 import React from 'react';
-import { Outlet, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Dashboard from '../pages/AdminDashboard';
 import Reports from '../pages/admin/Reports';
-import Messages from '../pages/Messages';
+import UserManagement from '../pages/admin/UserManagement';
+import DepartmentManagement from '../pages/admin/DepartmentManagement';
+import ClassManagement from '../pages/admin/ClassManagement';
+import AdminMessaging from '../pages/AdminMessaging';
+import AdminAttendance from '../pages/admin/AdminAttendance';
+import AdminProfile from '../pages/admin/AdminProfile';
+import AdminSettings from '../pages/admin/AdminSettings';
+import AdminSupport from '../pages/admin/AdminSupport';
 import PortalHeader from '../components/PortalHeader';
 
 export default function AdminPortal(){
@@ -28,15 +35,15 @@ export default function AdminPortal(){
       <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-8">
         <Routes>
           <Route index element={<Dashboard />} />
-          <Route path="users" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Users Page</h2><p>Coming Soon</p></div>} />
-          <Route path="departments" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Departments Page</h2><p>Coming Soon</p></div>} />
-          <Route path="messages" element={<Messages />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="departments" element={<DepartmentManagement />} />
+          <Route path="messages" element={<AdminMessaging />} />
           <Route path="reports" element={<Reports />} />
-          <Route path="classes" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Classes Page</h2><p>Coming Soon</p></div>} />
-          <Route path="attendance" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Attendance Page</h2><p>Coming Soon</p></div>} />
-          <Route path="profile" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Profile Page</h2><p>Coming Soon</p></div>} />
-          <Route path="settings" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Settings Page</h2><p>Coming Soon</p></div>} />
-          <Route path="support" element={<div className="p-8 text-center"><h2 className="text-2xl font-bold">Support Page</h2><p>Coming Soon</p></div>} />
+          <Route path="classes" element={<ClassManagement />} />
+          <Route path="attendance" element={<AdminAttendance />} />
+          <Route path="profile" element={<AdminProfile />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="support" element={<AdminSupport />} />
         </Routes>
       </main>
 

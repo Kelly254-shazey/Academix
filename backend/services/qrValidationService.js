@@ -2,8 +2,9 @@ const db = require('../database');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
 
-const QR_VALIDITY_MINUTES = 10; // QR codes valid for 10 minutes
-const LOCATION_TOLERANCE_METERS = 100; // 100 meters tolerance
+const QR_VALIDITY_SECONDS = 35; // QR codes valid for 35 seconds
+const LOCATION_TOLERANCE_METERS = 50; // 50 meters tolerance for stricter validation
+const LOCATION_REQUIRED = true; // Location is now mandatory for security
 
 const qrValidationService = {
   // Validate QR token and return session details
@@ -104,29 +105,37 @@ const qrValidationService = {
   // Validate location proximity
   validateLocationProximity(classLat, classLng, capturedLat, capturedLng) {
     try {
-      // If no location provided, skip validation
-      if (!classLat || !classLng || !capturedLat || !capturedLng) {
+      // Location is now mandatory for security
+      if (!classLat || !classLng) {
         return {
-          isValid: true,
-          message: 'Location validation skipped',
+          isValid: false,
+          message: 'Class location not configured',
+          distance: null,
+        };
+      }
+
+      if (!capturedLat || !capturedLng) {
+        return {
+          isValid: false,
+          message: 'Device location required for check-in validation',
           distance: null,
         };
       }
 
       // Calculate distance using Haversine formula
       const distance = this.calculateDistance(classLat, classLng, capturedLat, capturedLng);
-      
+
       if (distance > LOCATION_TOLERANCE_METERS) {
         return {
           isValid: false,
-          message: `Location too far from class (${Math.round(distance)}m > ${LOCATION_TOLERANCE_METERS}m)`,
+          message: `Location verification failed. You must be within ${LOCATION_TOLERANCE_METERS}m of the classroom (${Math.round(distance)}m away)`,
           distance: Math.round(distance),
         };
       }
 
       return {
         isValid: true,
-        message: 'Location validated',
+        message: `Location verified (${Math.round(distance)}m from classroom)`,
         distance: Math.round(distance),
       };
     } catch (error) {
@@ -187,27 +196,40 @@ const qrValidationService = {
         deviceValid = deviceValidation.isVerified;
       }
 
-      // Step 4: Validate location (if provided)
-      let locationValid = true;
-      let distance = null;
-      if (latitude && longitude) {
-        const locationValidation = this.validateLocationProximity(
-          qrValidation.classLocation.latitude,
-          qrValidation.classLocation.longitude,
-          latitude,
-          longitude
-        );
-        locationValid = locationValidation.isValid;
-        distance = locationValidation.distance;
+      // Step 4: Validate location (MANDATORY for security)
+      if (!latitude || !longitude) {
+        return {
+          success: false,
+          status: 'LOCATION_REQUIRED',
+          message: 'Device location is required for secure check-in validation',
+        };
       }
 
-      // Step 5: Determine verification status
+      const locationValidation = this.validateLocationProximity(
+        qrValidation.classLocation.latitude,
+        qrValidation.classLocation.longitude,
+        latitude,
+        longitude
+      );
+
+      if (!locationValidation.isValid) {
+        return {
+          success: false,
+          status: 'LOCATION_INVALID',
+          message: locationValidation.message,
+          distance: locationValidation.distance,
+        };
+      }
+
+      const locationValid = true;
+      const distance = locationValidation.distance;
+
+      // Step 5: Determine verification status (location is now mandatory)
       let verificationStatus = 'success';
       if (!deviceValid) {
         verificationStatus = 'invalid_fingerprint';
-      } else if (!locationValid) {
-        verificationStatus = 'spoofed_location';
       }
+      // Location validation already failed above if invalid, so no need to check here
 
       // Step 6: Record attendance
       await db.execute(

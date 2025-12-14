@@ -2,7 +2,7 @@ const db = require('../database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const { JWT_SECRET_FOR_JWT: JWT_SECRET } = require('../config/jwtSecret');
 
 exports.login = async (data) => {
   const { email, password } = data;

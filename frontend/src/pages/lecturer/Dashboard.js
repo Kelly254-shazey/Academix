@@ -4,16 +4,65 @@ import LecturerControls from '../../components/lecturer/LecturerControls';
 import LecturerQRDisplay from '../../components/lecturer/LecturerQRDisplay';
 import RosterManagement from '../../components/lecturer/RosterManagement';
 import LecturerSchedulePanel from '../../components/lecturer/LecturerSchedulePanel';
-import { useApiQuery } from '../../hooks/useApi';
 import useSocket from '../../hooks/useSocket';
+import apiClient from '../../utils/apiClient';
 
 export default function LecturerDashboard(){
-  const { data: overviewData, isLoading: ovLoading, isError: ovError } = useApiQuery('lecturerOverview', '/api/lecturer/overview', { retry: false });
-  const { data: classesData, isLoading: clLoading, isError: clError } = useApiQuery('lecturerTodayClasses', '/api/lecturer/today-classes', { retry: false });
-  const { data: rosterData, isLoading: roLoading, isError: roError } = useApiQuery('lecturerRoster', '/api/classes/1/sessions/1/roster', { retry: false });
+  const [dashboardData, setDashboardData] = useState({
+    classes: [],
+    pendingActions: [],
+    summary: {
+      totalClasses: 0,
+      totalSessions: 0,
+      totalStudents: 0,
+      todayAttendance: 0
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const socketRef = useSocket();
+  const { socket: socketRef } = useSocket();
   const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch classes from database
+        const classesRes = await apiClient.get('/classes/lecturer');
+        
+        if (classesRes.success) {
+          const classes = classesRes.data || [];
+          setDashboardData({
+            lecturerName: localStorage.getItem('userName') || 'Lecturer',
+            classes: classes,
+            todayClasses: classes.filter(c => {
+              const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+              return c.day_of_week === today;
+            }),
+            pendingActions: [],
+            summary: {
+              totalClasses: classes.length,
+              totalSessions: classes.reduce((sum, c) => sum + (c.total_sessions || 0), 0),
+              totalStudents: classes.reduce((sum, c) => sum + (c.enrolled_students || 0), 0),
+              todayAttendance: classes.reduce((sum, c) => sum + (c.today_attendance || 0), 0)
+            }
+          });
+        } else {
+          throw new Error('Failed to fetch dashboard data from database');
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard: ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -30,12 +79,9 @@ export default function LecturerDashboard(){
     };
   }, [socketRef]);
 
-  const loading = ovLoading || clLoading || roLoading;
-  const error = ovError || clError || roError;
-
-  const overview = overviewData?.data || { avg: 0, todayClasses: 0, pending: 0, trend: [] };
-  const classes = classesData?.data || [];
-  const roster = rosterData?.data || [];
+  const overview = dashboardData; // The API already returns data in the correct format for LecturerOverview
+  const classes = dashboardData.classes;
+  const roster = []; // This might need to be fetched separately or added to dashboard endpoint
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
@@ -83,7 +129,7 @@ export default function LecturerDashboard(){
               <LecturerOverview data={overview} />
             </div>
             <div className="space-y-3 sm:space-y-4">
-              <LecturerControls onStart={()=>{}} onDelay={()=>{}} onCancel={()=>{}} onChangeRoom={()=>{}} />
+              <LecturerControls classId={classes?.[0]?.id} onStart={()=>{}} onDelay={()=>{}} onCancel={()=>{}} onChangeRoom={()=>{}} />
               <LecturerQRDisplay token={overview.sessionToken} expiry={overview.sessionExpiry} onRotate={()=>{}} />
             </div>
           </div>

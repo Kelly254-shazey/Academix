@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const { JWT_SECRET_FOR_JWT: JWT_SECRET } = require('../config/jwtSecret');
 
 exports.authenticateToken = (req, res, next) => {
+  // Skip preflight
+  if (req.method === 'OPTIONS') return next();
+
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
   

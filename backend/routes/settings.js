@@ -15,10 +15,25 @@ router.get('/', async (req, res) => {
     const result = await userSettingsService.getSettings(req.user.id);
     res.json({
       success: true,
-      data: result,
+      settings: result,
     });
   } catch (error) {
     logger.error('Error fetching settings:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /api/settings/student
+// Get student settings explicitly
+router.get('/student', async (req, res) => {
+  try {
+    const result = await userSettingsService.getSettings(req.user.id);
+    res.json({
+      success: true,
+      settings: result,
+    });
+  } catch (error) {
+    logger.error('Error fetching student settings:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -37,6 +52,25 @@ router.put(
       });
     } catch (error) {
       logger.error('Error updating settings:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+);
+
+// PUT /api/settings/student
+// Update student settings explicitly
+router.put(
+  '/student',
+  validateRequest(schemas.updateSettingsSchema),
+  async (req, res) => {
+    try {
+      const result = await userSettingsService.updateSettings(req.user.id, req.validatedData);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Error updating student settings:', error);
       res.status(500).json({ success: false, message: error.message });
     }
   }

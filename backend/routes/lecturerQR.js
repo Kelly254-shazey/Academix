@@ -12,7 +12,7 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const qrGenerationService = require('../services/qrGenerationService');
-const { authenticateToken } = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middleware/auth');
 const {
   lecturerQRCheckinSchema,
   qrGenerationSchema,
@@ -35,7 +35,7 @@ const isLecturer = (req, res, next) => {
  * POST /api/lecturer/checkin
  * Lecturer QR check-in for authentication
  */
-router.post('/checkin', authenticateToken, isLecturer, async (req, res) => {
+router.post('/checkin', authMiddleware, isLecturer, async (req, res) => {
   try {
     const { error, value } = lecturerQRCheckinSchema.validate(req.body);
 
@@ -107,7 +107,7 @@ router.post('/checkin', authenticateToken, isLecturer, async (req, res) => {
  */
 router.post(
   '/:classId/sessions/:sessionId/qr',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -125,10 +125,10 @@ router.post(
         });
       }
 
-      const { classId, sessionId, validityMinutes } = value;
+      const { classId, sessionId, validitySeconds } = value;
       const lecturerId = req.user.id;
 
-      const options = validityMinutes ? { validityMinutes } : {};
+      const options = validitySeconds ? { validitySeconds } : {};
 
       const result = await qrGenerationService.generateQR(
         classId,
@@ -166,7 +166,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/qr/rotate',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -208,7 +208,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/qr/validate',
-  authenticateToken,
+  authMiddleware,
   async (req, res) => {
     try {
       const { error, value } = qrValidationSchema.validate({
@@ -259,7 +259,7 @@ router.post(
  */
 router.get(
   '/:classId/sessions/:sessionId/qr',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {
@@ -298,7 +298,7 @@ router.get(
  */
 router.get(
   '/:classId/sessions/:sessionId/qr/history',
-  authenticateToken,
+  authMiddleware,
   isLecturer,
   async (req, res) => {
     try {

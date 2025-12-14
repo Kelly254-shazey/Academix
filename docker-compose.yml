@@ -5,41 +5,68 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: production  # Use production stage
     container_name: classtrack-backend
     ports:
-      - "5000:5000"
+      - "${BACKEND_PORT:-5002}:5002"
     environment:
-      NODE_ENV: development # Use 'production' for production builds
+      NODE_ENV: production
       DB_HOST: mysql
-      DB_USER: root
-      DB_PASSWORD: kelly123
-      DB_NAME: class_ai_db
+      DB_USER: ${DB_USER:-classtrack_prod}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-class_ai_db}
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      QR_EXPIRY_SECONDS: ${QR_EXPIRY_SECONDS:-300}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - ./backend/logs:/app/logs
+      - ./backend/uploads:/app/uploads  # For file uploads if needed
     networks:
       - classtrack
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   mysql:
-    image: mysql:8
+    image: mysql:8.0
     container_name: classtrack-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: kelly123
-      MYSQL_DATABASE: class_ai_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-class_ai_db}
+      MYSQL_USER: ${DB_USER:-classtrack_prod}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/optimize.sql:/docker-entrypoint-initdb.d/02-optimize.sql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf:ro
     networks:
       - classtrack
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    command: --default-authentication-plugin=mysql_native_password
 
   redis:
     image: redis:7-alpine

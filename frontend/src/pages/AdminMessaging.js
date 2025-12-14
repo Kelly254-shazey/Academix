@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import apiClient from '../utils/apiClient';
 import './AdminMessaging.css';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function AdminMessaging() {
   const { user } = useAuth();
@@ -28,12 +27,7 @@ function AdminMessaging() {
   const fetchConversations = useCallback(async () => {
     try {
       if (user?.role !== 'admin') return;
-      const response = await fetch(`${API_URL}/admin/messages/all`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
+      const data = await apiClient.get('/admin/messages/all');
       if (data.success) setConversations(data.conversations || []);
       else console.warn('Conversations fetch returned success: false');
     } catch (error) {
@@ -44,12 +38,7 @@ function AdminMessaging() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/admin/communication/stats`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
+      const data = await apiClient.get('/admin/communication/stats');
       if (data.success && data.stats) setStats(data.stats);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -64,12 +53,7 @@ function AdminMessaging() {
         setMessages([]);
         return;
       }
-      const response = await fetch(`${API_URL}/admin/messages/student/${studentId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
+      const data = await apiClient.get(`/admin/messages/student/${studentId}`);
       if (data.success) setMessages(data.messages || []);
       else setMessages([]);
     } catch (error) {
@@ -132,13 +116,7 @@ function AdminMessaging() {
         return;
       }
 
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
+      const data = await apiClient.post(endpoint, payload);
 
       if (data.success) {
         setMessageText('');

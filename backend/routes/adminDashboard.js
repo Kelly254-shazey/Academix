@@ -1,98 +1,366 @@
-// admin.js
-// Admin dashboard routes: overview, notifications, system status
-// Author: Backend Team
-// Date: December 11, 2025
+// adminDashboard.js
+// Admin Dashboard API Routes
+// GET /api/admin/overview - Admin dashboard overview
+// GET /api/admin/users - Get all users with filters
+// POST /api/admin/users - Create new user
+// PUT /api/admin/users/:userId - Update user
+// DELETE /api/admin/users/:userId - Delete user
+// GET /api/admin/classes - Get all classes
+// POST /api/admin/classes - Create class
+// PUT /api/admin/classes/:classId - Update class
+// DELETE /api/admin/classes/:classId - Delete class
+// GET /api/admin/departments - Get all departments
+// POST /api/admin/departments - Create department
+// GET /api/admin/reports - Get system reports
 
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
 const adminService = require('../services/adminService');
-const departmentService = require('../services/departmentService');
-const lecturerManagementService = require('../services/lecturerManagementService');
-const studentManagementService = require('../services/studentManagementService');
-const auditService = require('../services/auditService');
-const { requireAdminRole, auditAction } = require('../middlewares/rbacMiddleware');
-const { validateRequest } = require('../middlewares/validation');
-const schemas = require('../validators/adminSchemas');
+const authMiddleware = require('../middleware/auth');
+const { requireRole } = require('../middlewares/rbacMiddleware');
 const logger = require('../utils/logger');
+const db = require('../database');
 
-// Middleware: Apply authentication first, then require admin role
-router.use(authMiddleware);
-router.use(requireAdminRole);
+// Middleware: Verify admin role
+const isAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin role required.',
+    });
+  }
+  next();
+};
 
 /**
  * GET /api/admin/overview
- * Get institution overview dashboard
+ * Get admin dashboard overview
  */
-router.get('/overview', async (req, res) => {
+router.get('/overview', authMiddleware, isAdmin, async (req, res) => {
   try {
     const adminId = req.user.id;
-    const result = await adminService.getInstitutionOverview(adminId);
+    const result = await adminService.getAdminDashboardSummary();
 
-    res.status(200).json(result);
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
   } catch (error) {
-    logger.error('Error getting institution overview:', error);
+    logger.error('Error fetching admin overview:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch overview',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
 
 /**
- * GET /api/admin/notifications
- * Get system notifications
+ * GET /api/admin/users
+ * Get all users with filters
  */
-router.get('/notifications', async (req, res) => {
+router.get('/users', authMiddleware, isAdmin, async (req, res) => {
   try {
-    const adminId = req.user.id;
-    const limit = req.query.limit || 50;
+    const { role, search, status, department, page = 1, limit = 20 } = req.query;
 
-    const result = await adminService.getSystemNotifications(adminId, limit);
+    const filters = {};
+    if (role && role !== 'all') filters.role = role;
+    if (department && department !== 'all') filters.department_id = department;
+    if (status && status !== 'all') filters.status = status;
 
-    res.status(200).json(result);
+    const [users] = await db.execute(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.role,
+        u.status,
+        u.created_at,
+        u.phone,
+        d.name as department_name
+      FROM users u
+      LEFT JOIN departments d ON u.department_id = d.id
+      WHERE 1=1
+        ${role && role !== 'all' ? `AND u.role = '${role}'` : ''}
+        ${search ? `AND (u.name LIKE '%${search}%' OR u.email LIKE '%${search}%')` : ''}
+        ${status && status !== 'all' ? `AND u.status = '${status}'` : ''}
+      LIMIT ?, ?
+    `, [(page - 1) * limit, parseInt(limit)]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        users: users || [],
+        total: users.length,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      },
+    });
   } catch (error) {
-    logger.error('Error getting notifications:', error);
+    logger.error('Error fetching users:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch notifications',
+      message: 'Failed to fetch users',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
 
 /**
- * GET /api/admin/dashboard-summary
- * Quick dashboard summary with key metrics
+ * POST /api/admin/users
+ * Create new user
  */
-router.get('/dashboard-summary', async (req, res) => {
+router.post('/users', authMiddleware, isAdmin, async (req, res) => {
   try {
-    const result = await adminService.getAdminDashboardSummary();
+    const { name, email, role, password, department_id, student_id, lecturer_id } = req.body;
 
-    res.status(200).json(result);
+    if (!name || !email || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'name, email, and role are required',
+      });
+    }
+
+    const [existingUser] = await db.execute('SELECT id FROM users WHERE email = ?', [email]);
+    if (existingUser.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists',
+      });
+    }
+
+    const [result] = await db.execute(
+      `INSERT INTO users (name, email, role, password, department_id, status, created_at) 
+       VALUES (?, ?, ?, ?, ?, 'active', NOW())`,
+      [name, email, role, password || 'temp123', department_id || null]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: {
+        id: result.insertId,
+        name,
+        email,
+        role,
+      },
+    });
   } catch (error) {
-    logger.error('Error getting dashboard summary:', error);
+    logger.error('Error creating user:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch dashboard summary',
+      message: 'Failed to create user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
 
 /**
- * GET /api/admin/kpi-trends
- * Get KPI trends for date range
+ * PUT /api/admin/users/:userId
+ * Update user
  */
-router.get('/kpi-trends', validateRequest(schemas.dateRangeSchema), async (req, res) => {
+router.put('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-    const result = await adminService.getKPITrends(startDate, endDate);
+    const { userId } = req.params;
+    const { name, email, role, status, department_id } = req.body;
 
-    res.status(200).json(result);
+    if (!name || !email || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'name, email, and role are required',
+      });
+    }
+
+    await db.execute(
+      `UPDATE users SET name = ?, email = ?, role = ?, status = ?, department_id = ? WHERE id = ?`,
+      [name, email, role, status || 'active', department_id || null, userId]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      data: {
+        id: userId,
+        name,
+        email,
+        role,
+      },
+    });
   } catch (error) {
-    logger.error('Error getting KPI trends:', error);
+    logger.error('Error updating user:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch KPI trends',
+      message: 'Failed to update user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:userId
+ * Delete user
+ */
+router.delete('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    await db.execute('DELETE FROM users WHERE id = ?', [userId]);
+
+    res.status(200).json({
+      success: true,
+      message: 'User deleted successfully',
+    });
+  } catch (error) {
+    logger.error('Error deleting user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * GET /api/admin/classes
+ * Get all classes
+ */
+router.get('/classes', authMiddleware, isAdmin, async (req, res) => {
+  try {
+    const { department, search, page = 1, limit = 20 } = req.query;
+
+    const [classes] = await db.execute(`
+      SELECT 
+        c.id,
+        c.course_code,
+        c.course_name,
+        c.day_of_week,
+        c.start_time,
+        c.end_time,
+        c.location_lat,
+        c.location_lng,
+        u.name as lecturer_name,
+        d.name as department_name,
+        COUNT(DISTINCT cs.id) as total_sessions
+      FROM classes c
+      LEFT JOIN users u ON c.lecturer_id = u.id
+      LEFT JOIN departments d ON c.department_id = d.id
+      LEFT JOIN class_sessions cs ON c.id = cs.class_id
+      WHERE 1=1
+        ${department && department !== 'all' ? `AND c.department_id = ${department}` : ''}
+        ${search ? `AND (c.course_code LIKE '%${search}%' OR c.course_name LIKE '%${search}%')` : ''}
+      GROUP BY c.id, c.course_code, c.course_name, c.day_of_week, c.start_time, c.end_time, c.location_lat, c.location_lng, u.name, d.name
+      LIMIT ?, ?
+    `, [(page - 1) * limit, parseInt(limit)]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        classes: classes || [],
+        total: classes.length,
+        page: parseInt(page),
+        limit: parseInt(limit)
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching classes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch classes',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * POST /api/admin/classes
+ * Create class
+ */
+router.post('/classes', authMiddleware, isAdmin, async (req, res) => {
+  try {
+    const { course_code, course_name, lecturer_id, department_id, day_of_week, start_time, end_time } = req.body;
+
+    if (!course_code || !course_name || !lecturer_id || !day_of_week || !start_time || !end_time) {
+      return res.status(400).json({
+        success: false,
+        message: 'All required fields must be provided',
+      });
+    }
+
+    const [result] = await db.execute(
+      `INSERT INTO classes (course_code, course_name, lecturer_id, department_id, day_of_week, start_time, end_time, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [course_code, course_name, lecturer_id, department_id || null, day_of_week, start_time, end_time]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Class created successfully',
+      data: {
+        id: result.insertId,
+        course_code,
+        course_name,
+        lecturer_id,
+      },
+    });
+  } catch (error) {
+    logger.error('Error creating class:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create class',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/classes/:classId
+ * Update class
+ */
+router.put('/classes/:classId', authMiddleware, isAdmin, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { course_code, course_name, lecturer_id, day_of_week, start_time, end_time } = req.body;
+
+    await db.execute(
+      `UPDATE classes SET course_code = ?, course_name = ?, lecturer_id = ?, day_of_week = ?, start_time = ?, end_time = ? WHERE id = ?`,
+      [course_code, course_name, lecturer_id, day_of_week, start_time, end_time, classId]
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Class updated successfully',
+      data: { id: classId },
+    });
+  } catch (error) {
+    logger.error('Error updating class:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update class',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/classes/:classId
+ * Delete class
+ */
+router.delete('/classes/:classId', authMiddleware, isAdmin, async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    await db.execute('DELETE FROM classes WHERE id = ?', [classId]);
+
+    res.status(200).json({
+      success: true,
+      message: 'Class deleted successfully',
+    });
+  } catch (error) {
+    logger.error('Error deleting class:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete class',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -101,442 +369,126 @@ router.get('/kpi-trends', validateRequest(schemas.dateRangeSchema), async (req, 
  * GET /api/admin/departments
  * Get all departments
  */
-router.get('/departments', async (req, res) => {
+router.get('/departments', authMiddleware, isAdmin, async (req, res) => {
   try {
-    const filters = {
-      search: req.query.search,
-      is_active: req.query.is_active,
-    };
+    const [departments] = await db.execute(`
+      SELECT 
+        d.id,
+        d.name,
+        COUNT(DISTINCT u.id) as total_users,
+        COUNT(DISTINCT c.id) as total_classes
+      FROM departments d
+      LEFT JOIN users u ON d.id = u.department_id
+      LEFT JOIN classes c ON d.id = c.department_id
+      GROUP BY d.id, d.name
+    `);
 
-    const result = await departmentService.getAllDepartments(filters);
-
-    res.status(200).json(result);
+    res.status(200).json({
+      success: true,
+      data: departments || [],
+    });
   } catch (error) {
     logger.error('Error fetching departments:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch departments',
-    });
-  }
-});
-
-/**
- * GET /api/admin/departments/:departmentId
- * Get department details
- */
-router.get('/departments/:departmentId', async (req, res) => {
-  try {
-    const { departmentId } = req.params;
-    const result = await departmentService.getDepartmentDetails(departmentId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error fetching department details:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch department details',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
 
 /**
  * POST /api/admin/departments
- * Create new department
+ * Create department
  */
-router.post('/departments', validateRequest(schemas.createDepartmentSchema), auditAction('department', 'create'), async (req, res) => {
+router.post('/departments', authMiddleware, isAdmin, async (req, res) => {
   try {
-    const adminId = req.user.id;
-    const result = await departmentService.createDepartment(req.body, adminId);
+    const { name, code, head_id } = req.body;
 
-    res.status(201).json(result);
+    if (!name || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'name and code are required',
+      });
+    }
+
+    const [result] = await db.execute(
+      `INSERT INTO departments (name, code, head_id, created_at) VALUES (?, ?, ?, NOW())`,
+      [name, code, head_id || null]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Department created successfully',
+      data: {
+        id: result.insertId,
+        name,
+        code,
+      },
+    });
   } catch (error) {
     logger.error('Error creating department:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to create department',
+      message: 'Failed to create department',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
 
 /**
- * PATCH /api/admin/departments/:departmentId
- * Update department
+ * GET /api/admin/reports
+ * Get system reports
  */
-router.patch('/departments/:departmentId', validateRequest(schemas.updateDepartmentSchema), auditAction('department', 'update'), async (req, res) => {
+router.get('/reports', authMiddleware, isAdmin, async (req, res) => {
   try {
-    const { departmentId } = req.params;
-    const adminId = req.user.id;
+    const { type = 'overview', startDate, endDate } = req.query;
 
-    const result = await departmentService.updateDepartment(departmentId, req.body, adminId);
+    let data = {};
 
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error updating department:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update department',
-    });
-  }
-});
-
-/**
- * POST /api/admin/departments/:departmentId/assign-hod
- * Assign HOD to department
- */
-router.post('/departments/:departmentId/assign-hod', validateRequest(schemas.assignHODSchema), auditAction('department', 'assign_hod'), async (req, res) => {
-  try {
-    const { departmentId } = req.params;
-    const { hod_user_id } = req.body;
-    const adminId = req.user.id;
-
-    const result = await departmentService.assignHOD(departmentId, hod_user_id, adminId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error assigning HOD:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to assign HOD',
-    });
-  }
-});
-
-/**
- * DELETE /api/admin/departments/:departmentId
- * Delete department
- */
-router.delete('/departments/:departmentId', auditAction('department', 'delete'), async (req, res) => {
-  try {
-    const { departmentId } = req.params;
-    const adminId = req.user.id;
-
-    const result = await departmentService.deleteDepartment(departmentId, adminId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error deleting department:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to delete department',
-    });
-  }
-});
-
-/**
- * GET /api/admin/lecturers
- * Get all lecturers
- */
-router.get('/lecturers', async (req, res) => {
-  try {
-    const filters = {
-      search: req.query.search,
-      department_id: req.query.department_id,
-      is_active: req.query.is_active,
-    };
-
-    const result = await lecturerManagementService.getAllLecturers(filters);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error fetching lecturers:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch lecturers',
-    });
-  }
-});
-
-/**
- * GET /api/admin/lecturers/:lecturerId
- * Get lecturer profile
- */
-router.get('/lecturers/:lecturerId', async (req, res) => {
-  try {
-    const { lecturerId } = req.params;
-    const result = await lecturerManagementService.getLecturerProfile(lecturerId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error fetching lecturer profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch lecturer profile',
-    });
-  }
-});
-
-/**
- * POST /api/admin/lecturers
- * Create new lecturer
- */
-router.post('/lecturers', validateRequest(schemas.createLecturerSchema), auditAction('lecturer', 'create'), async (req, res) => {
-  try {
-    const adminId = req.user.id;
-    const result = await lecturerManagementService.createLecturer(req.body, adminId);
-
-    res.status(201).json(result);
-  } catch (error) {
-    logger.error('Error creating lecturer:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create lecturer',
-    });
-  }
-});
-
-/**
- * PATCH /api/admin/lecturers/:lecturerId
- * Update lecturer
- */
-router.patch('/lecturers/:lecturerId', validateRequest(schemas.updateLecturerSchema), auditAction('lecturer', 'update'), async (req, res) => {
-  try {
-    const { lecturerId } = req.params;
-    const adminId = req.user.id;
-
-    const result = await lecturerManagementService.updateLecturer(lecturerId, req.body, adminId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error updating lecturer:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update lecturer',
-    });
-  }
-});
-
-/**
- * POST /api/admin/lecturers/:lecturerId/deactivate
- * Deactivate lecturer
- */
-router.post('/lecturers/:lecturerId/deactivate', auditAction('lecturer', 'deactivate'), async (req, res) => {
-  try {
-    const { lecturerId } = req.params;
-    const adminId = req.user.id;
-
-    const result = await lecturerManagementService.deactivateLecturer(lecturerId, adminId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error deactivating lecturer:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to deactivate lecturer',
-    });
-  }
-});
-
-/**
- * GET /api/admin/students
- * Get all students
- */
-router.get('/students', async (req, res) => {
-  try {
-    const filters = {
-      search: req.query.search,
-      department_id: req.query.department_id,
-      is_active: req.query.is_active,
-      flagged: req.query.flagged,
-    };
-
-    const result = await studentManagementService.getAllStudents(filters);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error fetching students:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch students',
-    });
-  }
-});
-
-/**
- * GET /api/admin/students/:studentId
- * Get student profile
- */
-router.get('/students/:studentId', async (req, res) => {
-  try {
-    const { studentId } = req.params;
-    const result = await studentManagementService.getStudentProfile(studentId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error fetching student profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch student profile',
-    });
-  }
-});
-
-/**
- * POST /api/admin/students
- * Create new student
- */
-router.post('/students', validateRequest(schemas.createStudentSchema), auditAction('student', 'create'), async (req, res) => {
-  try {
-    const adminId = req.user.id;
-    const result = await studentManagementService.createStudent(req.body, adminId);
-
-    res.status(201).json(result);
-  } catch (error) {
-    logger.error('Error creating student:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create student',
-    });
-  }
-});
-
-/**
- * PATCH /api/admin/students/:studentId
- * Update student
- */
-router.patch('/students/:studentId', validateRequest(schemas.updateStudentSchema), auditAction('student', 'update'), async (req, res) => {
-  try {
-    const { studentId } = req.params;
-    const adminId = req.user.id;
-
-    const result = await studentManagementService.updateStudent(studentId, req.body, adminId);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error updating student:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update student',
-    });
-  }
-});
-
-/**
- * POST /api/admin/students/:studentId/flag
- * Flag student
- */
-router.post('/students/:studentId/flag', validateRequest(schemas.flagStudentSchema), auditAction('student', 'flag'), async (req, res) => {
-  try {
-    const { studentId } = req.params;
-    const { flag_type, severity, description } = req.body;
-    const adminId = req.user.id;
-
-    const result = await studentManagementService.flagStudent(
-      studentId, flag_type, severity, description, adminId
-    );
-
-    res.status(201).json(result);
-  } catch (error) {
-    logger.error('Error flagging student:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to flag student',
-    });
-  }
-});
-
-/**
- * POST /api/admin/students/:studentId/transfer
- * Transfer student to another department
- */
-router.post('/students/:studentId/transfer', validateRequest(schemas.transferStudentSchema), auditAction('student', 'transfer'), async (req, res) => {
-  try {
-    const { studentId } = req.params;
-    const { to_department_id, reason } = req.body;
-    const adminId = req.user.id;
-
-    const result = await studentManagementService.transferStudent(
-      studentId, to_department_id, reason, adminId
-    );
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error transferring student:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to transfer student',
-    });
-  }
-});
-
-/**
- * GET /api/admin/audit-logs
- * Get audit logs with filtering
- */
-router.get('/audit-logs', validateRequest(schemas.auditLogsFilterSchema), async (req, res) => {
-  try {
-    const filters = {
-      user_id: req.query.user_id,
-      action: req.query.action,
-      resource_type: req.query.resource_type,
-      severity: req.query.severity,
-      status: req.query.status,
-      startDate: req.query.startDate,
-      endDate: req.query.endDate,
-      search: req.query.search,
-    };
-
-    const limit = parseInt(req.query.limit) || 100;
-    const offset = parseInt(req.query.offset) || 0;
-
-    const result = await auditService.getAuditLogs(filters, limit, offset);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error fetching audit logs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch audit logs',
-    });
-  }
-});
-
-/**
- * GET /api/admin/compliance-report
- * Get compliance report for date range
- */
-router.get('/compliance-report', validateRequest(schemas.dateRangeSchema), async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-    const result = await auditService.getComplianceReport(startDate, endDate);
-
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error('Error generating compliance report:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to generate compliance report',
-    });
-  }
-});
-
-/**
- * GET /api/admin/export-audit-logs
- * Export audit logs
- */
-router.get('/export-audit-logs', async (req, res) => {
-  try {
-    const filters = {
-      startDate: req.query.startDate,
-      endDate: req.query.endDate,
-      user_id: req.query.user_id,
-      severity: req.query.severity,
-    };
-
-    const format = req.query.format || 'json';
-    const result = await auditService.exportAuditLogs(filters, format);
-
-    if (format === 'csv') {
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-      res.send(result.data);
-    } else {
-      res.json(result);
+    if (type === 'overview' || type === 'attendance') {
+      const [attendanceStats] = await db.execute(`
+        SELECT 
+          COUNT(DISTINCT student_id) as total_students,
+          COUNT(*) as total_records,
+          SUM(CASE WHEN verification_status = 'verified' THEN 1 ELSE 0 END) as verified,
+          SUM(CASE WHEN verification_status = 'spoofed_location' THEN 1 ELSE 0 END) as flagged
+        FROM attendance_logs
+      `);
+      data.attendance = attendanceStats[0] || {};
     }
+
+    if (type === 'overview' || type === 'users') {
+      const [userStats] = await db.execute(`
+        SELECT 
+          role,
+          COUNT(*) as count
+        FROM users
+        GROUP BY role
+      `);
+      data.users = userStats || [];
+    }
+
+    if (type === 'overview' || type === 'classes') {
+      const [classStats] = await db.execute(`
+        SELECT 
+          COUNT(*) as total_classes,
+          COUNT(DISTINCT lecturer_id) as total_lecturers
+        FROM classes
+      `);
+      data.classes = classStats[0] || {};
+    }
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
   } catch (error) {
-    logger.error('Error exporting audit logs:', error);
+    logger.error('Error fetching reports:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to export audit logs',
+      message: 'Failed to fetch reports',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });

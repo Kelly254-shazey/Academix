@@ -1,36 +1,52 @@
 const jwt = require('jsonwebtoken');
 const db = require('../database');
+const { JWT_SECRET_FOR_JWT: JWT_SECRET } = require('../config/jwtSecret');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
+/**
+ * Authentication middleware to verify JWT token
+ * - Skips CORS preflight (`OPTIONS`)
+ * - Accepts case-insensitive `Bearer` scheme
+ * - Returns clear 401 messages for missing/invalid/expired tokens
+ */
 const authMiddleware = (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    // Allow CORS preflight requests to pass through
+    if (req.method === 'OPTIONS') return next();
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication error: No token provided or invalid format.'
-      });
+    // Read the Authorization header (handle different casing)
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ success: false, message: 'Authentication error: No token provided.' });
     }
 
-    const token = authHeader.split(' ')[1];
+    // Expect header like: "Bearer <token>" (case-insensitive)
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || !/^Bearer$/i.test(parts[0])) {
+      return res.status(401).json({ success: false, message: 'Authentication error: Invalid authorization header format.' });
+    }
 
-    // Verify the token
+    const token = parts[1];
+
+    // Verify the token using the configured secret
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Attach user information to the request object for use in subsequent routes
-    // We are not fetching from DB here for performance, assuming token is trusted source of user ID and role.
-    // For higher security, you could add a DB check to ensure the user still exists and is active.
+    // Attach minimal user info to the request
     req.user = {
       id: decoded.id,
       email: decoded.email,
       role: decoded.role
     };
 
-    next();
+    return next();
   } catch (error) {
-    console.error('Authentication middleware error:', error.message);
+    // Log the real error message for debugging
+    console.error('Authentication middleware error:', error && error.message ? error.message : error);
+
+    if (error && error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: 'Authentication error: Token expired.' });
+    }
+
     return res.status(401).json({ success: false, message: 'Authentication error: Invalid or expired token.' });
   }
 };

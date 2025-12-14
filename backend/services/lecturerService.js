@@ -295,6 +295,507 @@ class LecturerService {
       throw error;
     }
   }
+
+  /**
+   * Get all classes assigned to lecturer
+   */
+  async getLecturerClasses(lecturerId) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      const query = `
+        SELECT 
+          c.id, c.course_code, c.course_name, c.description,
+          c.room_number, c.latitude, c.longitude, c.capacity,
+          d.name as department_name,
+          COUNT(DISTINCT al.student_id) as enrolled_students,
+          COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_today,
+          ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as attendance_rate
+        FROM classes c
+        LEFT JOIN departments d ON c.department_id = d.id
+        LEFT JOIN attendance_logs al ON c.id = al.class_id AND DATE(al.checkin_time) = DATE(NOW())
+        WHERE c.lecturer_id = ?
+        GROUP BY c.id
+        ORDER BY c.course_code
+      `;
+
+      const [results] = await conn.query(query, [lecturerId]);
+      conn.end();
+
+      return {
+        success: true,
+        data: results || [],
+      };
+    } catch (error) {
+      logger.error('Error in getLecturerClasses:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get class roster for a specific class
+   */
+  async getClassRoster(lecturerId, classId) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      // First verify the class belongs to the lecturer
+      const [classCheck] = await conn.query(
+        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
+        [classId, lecturerId]
+      );
+
+      if (!classCheck || classCheck.length === 0) {
+        throw new Error('Class not found or does not belong to this lecturer');
+      }
+
+      const query = `
+        SELECT 
+          u.id, u.name, u.email, u.student_id as student_number,
+          COUNT(al.id) as total_sessions,
+          COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
+          COUNT(CASE WHEN al.status = 'absent' THEN 1 END) as absent_count,
+          COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count,
+          ROUND(100 * COUNT(CASE WHEN al.status = 'present' THEN 1 END) / NULLIF(COUNT(al.id), 0), 2) as attendance_rate
+        FROM users u
+        LEFT JOIN attendance_logs al ON u.id = al.student_id AND al.class_id = ?
+        WHERE u.role = 'student'
+        GROUP BY u.id
+        ORDER BY u.name
+      `;
+
+      const [results] = await conn.query(query, [classId]);
+      conn.end();
+
+      return {
+        success: true,
+        data: results || [],
+      };
+    } catch (error) {
+      logger.error('Error in getClassRoster:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start a class session
+   */
+  async startClassSession(lecturerId, classId) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      // Verify the class belongs to the lecturer
+      const [classCheck] = await conn.query(
+        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
+        [classId, lecturerId]
+      );
+
+      if (!classCheck || classCheck.length === 0) {
+        throw new Error('Class not found or does not belong to this lecturer');
+      }
+
+      // Create a new session
+      const [result] = await conn.query(
+        'INSERT INTO sessions (class_id, start_time, status) VALUES (?, NOW(), ?)',
+        [classId, 'in_progress']
+      );
+
+      // Update class status if needed
+      await conn.query(
+        'UPDATE classes SET status = ? WHERE id = ?',
+        ['active', classId]
+      );
+
+      conn.end();
+
+      return {
+        success: true,
+        data: { sessionId: result.insertId },
+      };
+    } catch (error) {
+      logger.error('Error in startClassSession:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delay a class session
+   */
+  async delayClassSession(lecturerId, classId, delayMinutes, reason) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      // Verify the class belongs to the lecturer
+      const [classCheck] = await conn.query(
+        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
+        [classId, lecturerId]
+      );
+
+      if (!classCheck || classCheck.length === 0) {
+        throw new Error('Class not found or does not belong to this lecturer');
+      }
+
+      // Update session with delay
+      await conn.query(
+        'UPDATE sessions SET start_time = DATE_ADD(start_time, INTERVAL ? MINUTE), status = ? WHERE class_id = ? AND status = ?',
+        [delayMinutes, 'delayed', classId, 'not_started']
+      );
+
+      conn.end();
+
+      return {
+        success: true,
+        data: { delayMinutes, reason },
+      };
+    } catch (error) {
+      logger.error('Error in delayClassSession:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a class session
+   */
+  async cancelClassSession(lecturerId, classId, reason) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      // Verify the class belongs to the lecturer
+      const [classCheck] = await conn.query(
+        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
+        [classId, lecturerId]
+      );
+
+      if (!classCheck || classCheck.length === 0) {
+        throw new Error('Class not found or does not belong to this lecturer');
+      }
+
+      // Cancel session
+      await conn.query(
+        'UPDATE sessions SET status = ?, cancelled_at = NOW() WHERE class_id = ? AND status IN (?, ?)',
+        ['cancelled', classId, 'not_started', 'delayed']
+      );
+
+      conn.end();
+
+      return {
+        success: true,
+        data: { reason },
+      };
+    } catch (error) {
+      logger.error('Error in cancelClassSession:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Change class room
+   */
+  async changeClassRoom(lecturerId, classId, newRoom) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      // Verify the class belongs to the lecturer
+      const [classCheck] = await conn.query(
+        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
+        [classId, lecturerId]
+      );
+
+      if (!classCheck || classCheck.length === 0) {
+        throw new Error('Class not found or does not belong to this lecturer');
+      }
+
+      // Update room
+      await conn.query(
+        'UPDATE classes SET room_number = ? WHERE id = ?',
+        [newRoom, classId]
+      );
+
+      conn.end();
+
+      return {
+        success: true,
+        data: { newRoom },
+      };
+    } catch (error) {
+      logger.error('Error in changeClassRoom:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark manual attendance
+   */
+  async markManualAttendance(lecturerId, studentId, classId, sessionId, status, reason) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      // Verify the class belongs to the lecturer
+      const [classCheck] = await conn.query(
+        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
+        [classId, lecturerId]
+      );
+
+      if (!classCheck || classCheck.length === 0) {
+        throw new Error('Class not found or does not belong to this lecturer');
+      }
+
+      // Insert or update attendance record
+      await conn.query(
+        `INSERT INTO attendance_logs (student_id, session_id, class_id, status, checkin_time, manual_entry, reason)
+         VALUES (?, ?, ?, ?, NOW(), TRUE, ?)
+         ON DUPLICATE KEY UPDATE status = VALUES(status), checkin_time = NOW(), manual_entry = TRUE, reason = VALUES(reason)`,
+        [studentId, sessionId, classId, status, reason]
+      );
+
+      conn.end();
+
+      return {
+        success: true,
+        data: { studentId, status, reason },
+      };
+    } catch (error) {
+      logger.error('Error in markManualAttendance:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get lecturer messages
+   */
+  async getLecturerMessages(lecturerId) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      const query = `
+        SELECT 
+          m.id, m.subject, m.message, m.created_at, m.is_read,
+          u.name as sender_name, u.email as sender_email,
+          c.course_name, c.course_code
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN classes c ON m.class_id = c.id
+        WHERE m.recipient_id = ?
+        ORDER BY m.created_at DESC
+        LIMIT 50
+      `;
+
+      const [results] = await conn.query(query, [lecturerId]);
+      conn.end();
+
+      return {
+        success: true,
+        data: results || [],
+      };
+    } catch (error) {
+      logger.error('Error in getLecturerMessages:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send lecturer message
+   */
+  async sendLecturerMessage(lecturerId, recipientId, subject, message, classId) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      const [result] = await conn.query(
+        'INSERT INTO messages (sender_id, recipient_id, subject, message, class_id) VALUES (?, ?, ?, ?, ?)',
+        [lecturerId, recipientId, subject, message, classId]
+      );
+
+      conn.end();
+
+      return {
+        success: true,
+        data: { messageId: result.insertId },
+      };
+    } catch (error) {
+      logger.error('Error in sendLecturerMessage:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get lecturer reports
+   */
+  async getLecturerReports(lecturerId, startDate, endDate, reportType) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      let query = '';
+      let params = [lecturerId];
+
+      if (reportType === 'attendance') {
+        query = `
+          SELECT 
+            c.course_name, c.course_code,
+            COUNT(DISTINCT al.student_id) as total_students,
+            COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_students,
+            ROUND(100 * COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) / 
+                  NULLIF(COUNT(DISTINCT al.student_id), 0), 2) as attendance_rate,
+            DATE(al.checkin_time) as date
+          FROM classes c
+          LEFT JOIN attendance_logs al ON c.id = al.class_id
+          WHERE c.lecturer_id = ? AND DATE(al.checkin_time) BETWEEN ? AND ?
+          GROUP BY c.id, DATE(al.checkin_time)
+          ORDER BY date DESC
+        `;
+        params = [lecturerId, startDate, endDate];
+      } else if (reportType === 'classes') {
+        query = `
+          SELECT 
+            c.course_name, c.course_code, c.room_number,
+            COUNT(DISTINCT s.id) as sessions_held,
+            COUNT(DISTINCT al.student_id) as total_students,
+            ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as avg_attendance
+          FROM classes c
+          LEFT JOIN sessions s ON c.id = s.class_id
+          LEFT JOIN attendance_logs al ON s.id = al.session_id
+          WHERE c.lecturer_id = ?
+          GROUP BY c.id
+          ORDER BY c.course_code
+        `;
+      }
+
+      const [results] = await conn.query(query, params);
+      conn.end();
+
+      return {
+        success: true,
+        data: results || [],
+      };
+    } catch (error) {
+      logger.error('Error in getLecturerReports:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get lecturer support tickets
+   */
+  async getLecturerSupportTickets(lecturerId) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      const query = `
+        SELECT 
+          id, subject, description, status, priority, category,
+          created_at, updated_at, resolved_at
+        FROM support_tickets
+        WHERE created_by = ?
+        ORDER BY created_at DESC
+      `;
+
+      const [results] = await conn.query(query, [lecturerId]);
+      conn.end();
+
+      return {
+        success: true,
+        data: results || [],
+      };
+    } catch (error) {
+      logger.error('Error in getLecturerSupportTickets:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create lecturer support ticket
+   */
+  async createLecturerSupportTicket(lecturerId, subject, description, priority, category) {
+    try {
+      const conn = await mysql.createPool({
+        connectionLimit: 10,
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+      });
+
+      const [result] = await conn.query(
+        'INSERT INTO support_tickets (created_by, subject, description, priority, category, status) VALUES (?, ?, ?, ?, ?, ?)',
+        [lecturerId, subject, description, priority, category, 'open']
+      );
+
+      conn.end();
+
+      return {
+        success: true,
+        data: { ticketId: result.insertId },
+      };
+    } catch (error) {
+      logger.error('Error in createLecturerSupportTicket:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new LecturerService();

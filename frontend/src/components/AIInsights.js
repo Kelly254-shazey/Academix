@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import apiClient from '../utils/apiClient';
 
 export default function AIInsights() {
   const { user } = useAuth();
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
   
   const [insights, setInsights] = useState([]);
   const [predictions, setPredictions] = useState([]);
@@ -13,22 +13,14 @@ export default function AIInsights() {
   const fetchAIInsights = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
       // Fetch AI insights from backend
-      const aiRes = await fetch(`${API_URL}/ai/insights`, { headers });
-      if (aiRes.ok) {
-        const data = await aiRes.json();
-        setInsights(data.insights || []);
-      }
+      const data = await apiClient.get('/ai/insights');
+      setInsights(data.insights || []);
 
       // Fetch predictions
-      const predRes = await fetch(`${API_URL}/ai/predictions`, { headers });
-      if (predRes.ok) {
-        const data = await predRes.json();
-        setPredictions(data.predictions || []);
-      }
+      const predData = await apiClient.get('/ai/predictions');
+      setPredictions(predData.predictions || []);
     } catch (err) {
       console.error('Error fetching AI insights:', err);
       setError('Failed to load AI insights');

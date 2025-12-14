@@ -7,7 +7,7 @@ async function seedDatabase() {
 
   try {
     // Get connection from pool
-    connection = await db.promise().getConnection();
+    connection = await db.getConnection();
 
     console.log('Connected to database');
 
@@ -49,28 +49,28 @@ async function seedDatabase() {
     console.log('Existing data cleared');
 
     // Hash password for all users
-    // const saltRounds = 10;
-    // const hashedPassword = await bcrypt.hash('password123', saltRounds);
-    const plainPassword = 'password123'; // Using plain text for testing
+    const bcrypt = require('../backend/node_modules/bcryptjs');
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash('password123', saltRounds);
 
     // Insert sample users
     console.log('Inserting users...');
     const users = [
       // Admins
-      ['Admin User', 'admin@university.edu', plainPassword, 'admin', null, 'ADM001', 'Administration'],
+      ['Admin User', 'admin@university.edu', hashedPassword, 'admin', null, 'ADM001', 'Administration'],
       // Lecturers
-      ['Dr. John Smith', 'john.smith@university.edu', plainPassword, 'lecturer', null, 'LEC001', 'Computer Science'],
-      ['Prof. Sarah Johnson', 'sarah.johnson@university.edu', plainPassword, 'lecturer', null, 'LEC002', 'Mathematics'],
-      ['Dr. Michael Brown', 'michael.brown@university.edu', plainPassword, 'lecturer', null, 'LEC003', 'Physics'],
+      ['Dr. John Smith', 'john.smith@university.edu', hashedPassword, 'lecturer', null, 'LEC001', 'Computer Science'],
+      ['Prof. Sarah Johnson', 'sarah.johnson@university.edu', hashedPassword, 'lecturer', null, 'LEC002', 'Mathematics'],
+      ['Dr. Michael Brown', 'michael.brown@university.edu', hashedPassword, 'lecturer', null, 'LEC003', 'Physics'],
       // Students
-      ['Alice Johnson', 'alice.johnson@student.university.edu', plainPassword, 'student', 'STU001', null, 'Computer Science'],
-      ['Bob Wilson', 'bob.wilson@student.university.edu', plainPassword, 'student', 'STU002', null, 'Computer Science'],
-      ['Charlie Davis', 'charlie.davis@student.university.edu', plainPassword, 'student', 'STU003', null, 'Mathematics'],
-      ['Diana Miller', 'diana.miller@student.university.edu', plainPassword, 'student', 'STU004', null, 'Mathematics'],
-      ['Eve Garcia', 'eve.garcia@student.university.edu', plainPassword, 'student', 'STU005', null, 'Physics'],
-      ['Frank Thompson', 'frank.thompson@student.university.edu', plainPassword, 'student', 'STU006', null, 'Physics'],
-      ['Grace Lee', 'grace.lee@student.university.edu', plainPassword, 'student', 'STU007', null, 'Computer Science'],
-      ['Henry White', 'henry.white@student.university.edu', plainPassword, 'student', 'STU008', null, 'Mathematics']
+      ['Alice Johnson', 'alice.johnson@student.university.edu', hashedPassword, 'student', 'STU001', null, 'Computer Science'],
+      ['Bob Wilson', 'bob.wilson@student.university.edu', hashedPassword, 'student', 'STU002', null, 'Computer Science'],
+      ['Charlie Davis', 'charlie.davis@student.university.edu', hashedPassword, 'student', 'STU003', null, 'Mathematics'],
+      ['Diana Miller', 'diana.miller@student.university.edu', hashedPassword, 'student', 'STU004', null, 'Mathematics'],
+      ['Eve Garcia', 'eve.garcia@student.university.edu', hashedPassword, 'student', 'STU005', null, 'Physics'],
+      ['Frank Thompson', 'frank.thompson@student.university.edu', hashedPassword, 'student', 'STU006', null, 'Physics'],
+      ['Grace Lee', 'grace.lee@student.university.edu', hashedPassword, 'student', 'STU007', null, 'Computer Science'],
+      ['Henry White', 'henry.white@student.university.edu', hashedPassword, 'student', 'STU008', null, 'Mathematics']
     ];
 
     for (const user of users) {
@@ -126,8 +126,8 @@ async function seedDatabase() {
           const sessionDate = currentWeek[dayIndex];
           if (sessionDate) {
             await connection.execute(
-              'INSERT INTO class_sessions (class_id, session_date, qr_signature_hash, qr_expires_at, is_active) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 2 HOUR), TRUE)',
-              [cls.id, sessionDate, `qr_${cls.id}_${sessionDate}`, null]
+              'INSERT INTO class_sessions (class_id, session_date, qr_signature_hash, qr_expires_at, is_active) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 2 HOUR), ?)',
+              [cls.id, sessionDate, `qr_${cls.id}_${sessionDate}`, true]
             );
           }
         }
@@ -241,7 +241,8 @@ async function seedDatabase() {
     console.error('Error seeding database:', error);
   } finally {
     if (connection) {
-      await connection.end();
+      await connection.release();
+      console.log('Database connection closed');
     }
   }
 }

@@ -6,11 +6,62 @@
 const express = require('express');
 const router = express.Router();
 const reportingService = require('../services/reportingService');
+const authMiddleware = require('../middleware/auth');
 const { requireRole, requirePermission, auditAction } = require('../middlewares/rbacMiddleware');
 const { exportJobSchema, reportRequestSchema } = require('../validators/adminSchemas');
 const logger = require('../utils/logger');
 
-// All report routes require admin role
+// Student reports endpoint - accessible to all authenticated users
+/**
+ * GET /api/reports/student
+ * Get student attendance reports and analytics
+ */
+router.get('/student', authMiddleware, async (req, res) => {
+  try {
+    const period = req.query.period || 'month'; // week, month, semester, year
+    const attendanceAnalyticsService = require('../services/attendanceAnalyticsService');
+    
+    // Get student's attendance per course
+    const courseAttendance = await attendanceAnalyticsService.getAttendancePerCourse(req.user.id);
+    
+    // Get overall attendance
+    const overallAttendance = await attendanceAnalyticsService.getOverallAttendance(req.user.id);
+    
+    // Get analytics with trends
+    const analytics = await attendanceAnalyticsService.getAttendanceAnalytics(
+      req.user.id,
+      null, // start_date - null means default range
+      null  // end_date
+    );
+    
+    // Get low attendance warnings
+    const lowAttendance = await attendanceAnalyticsService.checkLowAttendanceThreshold(req.user.id, 75);
+    
+    // Get missed classes
+    const missedClasses = await attendanceAnalyticsService.getMissedClasses(req.user.id, 10);
+    
+    res.json({
+      success: true,
+      reports: {
+        period,
+        courseAttendance,
+        overallAttendance,
+        analytics,
+        lowAttendanceAlerts: lowAttendance,
+        recentMissedClasses: missedClasses,
+        generatedAt: new Date()
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching student reports:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// All other report routes require admin role
 router.use(requireRole(['admin', 'superadmin']));
 
 /**

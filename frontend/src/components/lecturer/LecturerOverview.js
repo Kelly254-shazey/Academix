@@ -1,66 +1,145 @@
 import React from 'react';
-import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { LineChart, Line, BarChart, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell } from 'recharts';
 
-export default function LecturerOverview({ data = {} }){
-  const trend = data.trend || [{name:'W1',val:85},{name:'W2',val:82},{name:'W3',val:88},{name:'W4',val:84}];
-  const avgAttendance = data.avg || 83;
-  const isHealthy = avgAttendance >= 85;
+export default function LecturerOverview({ data = {} }) {
+  // Mock data for demonstration - replace with actual API data
+  const lecturerName = data.lecturerName || 'Dr. John Smith';
+  const attendanceData = data.attendanceData || [
+    { class: 'CS101', attendance: 85 },
+    { class: 'CS102', attendance: 78 },
+    { class: 'CS103', attendance: 92 },
+    { class: 'CS104', attendance: 88 }
+  ];
+  const overallAttendance = data.overallAttendance || 86;
+  const totalClasses = data.totalClasses || 12;
+  const todaysSchedule = data.todaysSchedule || [
+    { course: 'CS101 - Data Structures', time: '09:00 - 10:30', status: 'completed' },
+    { course: 'CS102 - Algorithms', time: '11:00 - 12:30', status: 'active' },
+    { course: 'CS103 - Database Systems', time: '14:00 - 15:30', status: 'upcoming' }
+  ];
+  const classRosters = data.classRosters || [
+    { className: 'CS101', studentCount: 45 },
+    { className: 'CS102', studentCount: 38 },
+    { className: 'CS103', studentCount: 52 },
+    { className: 'CS104', studentCount: 41 }
+  ];
+
+  const COLORS = ['#4f46e5', '#7c3aed', '#06b6d4', '#10b981'];
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed': return 'text-green-600 bg-green-100';
+      case 'active': return 'text-blue-600 bg-blue-100';
+      case 'upcoming': return 'text-yellow-600 bg-yellow-100';
+      case 'cancelled': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
 
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 sm:px-5 md:px-6 py-4 sm:py-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              <span className="text-xl">📊</span>
-              Attendance Overview
-            </h3>
-            <p className="text-xs sm:text-sm text-indigo-100 mt-1">Weekly performance tracking</p>
+    <div className="space-y-6">
+      {/* Lecturer Identity */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+            <span className="text-2xl">👨‍🏫</span>
           </div>
-          <div className="text-right">
-            <div className="text-xs sm:text-sm text-indigo-100">Average</div>
-            <div className={`text-2xl sm:text-3xl font-bold ${isHealthy ? 'text-green-400' : avgAttendance >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>
-              {avgAttendance}%
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{lecturerName}</h2>
+            <p className="text-gray-600">Lecturer</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Attendance Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Per Class Attendance */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-lg font-semibold mb-4">Per Class Attendance</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={attendanceData}>
+                <XAxis dataKey="class" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Bar dataKey="attendance" fill="#4f46e5" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Overall Attendance Summary */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 className="text-lg font-semibold mb-4">Overall Attendance Summary</h3>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="relative w-32 h-32 mx-auto mb-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Present', value: overallAttendance },
+                        { name: 'Absent', value: 100 - overallAttendance }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={60}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      <Cell fill="#10b981" />
+                      <Cell fill="#ef4444" />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{overallAttendance}%</p>
+              <p className="text-gray-600">Average Attendance</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="p-4 sm:p-5 md:p-6">
-        <div className="h-48 sm:h-56 bg-gray-50/50 rounded-lg p-2 sm:p-3">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trend}>
-              <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: '12px' }} />
-              <YAxis domain={[0,100]} stroke="#9ca3af" style={{ fontSize: '12px' }} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                cursor={{ stroke: '#4f46e5', strokeWidth: 2 }}
-              />
-              <Line type="monotone" dataKey="val" stroke="#4f46e5" strokeWidth={3} dot={{ fill: '#4f46e5', r: 5 }} />
-            </LineChart>
-          </ResponsiveContainer>
+      {/* Classes Summary */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Total Classes</h3>
+            <p className="text-gray-600">Classes assigned to you</p>
+          </div>
+          <div className="text-4xl font-bold text-indigo-600">{totalClasses}</div>
         </div>
+      </div>
 
-        {/* Stats Grid */}
-        <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4">
-          <div className="p-3 sm:p-4 bg-blue-50 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors">
-            <p className="text-xs sm:text-sm text-blue-600 font-medium">Today's Classes</p>
-            <p className="text-xl sm:text-2xl font-bold text-blue-700 mt-1">{data.todayClasses || 3}</p>
-          </div>
-          <div className={`p-3 sm:p-4 rounded-lg border transition-colors ${
-            (data.pending || 0) === 0 
-              ? 'bg-green-50 border-green-100 hover:border-green-200' 
-              : 'bg-red-50 border-red-100 hover:border-red-200'
-          }`}>
-            <p className={`text-xs sm:text-sm font-medium ${
-              (data.pending || 0) === 0 ? 'text-green-600' : 'text-red-600'
-            }`}>Pending Verifications</p>
-            <p className={`text-xl sm:text-2xl font-bold mt-1 ${
-              (data.pending || 0) === 0 ? 'text-green-700' : 'text-red-700'
-            }`}>{data.pending || 0}</p>
-          </div>
+      {/* Today's Teaching Schedule */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-lg font-semibold mb-4">Today's Teaching Schedule</h3>
+        <div className="space-y-3">
+          {todaysSchedule.map((item, index) => (
+            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <h4 className="font-medium">{item.course}</h4>
+                <p className="text-sm text-gray-600">{item.time}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(item.status)}`}>
+                {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Class Roster Summary */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-lg font-semibold mb-4">Class Roster Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {classRosters.map((roster, index) => (
+            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <span className="font-medium">{roster.className}</span>
+              <span className="text-indigo-600 font-semibold">{roster.studentCount} students</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
