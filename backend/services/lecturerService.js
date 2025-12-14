@@ -259,7 +259,8 @@ class LecturerService {
           COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_today,
           ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as attendance_rate
         FROM classes c
-        LEFT JOIN attendance_logs al ON c.id = al.class_id AND DATE(al.checkin_time) = DATE(NOW())
+        LEFT JOIN sessions s ON c.id = s.class_id AND DATE(s.start_time) = DATE(NOW())
+        LEFT JOIN attendance_logs al ON s.id = al.session_id
         WHERE c.lecturer_id = ?
         GROUP BY c.id
         ORDER BY c.course_code
@@ -303,7 +304,8 @@ class LecturerService {
           COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count,
           ROUND(100 * COUNT(CASE WHEN al.status = 'present' THEN 1 END) / NULLIF(COUNT(al.id), 0), 2) as attendance_rate
         FROM users u
-        LEFT JOIN attendance_logs al ON u.id = al.student_id AND al.class_id = ?
+        LEFT JOIN attendance_logs al ON u.id = al.student_id
+        LEFT JOIN sessions s ON al.session_id = s.id AND s.class_id = ?
         WHERE u.role = 'student'
         GROUP BY u.id
         ORDER BY u.name
@@ -568,7 +570,8 @@ class LecturerService {
                   NULLIF(COUNT(DISTINCT al.student_id), 0), 2) as attendance_rate,
             DATE(al.checkin_time) as date
           FROM classes c
-          LEFT JOIN attendance_logs al ON c.id = al.class_id
+          LEFT JOIN sessions s ON c.id = s.class_id
+          LEFT JOIN attendance_logs al ON s.id = al.session_id
           WHERE c.lecturer_id = ? AND DATE(al.checkin_time) BETWEEN ? AND ?
           GROUP BY c.id, DATE(al.checkin_time)
           ORDER BY date DESC
