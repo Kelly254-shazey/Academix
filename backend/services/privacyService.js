@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class PrivacyService {
@@ -24,13 +24,11 @@ class PrivacyService {
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + 30); // 30-day expiry
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO privacy_requests (
           user_id, request_type, status, expiry_date
         ) VALUES (?, ?, 'processing', ?)
       `, [userId, requestType, expiryDate]);
-
-      conn.end();
 
       logger.info(`Privacy request ${result.insertId} created for user ${userId}`);
 
@@ -44,7 +42,7 @@ class PrivacyService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in createDataExportRequest:', error);
       throw error;
     }
@@ -55,22 +53,15 @@ class PrivacyService {
    */
   async getUserPersonalData(userId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // User profile
-      const [user] = await conn.query(`
+      const [user] = await db.execute(`
         SELECT id, name, email, phone, role, created_at
         FROM users WHERE id = ?
       `, [userId]);
 
       // User attendance records
-      const [attendance] = await conn.query(`
+      const [attendance] = await db.execute(`
         SELECT s.id, s.session_date, c.name as class_name, al.status
         FROM attendance_logs al
         INNER JOIN sessions s ON al.session_id = s.id
@@ -80,14 +71,14 @@ class PrivacyService {
       `, [userId, userId]);
 
       // User flags
-      const [flags] = await conn.query(`
+      const [flags] = await db.execute(`
         SELECT id, flag_type, severity, description, flagged_at
         FROM student_flags
         WHERE student_id = ? AND status = 'active'
       `, [userId]);
 
       // User audit logs
-      const [auditLogs] = await conn.query(`
+      const [auditLogs] = await db.execute(`
         SELECT id, action, resource_type, action_timestamp, ip_address
         FROM audit_logs
         WHERE user_id = ?
@@ -96,15 +87,13 @@ class PrivacyService {
       `, [userId]);
 
       // Broadcast history
-      const [broadcasts] = await conn.query(`
+      const [broadcasts] = await db.execute(`
         SELECT b.id, b.title, b.priority, bd.delivered_at, bd.read_at
         FROM broadcast_delivery bd
         INNER JOIN broadcasts b ON bd.broadcast_id = b.id
         WHERE bd.recipient_user_id = ?
         ORDER BY bd.delivered_at DESC
       `, [userId]);
-
-      conn.end();
 
       return {
         success: true,
@@ -139,21 +128,19 @@ class PrivacyService {
       });
 
       // Create deletion request
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO privacy_requests (
           user_id, request_type, status
         ) VALUES (?, 'data_deletion', 'pending')
       `, [userId]);
 
       // Log the request
-      await conn.query(`
+      await db.execute(`
         INSERT INTO audit_logs (
           user_id, action, resource_type, resource_id,
           description, status, severity
         ) VALUES (?, 'data_deletion_requested', 'user', ?, ?, 'success', 'high')
       `, [userId, userId, reason]);
-
-      conn.end();
 
       logger.warn(`Data deletion requested for user ${userId}: ${reason}`);
 
@@ -167,7 +154,7 @@ class PrivacyService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in requestDataDeletion:', error);
       throw error;
     }
@@ -197,11 +184,11 @@ class PrivacyService {
       ];
 
       for (const { table, whereClause } of tables) {
-        await conn.query(`DELETE FROM ${table} WHERE ${whereClause}`, [userId]);
+        await db.execute(`DELETE FROM ${table} WHERE ${whereClause}`, [userId]);
       }
 
       // Anonymize user
-      await conn.query(`
+      await db.execute(`
         UPDATE users
         SET name = 'DELETED_USER', email = CONCAT('deleted_', id, '@deleted.local'),
             phone = NULL, is_active = FALSE
@@ -209,14 +196,12 @@ class PrivacyService {
       `, [userId]);
 
       // Log deletion
-      await conn.query(`
+      await db.execute(`
         INSERT INTO audit_logs (
           action, resource_type, resource_id, user_id,
           description, status, severity
         ) VALUES ('data_deleted', 'user', ?, ?, ?, 'success', 'critical')
       `, [userId, approvedBy, `Data deletion approved by admin ${approvedBy}`]);
-
-      conn.end();
 
       logger.warn(`User ${userId} data deleted by admin ${approvedBy}`);
 
@@ -230,7 +215,7 @@ class PrivacyService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in executeDataDeletion:', error);
       throw error;
     }
@@ -241,15 +226,8 @@ class PrivacyService {
    */
   async getPrivacyRequests(status = 'pending', limit = 50) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [requests] = await conn.query(`
+      const [requests] = await db.execute(`
         SELECT 
           pr.id, pr.user_id, u.name, u.email,
           pr.request_type, pr.status,
@@ -261,8 +239,6 @@ class PrivacyService {
         ORDER BY pr.requested_at ASC
         LIMIT ?
       `, [status, limit]);
-
-      conn.end();
 
       return {
         success: true,
@@ -289,13 +265,11 @@ class PrivacyService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         UPDATE privacy_requests
         SET status = 'completed', processed_by = ?, processed_at = NOW()
         WHERE id = ? AND status = 'pending'
       `, [approvedBy, requestId]);
-
-      conn.end();
 
       return {
         success: result.affectedRows > 0,
@@ -306,7 +280,7 @@ class PrivacyService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in approvePrivacyRequest:', error);
       throw error;
     }
@@ -326,13 +300,11 @@ class PrivacyService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         UPDATE privacy_requests
         SET status = 'denied', denial_reason = ?, processed_by = ?, processed_at = NOW()
         WHERE id = ? AND status = 'pending'
       `, [reason, deniedBy, requestId]);
-
-      conn.end();
 
       return {
         success: result.affectedRows > 0,
@@ -344,7 +316,7 @@ class PrivacyService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in denyPrivacyRequest:', error);
       throw error;
     }
@@ -355,15 +327,8 @@ class PrivacyService {
    */
   async getConsentAudit(userId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [consents] = await conn.query(`
+      const [consents] = await db.execute(`
         SELECT 
           id, user_id, action, resource_type,
           action_timestamp, ip_address, device_id
@@ -371,8 +336,6 @@ class PrivacyService {
         WHERE user_id = ? AND action IN ('consent_given', 'consent_withdrawn', 'data_accessed')
         ORDER BY action_timestamp DESC
       `, [userId]);
-
-      conn.end();
 
       return {
         success: true,

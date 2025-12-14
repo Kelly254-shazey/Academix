@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class AnalyticsService {
@@ -12,13 +12,6 @@ class AnalyticsService {
    */
   async getKPIDrillDown(metricType, departmentId, dateRange = {}) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = '';
       const params = [];
@@ -83,12 +76,10 @@ class AnalyticsService {
           break;
 
         default:
-          conn.end();
           throw new Error('Invalid metric type');
       }
 
-      const [results] = await conn.query(query, params);
-      conn.end();
+      const [results] = await db.execute(query, params);
 
       return {
         success: true,
@@ -107,15 +98,8 @@ class AnalyticsService {
    */
   async getComparativeAnalytics(startDate, endDate) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [results] = await conn.query(`
+      const [results] = await db.execute(`
         SELECT 
           d.id,
           d.name as department_name,
@@ -136,8 +120,6 @@ class AnalyticsService {
         ORDER BY avg_attendance DESC
       `, [startDate, endDate]);
 
-      conn.end();
-
       return {
         success: true,
         data: results || [],
@@ -154,18 +136,11 @@ class AnalyticsService {
    */
   async getTrendPredictions(metricType, days = 30) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const [historical] = await conn.query(`
+      const [historical] = await db.execute(`
         SELECT 
           DATE(metric_date) as date,
           AVG(avg_attendance_percent) as avg_attendance,
@@ -176,8 +151,6 @@ class AnalyticsService {
         GROUP BY DATE(metric_date)
         ORDER BY date ASC
       `, [startDate]);
-
-      conn.end();
 
       // Simple trend calculation
       const trend = this._calculateTrend(historical);
@@ -200,15 +173,8 @@ class AnalyticsService {
    */
   async getAttendanceAnomalies(threshold = 50) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [anomalies] = await conn.query(`
+      const [anomalies] = await db.execute(`
         SELECT 
           u.id,
           u.name,
@@ -231,8 +197,6 @@ class AnalyticsService {
         HAVING attendance_percent < ? OR active_flags > 0
         ORDER BY attendance_percent ASC
       `, [threshold]);
-
-      conn.end();
 
       return {
         success: true,

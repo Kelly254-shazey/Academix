@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class ReportingService {
@@ -23,7 +23,7 @@ class ReportingService {
 
       const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO export_jobs (
           job_id, requested_by, export_type, file_format,
           filter_criteria, status
@@ -35,8 +35,6 @@ class ReportingService {
         format,
         JSON.stringify(filters),
       ]);
-
-      conn.end();
 
       // Trigger async processing (would normally queue to job processor)
       logger.info(`Export job ${jobId} created for ${exportType} as ${format}`);
@@ -51,7 +49,7 @@ class ReportingService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in createExportJob:', error);
       throw error;
     }
@@ -62,15 +60,8 @@ class ReportingService {
    */
   async getExportJobStatus(jobId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [job] = await conn.query(`
+      const [job] = await db.execute(`
         SELECT 
           id, job_id, export_type, file_format, status,
           progress_percent, total_records, processed_records,
@@ -79,8 +70,6 @@ class ReportingService {
         FROM export_jobs
         WHERE job_id = ?
       `, [jobId]);
-
-      conn.end();
 
       if (!job || job.length === 0) {
         throw new Error('Export job not found');
@@ -101,13 +90,6 @@ class ReportingService {
    */
   async listExportJobs(filters = {}, limit = 50, offset = 0) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `
         SELECT 
@@ -136,8 +118,7 @@ class ReportingService {
       query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
-      const [jobs] = await conn.query(query, params);
-      conn.end();
+      const [jobs] = await db.execute(query, params);
 
       return {
         success: true,
@@ -156,15 +137,8 @@ class ReportingService {
    */
   async generateAttendanceReport(departmentId, startDate, endDate) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [data] = await conn.query(`
+      const [data] = await db.execute(`
         SELECT 
           DATE(s.session_date) as date,
           c.name as class_name,
@@ -182,8 +156,6 @@ class ReportingService {
         GROUP BY DATE(s.session_date), c.id
         ORDER BY date DESC
       `, [departmentId, startDate, endDate]);
-
-      conn.end();
 
       const summary = {
         totalClasses: data.length,
@@ -209,18 +181,11 @@ class ReportingService {
    */
   async generateDepartmentReport(departmentId, metrics = ['attendance', 'enrollment', 'flags']) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const report = {};
 
       if (metrics.includes('attendance')) {
-        const [attendance] = await conn.query(`
+        const [attendance] = await db.execute(`
           SELECT 
             ROUND(AVG(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) * 100, 2) as avg_attendance,
             COUNT(DISTINCT s.id) as total_sessions
@@ -233,7 +198,7 @@ class ReportingService {
       }
 
       if (metrics.includes('enrollment')) {
-        const [enrollment] = await conn.query(`
+        const [enrollment] = await db.execute(`
           SELECT 
             COUNT(DISTINCT u.id) as total_students,
             COUNT(DISTINCT c.id) as total_classes,
@@ -247,7 +212,7 @@ class ReportingService {
       }
 
       if (metrics.includes('flags')) {
-        const [flags] = await conn.query(`
+        const [flags] = await db.execute(`
           SELECT 
             COUNT(DISTINCT CASE WHEN severity = 'critical' THEN student_id END) as critical_flags,
             COUNT(DISTINCT CASE WHEN severity = 'warning' THEN student_id END) as warning_flags,
@@ -259,8 +224,6 @@ class ReportingService {
         `, [departmentId]);
         report.flags = flags[0];
       }
-
-      conn.end();
 
       return {
         success: true,
@@ -288,19 +251,17 @@ class ReportingService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         UPDATE export_jobs SET status = 'cancelled'
         WHERE job_id = ? AND status IN ('pending', 'processing')
       `, [jobId]);
-
-      conn.end();
 
       return {
         success: result.affectedRows > 0,
         data: { jobId, cancelled: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in cancelExportJob:', error);
       throw error;
     }

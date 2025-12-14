@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class RosterService {
@@ -13,13 +13,6 @@ class RosterService {
    */
   async getLiveRoster(classId, sessionId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT 
@@ -45,8 +38,7 @@ class RosterService {
         ORDER BY u.name ASC
       `;
 
-      const [results] = await conn.query(query, [classId, sessionId, classId]);
-      conn.end();
+      const [results] = await db.execute(query, [classId, sessionId, classId]);
 
       return {
         success: true,
@@ -64,13 +56,6 @@ class RosterService {
    */
   async getAttendanceSummary(classId, sessionId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // Total students in class
       const totalQuery = `
@@ -79,7 +64,7 @@ class RosterService {
         WHERE class_id = ?
       `;
 
-      const [totalResults] = await conn.query(totalQuery, [classId]);
+      const [totalResults] = await db.execute(totalQuery, [classId]);
       const totalStudents = totalResults[0]?.total_students || 0;
 
       // Attendance breakdown
@@ -93,7 +78,7 @@ class RosterService {
         GROUP BY COALESCE(al.status, 'absent')
       `;
 
-      const [summaryResults] = await conn.query(summaryQuery, [sessionId, classId]);
+      const [summaryResults] = await db.execute(summaryQuery, [sessionId, classId]);
 
       // Calculate percentages
       const summary = {
@@ -131,10 +116,8 @@ class RosterService {
         WHERE al.session_id = ? AND al.verified = TRUE
       `;
 
-      const [verifiedResults] = await conn.query(verifiedQuery, [sessionId]);
+      const [verifiedResults] = await db.execute(verifiedQuery, [sessionId]);
       summary.verified_count = verifiedResults[0]?.verified_count || 0;
-
-      conn.end();
 
       return {
         success: true,
@@ -176,7 +159,7 @@ class RosterService {
         WHERE student_id = ? AND session_id = ?
       `;
 
-      const [existing] = await conn.query(checkQuery, [studentId, sessionId]);
+      const [existing] = await db.execute(checkQuery, [studentId, sessionId]);
 
       let attendanceId;
 
@@ -185,7 +168,7 @@ class RosterService {
         const oldStatusQuery = `
           SELECT status FROM attendance_logs WHERE id = ?
         `;
-        const [oldStatus] = await conn.query(oldStatusQuery, [existing[0].id]);
+        const [oldStatus] = await db.execute(oldStatusQuery, [existing[0].id]);
 
         const updateQuery = `
           UPDATE attendance_logs
@@ -195,7 +178,7 @@ class RosterService {
           WHERE student_id = ? AND session_id = ?
         `;
 
-        const [result] = await conn.query(updateQuery, [
+        const [result] = await db.execute(updateQuery, [
           status,
           lecturerId,
           deviceId,
@@ -228,7 +211,7 @@ class RosterService {
           ) VALUES (?, ?, ?, TRUE, ?, NOW(), ?, ?)
         `;
 
-        const [insertResult] = await conn.query(insertQuery, [
+        const [insertResult] = await db.execute(insertQuery, [
           studentId,
           sessionId,
           status,
@@ -262,7 +245,7 @@ class RosterService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
-      await conn.query(verificationQuery, [
+      await db.execute(verificationQuery, [
         lecturerId,
         attendanceId,
         studentId,
@@ -274,8 +257,6 @@ class RosterService {
         deviceId,
         deviceFingerprint,
       ]);
-
-      conn.end();
 
       logger.info(
         `Student ${studentId} marked ${status} in session ${sessionId} by lecturer ${lecturerId}`
@@ -291,7 +272,7 @@ class RosterService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in markStudentAttendance:', error);
       throw error;
     }
@@ -329,7 +310,7 @@ class RosterService {
             WHERE student_id = ? AND session_id = ?
           `;
 
-          const [existing] = await conn.query(checkQuery, [
+          const [existing] = await db.execute(checkQuery, [
             marking.studentId,
             sessionId,
           ]);
@@ -344,7 +325,7 @@ class RosterService {
               WHERE student_id = ? AND session_id = ?
             `;
 
-            await conn.query(updateQuery, [
+            await db.execute(updateQuery, [
               marking.status,
               lecturerId,
               deviceId,
@@ -361,7 +342,7 @@ class RosterService {
               ) VALUES (?, ?, ?, TRUE, ?, NOW(), ?)
             `;
 
-            const [insertResult] = await conn.query(insertQuery, [
+            const [insertResult] = await db.execute(insertQuery, [
               marking.studentId,
               sessionId,
               marking.status,
@@ -399,8 +380,6 @@ class RosterService {
         new_value: { count: markings.length, successful: results.length },
       });
 
-      conn.end();
-
       return {
         success: errors.length === 0,
         data: {
@@ -412,7 +391,7 @@ class RosterService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in bulkMarkAttendance:', error);
       throw error;
     }
@@ -423,13 +402,6 @@ class RosterService {
    */
   async getAtRiskStudents(classId, sessionId, attendanceThreshold = 75) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT 
@@ -455,8 +427,7 @@ class RosterService {
         ORDER BY attendance_percentage ASC
       `;
 
-      const [results] = await conn.query(query, [classId, classId, attendanceThreshold]);
-      conn.end();
+      const [results] = await db.execute(query, [classId, classId, attendanceThreshold]);
 
       return {
         success: true,
@@ -474,13 +445,6 @@ class RosterService {
    */
   async getStudentAttendanceHistory(classId, studentId, limit = 50) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT 
@@ -497,8 +461,7 @@ class RosterService {
         LIMIT ?
       `;
 
-      const [results] = await conn.query(query, [classId, studentId, limit]);
-      conn.end();
+      const [results] = await db.execute(query, [classId, studentId, limit]);
 
       return {
         success: true,
@@ -522,7 +485,7 @@ class RosterService {
     `;
 
     try {
-      await conn.query(query, [
+      await db.execute(query, [
         data.user_id,
         data.action,
         data.resource_type,

@@ -2,7 +2,7 @@ const authService = require('../services/authService');
 
 exports.login = async (req, res, next) => {
   try {
-    const { token, user } = await authService.login(req.body);
+    const { token, user } = await authService.login(req.validatedData || req.body);
     res.json({ success: true, message: 'Login successful', token, user });
   } catch (err) {
     next(err);
@@ -11,7 +11,7 @@ exports.login = async (req, res, next) => {
 
 exports.register = async (req, res, next) => {
   try {
-    const { token, user } = await authService.register(req.body);
+    const { token, user } = await authService.register(req.validatedData || req.body);
     res.status(201).json({ success: true, message: 'Registration successful', token, user });
   } catch (err) {
     next(err);

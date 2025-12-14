@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class DepartmentService {
@@ -12,13 +12,6 @@ class DepartmentService {
    */
   async getAllDepartments(filters = {}) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `
         SELECT 
@@ -51,8 +44,7 @@ class DepartmentService {
 
       query += ` GROUP BY d.id ORDER BY d.name ASC`;
 
-      const [results] = await conn.query(query, params);
-      conn.end();
+      const [results] = await db.execute(query, params);
 
       return {
         success: true,
@@ -70,16 +62,9 @@ class DepartmentService {
    */
   async getDepartmentDetails(departmentId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // Department info
-      const [dept] = await conn.query(`
+      const [dept] = await db.execute(`
         SELECT 
           d.*, 
           u_hod.name as hod_name,
@@ -91,12 +76,11 @@ class DepartmentService {
       `, [departmentId]);
 
       if (!dept || dept.length === 0) {
-        conn.end();
         throw new Error('Department not found');
       }
 
       // Lecturers
-      const [lecturers] = await conn.query(`
+      const [lecturers] = await db.execute(`
         SELECT u.id, u.name, u.email, u.phone
         FROM users u
         WHERE u.department_id = ? AND u.role = 'lecturer'
@@ -104,7 +88,7 @@ class DepartmentService {
       `, [departmentId]);
 
       // Classes
-      const [classes] = await conn.query(`
+      const [classes] = await db.execute(`
         SELECT 
           c.id, c.name, c.code,
           (SELECT COUNT(*) FROM class_enrollments WHERE class_id = c.id) as enrollment_count
@@ -114,12 +98,10 @@ class DepartmentService {
       `, [departmentId]);
 
       // Today's metrics
-      const [metrics] = await conn.query(`
+      const [metrics] = await db.execute(`
         SELECT * FROM department_metrics
         WHERE department_id = ? AND DATE(metric_date) = CURDATE()
       `, [departmentId]);
-
-      conn.end();
 
       return {
         success: true,
@@ -168,7 +150,7 @@ class DepartmentService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?)
       `;
 
-      const [result] = await conn.query(insertQuery, [
+      const [result] = await db.execute(insertQuery, [
         name,
         code,
         description,
@@ -179,8 +161,6 @@ class DepartmentService {
         website,
         adminId,
       ]);
-
-      conn.end();
 
       logger.info(`Department ${name} created by admin ${adminId}`);
 
@@ -193,7 +173,7 @@ class DepartmentService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in createDepartment:', error);
       throw error;
     }
@@ -226,7 +206,7 @@ class DepartmentService {
         WHERE id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [
+      const [result] = await db.execute(updateQuery, [
         data.name,
         data.description,
         data.budget_allocation,
@@ -238,8 +218,6 @@ class DepartmentService {
         departmentId,
       ]);
 
-      conn.end();
-
       return {
         success: result.affectedRows > 0,
         data: {
@@ -248,7 +226,7 @@ class DepartmentService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in updateDepartment:', error);
       throw error;
     }
@@ -269,12 +247,11 @@ class DepartmentService {
       });
 
       // Verify user exists and is lecturer
-      const [user] = await conn.query(`
+      const [user] = await db.execute(`
         SELECT id, name, role FROM users WHERE id = ? AND role IN ('lecturer', 'admin')
       `, [hodUserId]);
 
       if (!user || user.length === 0) {
-        conn.end();
         throw new Error('User not found or not eligible to be HOD');
       }
 
@@ -283,14 +260,12 @@ class DepartmentService {
         UPDATE departments SET hod_id = ? WHERE id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [hodUserId, departmentId]);
+      const [result] = await db.execute(updateQuery, [hodUserId, departmentId]);
 
       // Update user department assignment
-      await conn.query(`
+      await db.execute(`
         UPDATE users SET department_id = ? WHERE id = ?
       `, [departmentId, hodUserId]);
-
-      conn.end();
 
       logger.info(
         `HOD ${user[0].name} assigned to department ${departmentId} by admin ${adminId}`
@@ -305,7 +280,7 @@ class DepartmentService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in assignHOD:', error);
       throw error;
     }
@@ -326,30 +301,27 @@ class DepartmentService {
       });
 
       // Check if department has active courses/students
-      const [check] = await conn.query(`
+      const [check] = await db.execute(`
         SELECT 
           (SELECT COUNT(*) FROM classes WHERE department_id = ?) as class_count,
           (SELECT COUNT(*) FROM users WHERE department_id = ? AND role IN ('lecturer', 'student')) as user_count
       `, [departmentId, departmentId]);
 
       if (check[0].class_count > 0 || check[0].user_count > 0) {
-        conn.end();
         throw new Error('Cannot delete department with active courses or users');
       }
 
       // Safe to delete
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         DELETE FROM departments WHERE id = ?
       `, [departmentId]);
-
-      conn.end();
 
       return {
         success: result.affectedRows > 0,
         data: { departmentId, deleted: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in deleteDepartment:', error);
       throw error;
     }
@@ -360,13 +332,6 @@ class DepartmentService {
    */
   async getDepartmentMetrics(departmentId, startDate, endDate) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT 
@@ -378,8 +343,7 @@ class DepartmentService {
         ORDER BY metric_date DESC
       `;
 
-      const [results] = await conn.query(query, [departmentId, startDate, endDate]);
-      conn.end();
+      const [results] = await db.execute(query, [departmentId, startDate, endDate]);
 
       return {
         success: true,

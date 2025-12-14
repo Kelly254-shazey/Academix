@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class AIIntegrationService {
@@ -23,7 +23,7 @@ class AIIntegrationService {
 
       const jobId = `ai_job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO ai_jobs (
           job_id, job_type, model_name, status,
           input_params, created_by
@@ -35,8 +35,6 @@ class AIIntegrationService {
         JSON.stringify(inputParams),
         createdBy,
       ]);
-
-      conn.end();
 
       logger.info(`AI training job ${jobId} created for model ${modelName}`);
 
@@ -50,7 +48,7 @@ class AIIntegrationService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in createTrainingJob:', error);
       throw error;
     }
@@ -61,25 +59,16 @@ class AIIntegrationService {
    */
   async getPrediction(modelName, inputData) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const jobId = `ai_pred_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       // Log prediction request
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO ai_jobs (
           job_id, job_type, model_name, status,
           input_params
         ) VALUES (?, 'prediction', ?, 'running', ?)
       `, [jobId, modelName, JSON.stringify(inputData)]);
-
-      conn.end();
 
       // ML microservice is not configured in this environment.
       // Avoid returning fabricated predictions — surface explicit not-implemented response.
@@ -98,15 +87,8 @@ class AIIntegrationService {
    */
   async getJobStatus(jobId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [job] = await conn.query(`
+      const [job] = await db.execute(`
         SELECT 
           id, job_id, job_type, model_name, status,
           progress_percent, input_params, output_results, metrics,
@@ -115,8 +97,6 @@ class AIIntegrationService {
         FROM ai_jobs
         WHERE job_id = ?
       `, [jobId]);
-
-      conn.end();
 
       if (!job || job.length === 0) {
         throw new Error('AI job not found');
@@ -137,13 +117,6 @@ class AIIntegrationService {
    */
   async listAIJobs(filters = {}, limit = 50, offset = 0) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `
         SELECT 
@@ -172,8 +145,7 @@ class AIIntegrationService {
       query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
-      const [jobs] = await conn.query(query, params);
-      conn.end();
+      const [jobs] = await db.execute(query, params);
 
       return {
         success: true,
@@ -201,19 +173,17 @@ class AIIntegrationService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         UPDATE ai_jobs SET status = 'cancelled'
         WHERE job_id = ? AND status IN ('pending', 'running')
       `, [jobId]);
-
-      conn.end();
 
       return {
         success: result.affectedRows > 0,
         data: { jobId, cancelled: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in cancelJob:', error);
       throw error;
     }
@@ -224,15 +194,8 @@ class AIIntegrationService {
    */
   async getModelMetrics(modelName) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [jobs] = await conn.query(`
+      const [jobs] = await db.execute(`
         SELECT 
           model_name,
           COUNT(*) as total_jobs,
@@ -244,8 +207,6 @@ class AIIntegrationService {
         WHERE model_name = ? AND status IN ('completed', 'failed')
         GROUP BY model_name
       `, [modelName]);
-
-      conn.end();
 
       if (!jobs || jobs.length === 0) {
         return {
@@ -270,16 +231,9 @@ class AIIntegrationService {
    */
   async predictStudentAttendance(studentId, daysAhead = 7) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // Get student's attendance history
-      const [history] = await conn.query(`
+      const [history] = await db.execute(`
         SELECT 
           DATE(s.session_date) as session_date,
           al.status as attendance_status
@@ -289,8 +243,6 @@ class AIIntegrationService {
         ORDER BY s.session_date DESC
         LIMIT 30
       `, [studentId]);
-
-      conn.end();
 
       // Create prediction job
       const jobId = `attendance_pred_${studentId}_${Date.now()}`;
@@ -317,17 +269,10 @@ class AIIntegrationService {
    */
   async detectAnomalies(dataType = 'attendance') {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const jobId = `anomaly_${dataType}_${Date.now()}`;
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO ai_jobs (
           job_id, job_type, model_name, status,
           input_params
@@ -337,8 +282,6 @@ class AIIntegrationService {
         `anomaly_detection_${dataType}`,
         JSON.stringify({ dataType }),
       ]);
-
-      conn.end();
 
       return {
         success: true,

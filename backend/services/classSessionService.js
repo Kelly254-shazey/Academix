@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class ClassSessionService {
@@ -35,7 +35,7 @@ class ClassSessionService {
         WHERE id = ? AND class_id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [sessionToken, lecturerId, sessionId, classId]);
+      const [result] = await db.execute(updateQuery, [sessionToken, lecturerId, sessionId, classId]);
 
       if (result.affectedRows === 0) {
         throw new Error('Session not found or already started');
@@ -58,8 +58,6 @@ class ClassSessionService {
         },
       });
 
-      conn.end();
-
       logger.info(`Session ${sessionId} started by lecturer ${lecturerId}`);
 
       return {
@@ -74,7 +72,7 @@ class ClassSessionService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in startSession:', error);
       throw error;
     }
@@ -105,7 +103,7 @@ class ClassSessionService {
         WHERE id = ? AND class_id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [lecturerId, reason, newStartTime, sessionId, classId]);
+      const [result] = await db.execute(updateQuery, [lecturerId, reason, newStartTime, sessionId, classId]);
 
       if (result.affectedRows === 0) {
         throw new Error('Session not found');
@@ -128,8 +126,6 @@ class ClassSessionService {
         },
       });
 
-      conn.end();
-
       logger.info(`Session ${sessionId} delayed by ${delayMinutes} minutes`);
 
       return {
@@ -143,7 +139,7 @@ class ClassSessionService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in delaySession:', error);
       throw error;
     }
@@ -173,7 +169,7 @@ class ClassSessionService {
         WHERE id = ? AND class_id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [lecturerId, reason, sessionId, classId]);
+      const [result] = await db.execute(updateQuery, [lecturerId, reason, sessionId, classId]);
 
       if (result.affectedRows === 0) {
         throw new Error('Session not found');
@@ -196,8 +192,6 @@ class ClassSessionService {
         },
       });
 
-      conn.end();
-
       logger.info(`Session ${sessionId} cancelled. Reason: ${reason}`);
 
       return {
@@ -211,7 +205,7 @@ class ClassSessionService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in cancelSession:', error);
       throw error;
     }
@@ -240,7 +234,7 @@ class ClassSessionService {
         WHERE id = ? AND class_id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [oldRoom, newRoom, lecturerId, sessionId, classId]);
+      const [result] = await db.execute(updateQuery, [oldRoom, newRoom, lecturerId, sessionId, classId]);
 
       if (result.affectedRows === 0) {
         throw new Error('Session not found');
@@ -260,8 +254,6 @@ class ClassSessionService {
         new_value: { room: newRoom },
       });
 
-      conn.end();
-
       logger.info(`Session ${sessionId} room changed from ${oldRoom} to ${newRoom}`);
 
       return {
@@ -275,7 +267,7 @@ class ClassSessionService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in changeRoom:', error);
       throw error;
     }
@@ -301,7 +293,7 @@ class ClassSessionService {
         WHERE id = ? AND class_id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [enabled, sessionId, classId]);
+      const [result] = await db.execute(updateQuery, [enabled, sessionId, classId]);
 
       if (result.affectedRows === 0) {
         throw new Error('Session not found');
@@ -320,8 +312,6 @@ class ClassSessionService {
         new_value: { scanning_enabled: enabled },
       });
 
-      conn.end();
-
       logger.info(`Session ${sessionId} scanning ${enabled ? 'enabled' : 'disabled'}`);
 
       return {
@@ -333,7 +323,7 @@ class ClassSessionService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in toggleScanning:', error);
       throw error;
     }
@@ -344,13 +334,6 @@ class ClassSessionService {
    */
   async getSessionState(classId, sessionId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT 
@@ -362,8 +345,7 @@ class ClassSessionService {
         WHERE id = ? AND class_id = ?
       `;
 
-      const [results] = await conn.query(query, [sessionId, classId]);
-      conn.end();
+      const [results] = await db.execute(query, [sessionId, classId]);
 
       if (!results || results.length === 0) {
         throw new Error('Session not found');
@@ -391,7 +373,7 @@ class ClassSessionService {
     `;
 
     try {
-      await conn.query(query, [
+      await db.execute(query, [
         data.user_id,
         data.action,
         data.resource_type,

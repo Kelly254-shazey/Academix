@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class LecturerManagementService {
@@ -12,13 +12,6 @@ class LecturerManagementService {
    */
   async getAllLecturers(filters = {}) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `
         SELECT 
@@ -54,8 +47,7 @@ class LecturerManagementService {
 
       query += ` GROUP BY u.id ORDER BY u.name ASC`;
 
-      const [results] = await conn.query(query, params);
-      conn.end();
+      const [results] = await db.execute(query, params);
 
       return {
         success: true,
@@ -73,16 +65,9 @@ class LecturerManagementService {
    */
   async getLecturerProfile(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // User info
-      const [user] = await conn.query(`
+      const [user] = await db.execute(`
         SELECT u.*, d.name as department_name
         FROM users u
         LEFT JOIN departments d ON u.department_id = d.id
@@ -90,12 +75,11 @@ class LecturerManagementService {
       `, [lecturerId]);
 
       if (!user || user.length === 0) {
-        conn.end();
         throw new Error('Lecturer not found');
       }
 
       // Classes taught
-      const [classes] = await conn.query(`
+      const [classes] = await db.execute(`
         SELECT 
           c.id, c.name, c.code,
           COUNT(DISTINCT ce.student_id) as enrollment_count
@@ -106,7 +90,7 @@ class LecturerManagementService {
       `, [lecturerId]);
 
       // Attendance analytics
-      const [attendance] = await conn.query(`
+      const [attendance] = await db.execute(`
         SELECT 
           COUNT(DISTINCT s.id) as total_sessions,
           COUNT(DISTINCT CASE WHEN s.status = 'completed' THEN s.id END) as completed_sessions,
@@ -121,8 +105,6 @@ class LecturerManagementService {
         INNER JOIN classes c ON s.class_id = c.id
         WHERE c.lecturer_id = ?
       `, [lecturerId]);
-
-      conn.end();
 
       return {
         success: true,
@@ -153,12 +135,11 @@ class LecturerManagementService {
       });
 
       // Check if email exists
-      const [existing] = await conn.query(`
+      const [existing] = await db.execute(`
         SELECT id FROM users WHERE email = ?
       `, [data.email]);
 
       if (existing && existing.length > 0) {
-        conn.end();
         throw new Error('Email already exists');
       }
 
@@ -173,15 +154,13 @@ class LecturerManagementService {
         ) VALUES (?, ?, ?, ?, 'lecturer', ?, TRUE)
       `;
 
-      const [result] = await conn.query(insertQuery, [
+      const [result] = await db.execute(insertQuery, [
         data.name,
         data.email,
         hashedPassword,
         data.phone,
         data.department_id,
       ]);
-
-      conn.end();
 
       logger.info(`Lecturer ${data.name} created by admin ${adminId}`);
 
@@ -194,7 +173,7 @@ class LecturerManagementService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in createLecturer:', error);
       throw error;
     }
@@ -223,7 +202,7 @@ class LecturerManagementService {
         WHERE id = ? AND role = 'lecturer'
       `;
 
-      const [result] = await conn.query(updateQuery, [
+      const [result] = await db.execute(updateQuery, [
         data.name,
         data.phone,
         data.department_id,
@@ -231,14 +210,12 @@ class LecturerManagementService {
         lecturerId,
       ]);
 
-      conn.end();
-
       return {
         success: result.affectedRows > 0,
         data: { lecturerId, updated: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in updateLecturer:', error);
       throw error;
     }
@@ -262,9 +239,7 @@ class LecturerManagementService {
         UPDATE users SET is_active = FALSE WHERE id = ? AND role = 'lecturer'
       `;
 
-      const [result] = await conn.query(updateQuery, [lecturerId]);
-
-      conn.end();
+      const [result] = await db.execute(updateQuery, [lecturerId]);
 
       logger.info(`Lecturer ${lecturerId} deactivated by admin ${adminId}`);
 
@@ -273,7 +248,7 @@ class LecturerManagementService {
         data: { lecturerId, deactivated: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in deactivateLecturer:', error);
       throw error;
     }
@@ -307,10 +282,8 @@ class LecturerManagementService {
           ON DUPLICATE KEY UPDATE is_active = TRUE
         `;
 
-        await conn.query(query, [courseId, lecturerId, semester, year, lecturerId]);
+        await db.execute(query, [courseId, lecturerId, semester, year, lecturerId]);
       }
-
-      conn.end();
 
       return {
         success: true,
@@ -321,7 +294,7 @@ class LecturerManagementService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in assignCourses:', error);
       throw error;
     }

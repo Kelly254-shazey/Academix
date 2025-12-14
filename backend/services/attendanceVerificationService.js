@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class AttendanceVerificationService {
@@ -37,7 +37,7 @@ class AttendanceVerificationService {
         WHERE id = ? AND student_id = ? AND session_id = ?
       `;
 
-      const [attendanceResults] = await conn.query(attendanceQuery, [
+      const [attendanceResults] = await db.execute(attendanceQuery, [
         attendanceId,
         studentId,
         sessionId,
@@ -60,7 +60,7 @@ class AttendanceVerificationService {
         WHERE id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [
+      const [result] = await db.execute(updateQuery, [
         lecturerId,
         deviceId,
         notes,
@@ -76,7 +76,7 @@ class AttendanceVerificationService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
-      const [verificationResult] = await conn.query(verificationQuery, [
+      const [verificationResult] = await db.execute(verificationQuery, [
         lecturerId,
         attendanceId,
         studentId,
@@ -104,8 +104,6 @@ class AttendanceVerificationService {
         new_value: { verified: true, reason: verificationReason },
       });
 
-      conn.end();
-
       logger.info(`Attendance ${attendanceId} verified by lecturer ${lecturerId}`);
 
       return {
@@ -119,7 +117,7 @@ class AttendanceVerificationService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in verifyAttendance:', error);
       throw error;
     }
@@ -157,7 +155,7 @@ class AttendanceVerificationService {
         WHERE id = ?
       `;
 
-      const [result] = await conn.query(updateQuery, [reason, attendanceId]);
+      const [result] = await db.execute(updateQuery, [reason, attendanceId]);
 
       if (result.affectedRows === 0) {
         throw new Error('Attendance record not found');
@@ -176,8 +174,6 @@ class AttendanceVerificationService {
         new_value: { verified: false, reason },
       });
 
-      conn.end();
-
       return {
         success: true,
         data: {
@@ -187,7 +183,7 @@ class AttendanceVerificationService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in unverifyAttendance:', error);
       throw error;
     }
@@ -223,7 +219,7 @@ class AttendanceVerificationService {
         WHERE student_id = ? AND session_id = ?
       `;
 
-      const [existing] = await conn.query(existingQuery, [studentId, sessionId]);
+      const [existing] = await db.execute(existingQuery, [studentId, sessionId]);
 
       let attendanceId;
 
@@ -240,7 +236,7 @@ class AttendanceVerificationService {
           WHERE student_id = ? AND session_id = ?
         `;
 
-        const [updateResult] = await conn.query(updateQuery, [
+        const [updateResult] = await db.execute(updateQuery, [
           status,
           lecturerId,
           deviceId,
@@ -259,7 +255,7 @@ class AttendanceVerificationService {
           ) VALUES (?, ?, ?, TRUE, ?, NOW(), ?, ?)
         `;
 
-        const [insertResult] = await conn.query(insertQuery, [
+        const [insertResult] = await db.execute(insertQuery, [
           studentId,
           sessionId,
           status,
@@ -280,7 +276,7 @@ class AttendanceVerificationService {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
-      await conn.query(verificationQuery, [
+      await db.execute(verificationQuery, [
         lecturerId,
         attendanceId,
         studentId,
@@ -306,8 +302,6 @@ class AttendanceVerificationService {
         new_value: { status, reason },
       });
 
-      conn.end();
-
       logger.info(
         `Student ${studentId} marked ${status} by lecturer ${lecturerId}`
       );
@@ -322,7 +316,7 @@ class AttendanceVerificationService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in markAttendance:', error);
       throw error;
     }
@@ -333,13 +327,6 @@ class AttendanceVerificationService {
    */
   async getVerificationHistory(attendanceId, limit = 20) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT 
@@ -351,8 +338,7 @@ class AttendanceVerificationService {
         LIMIT ?
       `;
 
-      const [results] = await conn.query(query, [attendanceId, limit]);
-      conn.end();
+      const [results] = await db.execute(query, [attendanceId, limit]);
 
       return {
         success: true,
@@ -369,13 +355,6 @@ class AttendanceVerificationService {
    */
   async getVerificationStats(lecturerId, classId, startDate, endDate) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT 
@@ -391,13 +370,12 @@ class AttendanceVerificationService {
         ORDER BY date DESC
       `;
 
-      const [results] = await conn.query(query, [
+      const [results] = await db.execute(query, [
         lecturerId,
         classId,
         startDate,
         endDate,
       ]);
-      conn.end();
 
       return {
         success: true,
@@ -421,7 +399,7 @@ class AttendanceVerificationService {
     `;
 
     try {
-      await conn.query(query, [
+      await db.execute(query, [
         data.user_id,
         data.action,
         data.resource_type,

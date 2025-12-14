@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class StudentManagementService {
@@ -12,13 +12,6 @@ class StudentManagementService {
    */
   async getAllStudents(filters = {}) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `
         SELECT 
@@ -60,8 +53,7 @@ class StudentManagementService {
 
       query += ` GROUP BY u.id ORDER BY u.name ASC`;
 
-      const [results] = await conn.query(query, params);
-      conn.end();
+      const [results] = await db.execute(query, params);
 
       return {
         success: true,
@@ -79,16 +71,9 @@ class StudentManagementService {
    */
   async getStudentProfile(studentId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // Student info
-      const [student] = await conn.query(`
+      const [student] = await db.execute(`
         SELECT u.*, d.name as department_name
         FROM users u
         LEFT JOIN departments d ON u.department_id = d.id
@@ -96,12 +81,11 @@ class StudentManagementService {
       `, [studentId]);
 
       if (!student || student.length === 0) {
-        conn.end();
         throw new Error('Student not found');
       }
 
       // Enrolled classes
-      const [classes] = await conn.query(`
+      const [classes] = await db.execute(`
         SELECT DISTINCT c.id, c.name, c.code, l.name as lecturer_name
         FROM class_enrollments ce
         INNER JOIN classes c ON ce.class_id = c.id
@@ -111,7 +95,7 @@ class StudentManagementService {
       `, [studentId]);
 
       // Active flags
-      const [flags] = await conn.query(`
+      const [flags] = await db.execute(`
         SELECT id, flag_type, severity, description, recommended_action, flagged_at, flagged_by
         FROM student_flags
         WHERE student_id = ? AND status = 'active'
@@ -119,7 +103,7 @@ class StudentManagementService {
       `, [studentId]);
 
       // Attendance summary
-      const [attendance] = await conn.query(`
+      const [attendance] = await db.execute(`
         SELECT 
           COUNT(DISTINCT al.session_id) as sessions_attended,
           COUNT(DISTINCT s.id) as total_sessions,
@@ -133,8 +117,6 @@ class StudentManagementService {
         LEFT JOIN attendance_logs al ON al.session_id = s.id AND al.student_id = u.id AND al.status = 'present'
         WHERE u.id = ? AND s.status IN ('completed', 'active')
       `, [studentId]);
-
-      conn.end();
 
       return {
         success: true,
@@ -166,12 +148,11 @@ class StudentManagementService {
       });
 
       // Check if email exists
-      const [existing] = await conn.query(`
+      const [existing] = await db.execute(`
         SELECT id FROM users WHERE email = ?
       `, [data.email]);
 
       if (existing && existing.length > 0) {
-        conn.end();
         throw new Error('Email already exists');
       }
 
@@ -179,7 +160,7 @@ class StudentManagementService {
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash(data.password, 10);
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO users (
           name, email, password, phone, role, department_id, is_active
         ) VALUES (?, ?, ?, ?, 'student', ?, TRUE)
@@ -190,8 +171,6 @@ class StudentManagementService {
         data.phone,
         data.department_id,
       ]);
-
-      conn.end();
 
       logger.info(`Student ${data.name} created by admin ${adminId}`);
 
@@ -204,7 +183,7 @@ class StudentManagementService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in createStudent:', error);
       throw error;
     }
@@ -224,7 +203,7 @@ class StudentManagementService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         UPDATE users
         SET name = COALESCE(?, name),
             phone = COALESCE(?, phone),
@@ -237,14 +216,12 @@ class StudentManagementService {
         studentId,
       ]);
 
-      conn.end();
-
       return {
         success: result.affectedRows > 0,
         data: { studentId, updated: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in updateStudent:', error);
       throw error;
     }
@@ -264,7 +241,7 @@ class StudentManagementService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO student_flags (
           student_id, flag_type, severity, description,
           status, flagged_by, flagged_at
@@ -276,8 +253,6 @@ class StudentManagementService {
         description,
         adminId,
       ]);
-
-      conn.end();
 
       logger.info(`Student ${studentId} flagged as ${flagType} (${severity}) by admin ${adminId}`);
 
@@ -291,7 +266,7 @@ class StudentManagementService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in flagStudent:', error);
       throw error;
     }
@@ -312,17 +287,16 @@ class StudentManagementService {
       });
 
       // Get current department
-      const [student] = await conn.query(`
+      const [student] = await db.execute(`
         SELECT department_id FROM users WHERE id = ? AND role = 'student'
       `, [studentId]);
 
       if (!student || student.length === 0) {
-        conn.end();
         throw new Error('Student not found');
       }
 
       // Create transfer record
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO student_transfers (
           student_id, from_department_id, to_department_id,
           reason, status, requested_at, approved_by, approved_at
@@ -336,11 +310,9 @@ class StudentManagementService {
       ]);
 
       // Update student department
-      await conn.query(`
+      await db.execute(`
         UPDATE users SET department_id = ? WHERE id = ?
       `, [toDepartmentId, studentId]);
-
-      conn.end();
 
       logger.info(`Student ${studentId} transferred from dept ${student[0].department_id} to ${toDepartmentId} by admin ${adminId}`);
 
@@ -354,7 +326,7 @@ class StudentManagementService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in transferStudent:', error);
       throw error;
     }
@@ -374,11 +346,9 @@ class StudentManagementService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         UPDATE users SET is_active = FALSE WHERE id = ? AND role = 'student'
       `, [studentId]);
-
-      conn.end();
 
       logger.info(`Student ${studentId} deactivated by admin ${adminId}`);
 
@@ -387,7 +357,7 @@ class StudentManagementService {
         data: { studentId, deactivated: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in deactivateStudent:', error);
       throw error;
     }
@@ -398,15 +368,8 @@ class StudentManagementService {
    */
   async getAttendanceHistory(studentId, limit = 50) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [results] = await conn.query(`
+      const [results] = await db.execute(`
         SELECT 
           al.id, al.session_id, s.session_date, s.start_time, s.end_time,
           c.name as class_name, c.code as class_code,
@@ -420,8 +383,6 @@ class StudentManagementService {
         ORDER BY s.session_date DESC
         LIMIT ?
       `, [studentId, limit]);
-
-      conn.end();
 
       return {
         success: true,
@@ -438,15 +399,8 @@ class StudentManagementService {
    */
   async getAtRiskStudents(departmentId, threshold = 75) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [results] = await conn.query(`
+      const [results] = await db.execute(`
         SELECT 
           u.id, u.name, u.email,
           ROUND(AVG(CASE WHEN al.status = 'present' THEN 1 ELSE 0 END) * 100, 2) as attendance_percent,
@@ -461,8 +415,6 @@ class StudentManagementService {
         HAVING attendance_percent < ? OR flag_count > 0
         ORDER BY attendance_percent ASC
       `, [departmentId, threshold]);
-
-      conn.end();
 
       return {
         success: true,

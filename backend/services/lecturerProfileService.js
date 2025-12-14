@@ -3,20 +3,13 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 const lecturerProfileService = {
   // Get lecturer profile
   async getProfile(lecturerId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT
@@ -44,8 +37,7 @@ const lecturerProfileService = {
         GROUP BY u.id, lp.bio, lp.phone, lp.avatar, d.name
       `;
 
-      const [results] = await conn.query(query, [lecturerId]);
-      conn.end();
+      const [results] = await db.execute(query, [lecturerId]);
 
       if (!results || results.length === 0) {
         throw new Error('Lecturer not found');
@@ -79,23 +71,16 @@ const lecturerProfileService = {
   // Update lecturer profile
   async updateProfile(lecturerId, profileData) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // Check if lecturer profile exists
-      const [existing] = await conn.query(
+      const [existing] = await db.execute(
         'SELECT id FROM lecturer_profiles WHERE lecturer_id = ?',
         [lecturerId]
       );
 
       if (existing.length === 0) {
         // Create new profile
-        await conn.query(
+        await db.execute(
           'INSERT INTO lecturer_profiles (lecturer_id, bio, phone, avatar) VALUES (?, ?, ?, ?)',
           [lecturerId, profileData.bio || '', profileData.phone || '', profileData.avatar || '']
         );
@@ -119,7 +104,7 @@ const lecturerProfileService = {
 
         if (updateFields.length > 0) {
           updateValues.push(lecturerId);
-          await conn.query(
+          await db.execute(
             `UPDATE lecturer_profiles SET ${updateFields.join(', ')} WHERE lecturer_id = ?`,
             updateValues
           );
@@ -142,14 +127,12 @@ const lecturerProfileService = {
 
         if (userUpdateFields.length > 0) {
           userUpdateValues.push(lecturerId);
-          await conn.query(
+          await db.execute(
             `UPDATE users SET ${userUpdateFields.join(', ')} WHERE id = ?`,
             userUpdateValues
           );
         }
       }
-
-      conn.end();
 
       // Return updated profile
       return await this.getProfile(lecturerId);

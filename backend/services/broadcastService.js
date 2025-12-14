@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class BroadcastService {
@@ -21,7 +21,7 @@ class BroadcastService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         INSERT INTO broadcasts (
           title, message, content_type, target_type,
           target_roles, target_departments, target_users,
@@ -41,8 +41,6 @@ class BroadcastService {
         createdBy,
       ]);
 
-      conn.end();
-
       logger.info(`Broadcast ${result.insertId} created with priority ${data.priority}`);
 
       return {
@@ -55,7 +53,7 @@ class BroadcastService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in createBroadcast:', error);
       throw error;
     }
@@ -66,25 +64,17 @@ class BroadcastService {
    */
   async getBroadcastDetails(broadcastId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [broadcast] = await conn.query(`
+      const [broadcast] = await db.execute(`
         SELECT * FROM broadcasts WHERE id = ?
       `, [broadcastId]);
 
       if (!broadcast || broadcast.length === 0) {
-        conn.end();
         throw new Error('Broadcast not found');
       }
 
       // Get delivery stats
-      const [stats] = await conn.query(`
+      const [stats] = await db.execute(`
         SELECT 
           COUNT(*) as total_recipients,
           COUNT(CASE WHEN delivery_status = 'delivered' THEN 1 END) as delivered,
@@ -97,8 +87,6 @@ class BroadcastService {
         FROM broadcast_delivery
         WHERE broadcast_id = ?
       `, [broadcastId]);
-
-      conn.end();
 
       return {
         success: true,
@@ -118,13 +106,6 @@ class BroadcastService {
    */
   async listBroadcasts(filters = {}, limit = 50, offset = 0) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `
         SELECT 
@@ -151,8 +132,7 @@ class BroadcastService {
       query += ` GROUP BY b.id ORDER BY b.broadcast_at DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
-      const [broadcasts] = await conn.query(query, params);
-      conn.end();
+      const [broadcasts] = await db.execute(query, params);
 
       return {
         success: true,
@@ -187,12 +167,10 @@ class BroadcastService {
         'pending',
       ]);
 
-      await conn.query(`
+      await db.execute(`
         INSERT INTO broadcast_delivery (broadcast_id, recipient_user_id, delivery_method, delivery_status)
         VALUES ? ON DUPLICATE KEY UPDATE delivery_status = 'pending'
       `, [values]);
-
-      conn.end();
 
       logger.info(`Delivery recorded for ${recipientIds.length} recipients`);
 
@@ -205,7 +183,7 @@ class BroadcastService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in recordDelivery:', error);
       throw error;
     }
@@ -225,20 +203,18 @@ class BroadcastService {
         database: process.env.DB_NAME,
       });
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         UPDATE broadcast_delivery
         SET read_at = NOW(), delivery_status = 'delivered'
         WHERE broadcast_id = ? AND recipient_user_id = ? AND read_at IS NULL
       `, [broadcastId, userId]);
-
-      conn.end();
 
       return {
         success: result.affectedRows > 0,
         data: { broadcastId, userId, marked: result.affectedRows > 0 },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in markAsRead:', error);
       throw error;
     }
@@ -249,15 +225,8 @@ class BroadcastService {
    */
   async getDeliveryAnalytics(broadcastId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [analytics] = await conn.query(`
+      const [analytics] = await db.execute(`
         SELECT 
           delivery_method,
           delivery_status,
@@ -266,8 +235,6 @@ class BroadcastService {
         WHERE broadcast_id = ?
         GROUP BY delivery_method, delivery_status
       `, [broadcastId]);
-
-      conn.end();
 
       return {
         success: true,

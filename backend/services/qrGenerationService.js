@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 
@@ -30,7 +30,7 @@ class QRGenerationService {
         WHERE s.id = ? AND s.class_id = ? AND c.lecturer_id = ? AND s.status = 'in_progress'
       `;
 
-      const [sessionResults] = await conn.query(sessionQuery, [sessionId, classId, lecturerId]);
+      const [sessionResults] = await db.execute(sessionQuery, [sessionId, classId, lecturerId]);
 
       if (!sessionResults || sessionResults.length === 0) {
         throw new Error('Session not found or not in progress');
@@ -53,7 +53,7 @@ class QRGenerationService {
         ) VALUES (?, ?, ?, ?, ?, ?, 0)
       `;
 
-      const [result] = await conn.query(insertQuery, [
+      const [result] = await db.execute(insertQuery, [
         sessionId,
         classId,
         qrToken,
@@ -77,8 +77,6 @@ class QRGenerationService {
         },
       });
 
-      conn.end();
-
       logger.info(`QR generated for session ${sessionId} by lecturer ${lecturerId}`);
 
       return {
@@ -100,7 +98,7 @@ class QRGenerationService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in generateQR:', error);
       throw error;
     }
@@ -127,7 +125,7 @@ class QRGenerationService {
         ORDER BY generated_at DESC LIMIT 1
       `;
 
-      const [currentResults] = await conn.query(currentQuery, [sessionId, classId]);
+      const [currentResults] = await db.execute(currentQuery, [sessionId, classId]);
 
       if (!currentResults || currentResults.length === 0) {
         throw new Error('No active QR found to rotate');
@@ -147,7 +145,7 @@ class QRGenerationService {
         ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?)
       `;
 
-      const [result] = await conn.query(insertQuery, [
+      const [result] = await db.execute(insertQuery, [
         sessionId,
         classId,
         newQRToken,
@@ -171,8 +169,6 @@ class QRGenerationService {
         },
       });
 
-      conn.end();
-
       logger.info(`QR rotated for session ${sessionId}`);
 
       return {
@@ -185,7 +181,7 @@ class QRGenerationService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in rotateQR:', error);
       throw error;
     }
@@ -196,13 +192,6 @@ class QRGenerationService {
    */
   async getActiveQR(classId, sessionId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT id, qr_token, qr_signature, generated_at, expires_at,
@@ -212,8 +201,7 @@ class QRGenerationService {
         ORDER BY generated_at DESC LIMIT 1
       `;
 
-      const [results] = await conn.query(query, [sessionId, classId]);
-      conn.end();
+      const [results] = await db.execute(query, [sessionId, classId]);
 
       return {
         success: true,
@@ -230,18 +218,10 @@ class QRGenerationService {
    */
   async validateQRToken(qrToken, signature, sessionId, classId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // Verify signature
       const expectedSignature = this.generateSignature(qrToken, sessionId, classId);
       if (signature !== expectedSignature) {
-        conn.end();
         return {
           valid: false,
           reason: 'Invalid signature',
@@ -255,17 +235,15 @@ class QRGenerationService {
         AND expires_at > NOW()
       `;
 
-      const [results] = await conn.query(query, [qrToken, sessionId, classId]);
+      const [results] = await db.execute(query, [qrToken, sessionId, classId]);
 
       // Update scan count
       if (results && results.length > 0) {
-        await conn.query(
+        await db.execute(
           'UPDATE qr_generations SET scanned_count = scanned_count + 1 WHERE id = ?',
           [results[0].id]
         );
       }
-
-      conn.end();
 
       if (!results || results.length === 0) {
         return {
@@ -290,13 +268,6 @@ class QRGenerationService {
    */
   async getQRHistory(classId, sessionId, limit = 20) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       const query = `
         SELECT id, qr_token, generated_at, expires_at, scanned_count,
@@ -307,8 +278,7 @@ class QRGenerationService {
         LIMIT ?
       `;
 
-      const [results] = await conn.query(query, [sessionId, classId, limit]);
-      conn.end();
+      const [results] = await db.execute(query, [sessionId, classId, limit]);
 
       return {
         success: true,
@@ -332,7 +302,7 @@ class QRGenerationService {
     `;
 
     try {
-      await conn.query(query, [
+      await db.execute(query, [
         data.user_id,
         data.action,
         data.resource_type,

@@ -3,7 +3,7 @@
 // Author: Backend Team
 // Date: December 11, 2025
 
-const mysql = require('mysql2/promise');
+const db = require('../database');
 const logger = require('../utils/logger');
 
 class AuditService {
@@ -12,13 +12,6 @@ class AuditService {
    */
   async getAuditLogs(filters = {}, limit = 100, offset = 0) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `SELECT * FROM audit_logs WHERE 1=1`;
       const params = [];
@@ -90,15 +83,14 @@ class AuditService {
 
       // Get total count
       const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
-      const [countResult] = await conn.query(countQuery, params);
+      const [countResult] = await db.execute(countQuery, params);
       const total = countResult[0]?.total || 0;
 
       // Apply pagination and sorting
       query += ` ORDER BY action_timestamp DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
-      const [results] = await conn.query(query, params);
-      conn.end();
+      const [results] = await db.execute(query, params);
 
       return {
         success: true,
@@ -121,15 +113,8 @@ class AuditService {
    */
   async getAuditLogsByUser(userId, startDate, endDate, limit = 50) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [results] = await conn.query(`
+      const [results] = await db.execute(`
         SELECT *
         FROM audit_logs
         WHERE user_id = ?
@@ -138,8 +123,6 @@ class AuditService {
         ORDER BY action_timestamp DESC
         LIMIT ?
       `, [userId, startDate, endDate, limit]);
-
-      conn.end();
 
       return {
         success: true,
@@ -158,15 +141,8 @@ class AuditService {
    */
   async getAuditLogsByResource(resourceType, resourceId) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
-      const [results] = await conn.query(`
+      const [results] = await db.execute(`
         SELECT 
           id, user_id, action, old_value, new_value,
           action_timestamp, status, error_message
@@ -174,8 +150,6 @@ class AuditService {
         WHERE resource_type = ? AND resource_id = ?
         ORDER BY action_timestamp DESC
       `, [resourceType, resourceId]);
-
-      conn.end();
 
       // Construct change history
       const history = results.map(log => ({
@@ -205,16 +179,9 @@ class AuditService {
    */
   async getComplianceReport(startDate, endDate) {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       // Overall statistics
-      const [stats] = await conn.query(`
+      const [stats] = await db.execute(`
         SELECT 
           COUNT(*) as total_actions,
           COUNT(DISTINCT user_id) as unique_users,
@@ -228,7 +195,7 @@ class AuditService {
       `, [startDate, endDate]);
 
       // Actions by type
-      const [actionTypes] = await conn.query(`
+      const [actionTypes] = await db.execute(`
         SELECT action, COUNT(*) as count
         FROM audit_logs
         WHERE DATE(action_timestamp) >= ? AND DATE(action_timestamp) <= ?
@@ -237,7 +204,7 @@ class AuditService {
       `, [startDate, endDate]);
 
       // Failed actions
-      const [failures] = await conn.query(`
+      const [failures] = await db.execute(`
         SELECT 
           user_id, actor_role, action, resource_type,
           error_message, action_timestamp
@@ -249,7 +216,7 @@ class AuditService {
       `, [startDate, endDate]);
 
       // Privileged operations (create, delete, grant, revoke)
-      const [privilegedOps] = await conn.query(`
+      const [privilegedOps] = await db.execute(`
         SELECT 
           user_id, action, resource_type, resource_name,
           action_timestamp
@@ -258,8 +225,6 @@ class AuditService {
           AND DATE(action_timestamp) >= ? AND DATE(action_timestamp) <= ?
         ORDER BY action_timestamp DESC
       `, [startDate, endDate]);
-
-      conn.end();
 
       return {
         success: true,
@@ -283,13 +248,6 @@ class AuditService {
    */
   async exportAuditLogs(filters = {}, format = 'json') {
     try {
-      const conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
 
       let query = `SELECT * FROM audit_logs WHERE 1=1`;
       const params = [];
@@ -317,8 +275,7 @@ class AuditService {
 
       query += ` ORDER BY action_timestamp DESC`;
 
-      const [results] = await conn.query(query, params);
-      conn.end();
+      const [results] = await db.execute(query, params);
 
       if (format === 'csv') {
         // Convert to CSV
@@ -362,12 +319,10 @@ class AuditService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-      const [result] = await conn.query(`
+      const [result] = await db.execute(`
         DELETE FROM audit_logs
         WHERE action_timestamp < ?
       `, [cutoffDate]);
-
-      conn.end();
 
       logger.info(`Deleted ${result.affectedRows} audit logs older than ${olderThanDays} days`);
 
@@ -380,7 +335,7 @@ class AuditService {
         },
       };
     } catch (error) {
-      if (conn) conn.end();
+      if (conn)
       logger.error('Error in deleteOldLogs:', error);
       throw error;
     }
