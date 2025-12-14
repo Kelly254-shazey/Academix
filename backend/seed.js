@@ -38,10 +38,10 @@ const bcrypt = require('bcryptjs');
 
     // Insert attendance logs
     await db.execute(
-      `INSERT IGNORE INTO attendance_logs (session_id, student_id, verification_status, timestamp, latitude, longitude) VALUES
-      (1, 1, 'success', NOW(), 40.7128, -74.0060),
-      (2, 1, 'success', NOW(), 40.7128, -74.0060),
-      (3, 1, 'late', NOW(), 40.7128, -74.0060)`
+      `INSERT IGNORE INTO attendance_logs (session_id, student_id, verification_status, captured_lat, captured_lng, status) VALUES
+      (1, 1, 'success', 40.7128, -74.0060, 'present'),
+      (2, 1, 'success', 40.7128, -74.0060, 'present'),
+      (3, 1, 'late', 40.7128, -74.0060, 'late')`
     );
     console.log('Attendance inserted');
 

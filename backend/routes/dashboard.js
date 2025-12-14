@@ -16,73 +16,70 @@ router.get('/student', requireRole('student'), async (req, res) => {
     const [courses] = await db.execute(`
       SELECT
         c.id,
-        c.course_code,
+        c.class_code,
         c.course_name,
-        c.day_of_week,
-        c.start_time,
-        c.end_time,
-        u.name as lecturer_name,
-        c.location_lat,
-        c.location_lng,
+        u.name as instructor,
+        c.location,
+        c.latitude,
+        c.longitude,
         COUNT(DISTINCT cs.id) as total_sessions,
-        COUNT(DISTINCT al.id) as attended_sessions,
+        SUM(CASE WHEN al.status = 'present' OR al.status = 'late' THEN 1 ELSE 0 END) as attended_sessions,
         ROUND(
-          (COUNT(DISTINCT al.id) * 100.0) / NULLIF(COUNT(DISTINCT cs.id), 0),
+          (SUM(CASE WHEN al.status = 'present' OR al.status = 'late' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(DISTINCT cs.id), 0),
           1
         ) as attendance_percentage,
         MAX(al.checkin_time) as last_attendance
       FROM classes c
       JOIN users u ON c.lecturer_id = u.id
       LEFT JOIN class_sessions cs ON c.id = cs.class_id
-      LEFT JOIN attendance_logs al ON cs.id = al.session_id AND al.student_id = ?
+      LEFT JOIN attendance_logs al ON cs.id = al.class_session_id AND al.student_id = ?
       WHERE c.id IN (
-        SELECT DISTINCT cs2.class_id
-        FROM class_sessions cs2
-        JOIN attendance_logs al2 ON cs2.id = al2.session_id
-        WHERE al2.student_id = ?
+        SELECT DISTINCT class_id
+        FROM course_enrollments
+        WHERE student_id = ?
       )
-      GROUP BY c.id, c.course_code, c.course_name, c.day_of_week, c.start_time, c.end_time, u.name, c.location_lat, c.location_lng
-      ORDER BY c.day_of_week, c.start_time
+      GROUP BY c.id, c.class_code, c.course_name, u.name, c.location, c.latitude, c.longitude
+      ORDER BY c.class_code
     `, [req.user.id, req.user.id]);
 
     // Get today's classes with real-time status
     const [todayClasses] = await db.execute(`
       SELECT
         c.id,
-        c.course_code,
+        c.class_code,
         c.course_name,
-        c.start_time,
-        c.end_time,
-        c.location_lat,
-        c.location_lng,
-        u.name as lecturer_name,
+        cs.start_time,
+        cs.end_time,
+        c.location,
+        c.latitude,
+        c.longitude,
+        u.name as instructor,
         cs.id as session_id,
         CASE
           WHEN al.id IS NOT NULL THEN 'checked_in'
           ELSE 'not_checked_in'
         END as checkin_status,
         CASE
-          WHEN TIME(NOW()) BETWEEN c.start_time AND c.end_time THEN 'active'
+          WHEN CURTIME() BETWEEN cs.start_time AND cs.end_time THEN 'active'
           ELSE 'upcoming'
         END as status
       FROM classes c
       JOIN users u ON c.lecturer_id = u.id
-      JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.session_date) = CURDATE()
-      LEFT JOIN attendance_logs al ON cs.id = al.session_id AND al.student_id = ?
+      JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.start_time) = CURDATE()
+      LEFT JOIN attendance_logs al ON cs.id = al.class_session_id AND al.student_id = ?
       WHERE c.id IN (
-        SELECT DISTINCT cs2.class_id
-        FROM class_sessions cs2
-        JOIN attendance_logs al2 ON cs2.id = al2.session_id
-        WHERE al2.student_id = ?
+        SELECT DISTINCT class_id
+        FROM course_enrollments
+        WHERE student_id = ?
       )
-      ORDER BY c.start_time
+      ORDER BY cs.start_time
     `, [req.user.id, req.user.id]);
 
     // Get recent notifications for the student
     const [notifications] = await db.execute(`
       SELECT id, type, title, message, is_read, created_at
       FROM notifications
-      WHERE user_id = ?
+      WHERE student_id = ?
       ORDER BY created_at DESC
       LIMIT 10
     `, [req.user.id]);
@@ -123,44 +120,43 @@ router.get('/lecturer', requireRole('lecturer'), async (req, res) => {
     const [classes] = await db.execute(`
       SELECT
         c.id,
-        c.course_code,
+        c.class_code,
         c.course_name,
-        c.day_of_week,
-        c.start_time,
-        c.end_time,
-        COUNT(DISTINCT al.student_id) as enrolled_students,
+        c.status,
+        COUNT(DISTINCT cerol.student_id) as enrolled_students,
         COUNT(DISTINCT cs.id) as total_sessions,
-        COUNT(DISTINCT CASE WHEN DATE(cs.session_date) = CURDATE() THEN al.id END) as today_attendance,
+        COUNT(DISTINCT CASE WHEN DATE(cs.start_time) = CURDATE() AND al.id IS NOT NULL THEN al.id END) as today_attendance,
         ROUND(
-          (COUNT(DISTINCT al.id) * 100.0) / NULLIF(COUNT(DISTINCT cs.id), 0),
+          (SUM(CASE WHEN al.status = 'present' OR al.status = 'late' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(DISTINCT cs.id), 0),
           1
         ) as attendance_rate
       FROM classes c
+      LEFT JOIN course_enrollments cerol ON c.id = cerol.class_id
       LEFT JOIN class_sessions cs ON c.id = cs.class_id
-      LEFT JOIN attendance_logs al ON cs.id = al.session_id
+      LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
       WHERE c.lecturer_id = ?
-      GROUP BY c.id, c.course_code, c.course_name, c.day_of_week, c.start_time, c.end_time
-      ORDER BY c.day_of_week, c.start_time
+      GROUP BY c.id, c.class_code, c.course_name, c.status
+      ORDER BY c.class_code
     `, [req.user.id]);
 
     // Get pending attendance actions (sessions without QR codes or expired)
     const [pendingActions] = await db.execute(`
       SELECT
         cs.id as session_id,
-        c.course_code,
+        c.class_code,
         c.course_name,
-        cs.session_date,
-        cs.qr_expires_at,
+        cs.start_time as session_date,
+        cs.qr_expiry,
         CASE
-          WHEN cs.qr_expires_at IS NULL THEN 'no_qr'
-          WHEN cs.qr_expires_at < NOW() THEN 'expired_qr'
+          WHEN cs.qr_code IS NULL THEN 'no_qr'
+          WHEN cs.qr_expiry < NOW() THEN 'expired_qr'
           ELSE 'active'
         END as status
       FROM class_sessions cs
       JOIN classes c ON cs.class_id = c.id
       WHERE c.lecturer_id = ?
-        AND cs.session_date >= CURDATE()
-        AND (cs.qr_expires_at IS NULL OR cs.qr_expires_at < NOW())
+        AND DATE(cs.start_time) >= CURDATE()
+        AND (cs.qr_code IS NULL OR cs.qr_expiry < NOW())
       ORDER BY cs.session_date, c.start_time
       LIMIT 10
     `, [req.user.id]);
@@ -179,18 +175,18 @@ router.get('/lecturer', requireRole('lecturer'), async (req, res) => {
           todayAttendance: classes.reduce((sum, cls) => sum + (cls.today_attendance || 0), 0)
         },
         attendanceData: classes.map(cls => ({
-          class: cls.course_code,
+          class: cls.class_code,
           attendance: cls.attendance_rate || 0
         })),
         overallAttendance: classes.length > 0 ? Math.round(classes.reduce((sum, cls) => sum + (cls.attendance_rate || 0), 0) / classes.length) : 0,
         totalClasses: classes.length,
-        todaysSchedule: classes.filter(cls => cls.day_of_week === new Date().toLocaleLowerCase('en-US', { weekday: 'long' })).map(cls => ({
-          course: `${cls.course_code} - ${cls.course_name}`,
+        todaysSchedule: classes.filter(cls => cls.status === 'active').map(cls => ({
+          course: `${cls.class_code} - ${cls.course_name}`,
           time: `${cls.start_time} - ${cls.end_time}`,
-          status: 'upcoming' // This would need logic to determine actual status
+          status: cls.status
         })),
         classRosters: classes.map(cls => ({
-          className: cls.course_code,
+          className: cls.class_code,
           studentCount: cls.enrolled_students || 0
         })),
         user: req.user

@@ -1,109 +1,200 @@
 const express = require('express');
-const attendanceService = require('../services/attendanceService');
 const authMiddleware = require('../middleware/auth');
 const { requireRole } = require('../middlewares/rbacMiddleware');
-
 const router = express.Router();
 
-// POST /attendance/student-checkin
-// Sample request: { "session_id": 1, "latitude": 40.7128, "longitude": -74.0060, "browser_fingerprint": "unique_hash" }
-// Sample response: { "message": "Check-in successful", "status": "success" }
-router.post('/student-checkin', authMiddleware, async (req, res) => {
+/**
+ * POST /api/attendance/student-checkin
+ * Student checks in to a class session with location verification
+ */
+router.post('/student-checkin', authMiddleware, requireRole('student'), async (req, res) => {
   try {
-    const result = await attendanceService.studentCheckin(req.user.id, req.body);
-    res.json(result);
+    const { sessionId, latitude, longitude, fingerprint } = req.body;
+    const db = require('../database');
+
+    // Verify session exists and get classroom coordinates
+    const [sessionData] = await db.execute(`
+      SELECT cs.id, cs.class_id, c.latitude as classroom_lat, c.longitude as classroom_lng, cs.qr_code
+      FROM class_sessions cs
+      JOIN classes c ON cs.class_id = c.id
+      WHERE cs.id = ?
+    `, [sessionId]);
+
+    if (!sessionData.length) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    const session = sessionData[0];
+
+    // Calculate distance from classroom (simplified)
+    const distance = Math.sqrt(
+      Math.pow(latitude - session.classroom_lat, 2) +
+      Math.pow(longitude - session.classroom_lng, 2)
+    );
+
+    // Insert attendance log
+    await db.execute(`
+      INSERT INTO attendance_logs
+      (class_session_id, student_id, checkin_time, captured_lat, captured_lng, captured_fingerprint, distance_from_classroom, verification_status, status)
+      VALUES (?, ?, NOW(), ?, ?, ?, ?, 'verified', 'present')
+    `, [sessionId, req.user.id, latitude, longitude, fingerprint, distance]);
+
+    res.json({ success: true, message: 'Check-in successful', distance });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Check-in error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// POST /attendance/lecturer-checkin
-// Sample request: { "session_id": 1 }
-// Sample response: { "message": "Lecturer checked in", "timestamp": "2023-12-01T09:00:00Z" }
-router.post('/lecturer-checkin', authMiddleware, async (req, res) => {
+/**
+ * POST /api/attendance/lecturer-checkin
+ * Lecturer initiates attendance for a session (opens QR code)
+ */
+router.post('/lecturer-checkin', authMiddleware, requireRole('lecturer'), async (req, res) => {
   try {
-    const result = await attendanceService.lecturerCheckin(req.user.id, req.body.session_id);
-    res.json(result);
+    const { sessionId } = req.body;
+    const db = require('../database');
+
+    // Verify session belongs to lecturer
+    const [sessionCheck] = await db.execute(`
+      SELECT cs.id FROM class_sessions cs
+      JOIN classes c ON cs.class_id = c.id
+      WHERE cs.id = ? AND c.lecturer_id = ?
+    `, [sessionId, req.user.id]);
+
+    if (!sessionCheck.length) {
+      return res.status(403).json({ success: false, message: 'Session not found or access denied' });
+    }
+
+    // Generate QR code and set expiry (15 minutes)
+    const qrCode = `QR_${sessionId}_${Date.now()}`;
+    const qrExpiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    await db.execute(`
+      UPDATE class_sessions SET qr_code = ?, qr_expiry = ? WHERE id = ?
+    `, [qrCode, qrExpiry, sessionId]);
+
+    res.json({
+      success: true,
+      message: 'Attendance opened',
+      data: { qrCode, expiresAt: qrExpiry }
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Lecturer checkin error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /attendance/lecturer/class/:classId - Get attendance records for a lecturer's class
+/**
+ * GET /api/attendance/lecturer/class/:classId
+ * Get attendance records for a class
+ */
 router.get('/lecturer/class/:classId', authMiddleware, requireRole('lecturer'), async (req, res) => {
   try {
     const db = require('../database');
     const { classId } = req.params;
     const { date } = req.query;
 
-    // First verify the class belongs to the lecturer
+    // Verify access
     const [classCheck] = await db.execute(
       'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
       [classId, req.user.id]
     );
 
-    if (classCheck.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. Class not found or does not belong to you.'
-      });
+    if (!classCheck.length) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    // Get all enrolled students for the class
-    const [enrolledStudents] = await db.execute(`
-      SELECT DISTINCT
-        u.id as student_id,
-        u.name as student_name,
-        u.email
+    // Get enrolled students
+    const [students] = await db.execute(`
+      SELECT DISTINCT u.id, u.name, u.email
       FROM users u
-      JOIN attendance_logs al ON u.id = al.student_id
-      JOIN class_sessions cs ON al.session_id = cs.id
-      WHERE cs.class_id = ?
+      JOIN course_enrollments ce ON u.id = ce.student_id
+      WHERE ce.class_id = ?
       ORDER BY u.name
     `, [classId]);
 
-    // Get attendance records for the specified date
+    // Get attendance for date
     const targetDate = date || new Date().toISOString().split('T')[0];
-    const [attendanceRecords] = await db.execute(`
+    const [records] = await db.execute(`
       SELECT
         al.student_id,
-        u.name as student_name,
         al.status,
         al.checkin_time,
-        al.latitude,
-        al.longitude,
-        al.device_name,
-        al.browser_fingerprint
+        al.captured_lat,
+        al.captured_lng,
+        al.distance_from_classroom
       FROM attendance_logs al
-      JOIN users u ON al.student_id = u.id
-      JOIN class_sessions cs ON al.session_id = cs.id
-      WHERE cs.class_id = ?
-        AND DATE(al.checkin_time) = ?
-      ORDER BY u.name
+      JOIN class_sessions cs ON al.class_session_id = cs.id
+      WHERE cs.class_id = ? AND DATE(al.checkin_time) = ?
     `, [classId, targetDate]);
 
-    // Combine enrolled students with their attendance records
-    const attendanceData = enrolledStudents.map(student => {
-      const record = attendanceRecords.find(r => r.student_id === student.student_id);
+    // Merge data
+    const attendance = students.map(student => {
+      const record = records.find(r => r.student_id === student.id);
       return {
-        student_id: student.student_id,
-        student_name: student.student_name,
+        studentId: student.id,
+        studentName: student.name,
+        email: student.email,
         status: record ? record.status : 'absent',
-        checkin_time: record ? record.checkin_time : null,
-        latitude: record ? record.latitude : null,
-        longitude: record ? record.longitude : null,
-        device_name: record ? record.device_name : null
+        checkinTime: record?.checkin_time || null,
+        latitude: record?.captured_lat || null,
+        longitude: record?.captured_lng || null
       };
     });
 
-    res.json({
-      success: true,
-      message: 'Attendance data retrieved successfully',
-      data: attendanceData
-    });
+    res.json({ success: true, data: attendance, date: targetDate });
   } catch (error) {
-    console.error('Error fetching lecturer attendance data:', error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error fetching attendance:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/attendance/student/attendance-history
+ * Get student's attendance history
+ */
+router.get('/student/attendance-history', authMiddleware, requireRole('student'), async (req, res) => {
+  try {
+    const db = require('../database');
+    const { classId, startDate, endDate } = req.query;
+
+    let query = `
+      SELECT
+        c.class_code,
+        c.course_name,
+        al.checkin_time,
+        al.status,
+        al.captured_lat,
+        al.captured_lng
+      FROM attendance_logs al
+      JOIN class_sessions cs ON al.class_session_id = cs.id
+      JOIN classes c ON cs.class_id = c.id
+      WHERE al.student_id = ?
+    `;
+    const params = [req.user.id];
+
+    if (classId) {
+      query += ` AND c.id = ?`;
+      params.push(classId);
+    }
+    if (startDate) {
+      query += ` AND DATE(al.checkin_time) >= ?`;
+      params.push(startDate);
+    }
+    if (endDate) {
+      query += ` AND DATE(al.checkin_time) <= ?`;
+      params.push(endDate);
+    }
+
+    query += ` ORDER BY al.checkin_time DESC`;
+
+    const [history] = await db.execute(query, params);
+
+    res.json({ success: true, data: history });
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

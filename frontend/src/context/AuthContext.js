@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   }, []);
 
-  const login = (userData) => {
+  const login = (userData, token) => {
     const userToStore = {
       id: userData.id,
       name: userData.name,
@@ -48,6 +48,10 @@ export const AuthProvider = ({ children }) => {
       permissions: userData.permissions || []
     };
     setUser(userToStore);
+    if (token) {
+      setToken(token);
+      localStorage.setItem('token', token);
+    }
     localStorage.setItem('user', JSON.stringify(userToStore));
   };
 
@@ -65,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       
       // If backend is available, try to register
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
         const response = await fetch(`${apiUrl}/auth/register`, {
           method: 'POST',
           headers: {
@@ -94,8 +98,8 @@ export const AuthProvider = ({ children }) => {
           setToken(data.token);
         }
 
-        // Login user
-        login(data.user);
+        // Login user and pass token
+        login(data.user, data.token);
         return data;
       } catch (backendError) {
         // Backend registration failed — do not fall back to demo mode.

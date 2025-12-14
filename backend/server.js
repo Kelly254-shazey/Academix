@@ -38,6 +38,8 @@ const rosterRoutes = require('./routes/roster');
 const sessionsRoutes = require('./routes/sessions');
 // Admin Dashboard Routes
 const adminDashboardRoutes = require('./routes/adminDashboard');
+// Student Portal Routes
+const studentRoutes = require('./routes/student');
 
 dotenv.config();
 
@@ -45,7 +47,20 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001'
+      ].filter(Boolean);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
   },
@@ -54,6 +69,14 @@ const io = socketIo(server, {
 
 // Make io globally accessible for services
 global.io = io;
+
+// Initialize real-time attendance handler
+const RealtimeAttendanceHandler = require('./services/realtimeAttendanceHandler');
+new RealtimeAttendanceHandler(io);
+
+// Initialize real-time communication service (admin notifications)
+const RealTimeCommunicationService = require('./services/realtimeCommunicationService');
+global.communicationService = new RealTimeCommunicationService(io);
 
 const PORT = process.env.PORT || 5002;
 
@@ -93,10 +116,6 @@ const authLimiter = rateLimit({
   },
 });
 
-// Apply rate limiting
-app.use('/auth', authLimiter);
-app.use(limiter);
-
 // Compression
 app.use(compression());
 
@@ -109,15 +128,32 @@ app.use(morgan('combined', {
 
 // CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001'
+    ].filter(Boolean);
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Body parsing middleware
+// Body parsing middleware (MUST BE BEFORE RATE LIMITING)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Apply rate limiting AFTER body parsing
+app.use('/api/auth', authLimiter);
+app.use(limiter);
 
 // Socket.IO middleware
 app.use((req, res, next) => {
@@ -125,36 +161,59 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/classes', classRoutes);
-app.use('/attendance', attendanceRoutes);
-app.use('/attendance-analytics', attendanceAnalyticsRoutes);
-app.use('/schedule', scheduleRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/ai', aiRoutes);
-app.use('/ai-insights', aiInsightsRoutes);
-app.use('/notifications', notificationRoutes);
-app.use('/profile', profileRoutes);
-app.use('/settings', settingsRoutes);
-app.use('/support', supportRoutes);
-app.use('/gamification', gamificationRoutes);
-app.use('/calendar', calendarRoutes);
-app.use('/course-analytics', courseAnalyticsRoutes);
-app.use('/feedback', feedbackRoutes);
-app.use('/qr', qrRoutes);
-app.use('/admin', adminRoutes);
-app.use('/reports', reportsRoutes);
+// Routes - Consolidated & Non-Duplicated
+// ============================================
+// Core Authentication
+app.use('/api/auth', authRoutes);
 
-// Lecturer Dashboard Routes
-app.use('/api/lecturer', lecturerRoutes);
+// Student Portal
+app.use('/api/student', studentRoutes);
+app.use('/api/dashboard', dashboardRoutes); // Contains student/lecturer/admin dashboards
+
+// Attendance & Analytics
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/attendance', require('./routes/attendanceAPI')); // AI-powered attendance (merged with attendanceRoutes)
+app.use('/api/attendance-analytics', attendanceAnalyticsRoutes);
+
+// Classes & Sessions (NO DUPLICATES)
+app.use('/api/classes', classRoutes);
 app.use('/api/classes', classControlRoutes);
 app.use('/api/classes', lecturerQRRoutes);
-app.use('/sessions', sessionsRoutes);
 app.use('/api/classes', rosterRoutes);
+// app.use('/api/sessions', sessionsRoutes); // REMOVED - Consolidated into /api/classes
 
-// Admin Dashboard Routes
-app.use('/api/admin', adminDashboardRoutes);
+// Schedule
+app.use('/api/schedule', scheduleRoutes);
+
+// Lecturer Portal
+app.use('/api/lecturer', lecturerRoutes);
+
+// AI Features
+app.use('/api/ai', aiRoutes);
+app.use('/api/ai-insights', aiInsightsRoutes);
+
+// Notifications
+app.use('/api/notifications', notificationRoutes);
+
+// User Management
+app.use('/api/profile', profileRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/support', supportRoutes);
+
+// Admin Portal (NO DUPLICATES)
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin', require('./routes/adminDashboard')); // Admin dashboard
+app.use('/api/admin', require('./routes/adminCommunication')); // Admin messaging & real-time
+
+// Reports & Analytics
+app.use('/api/reports', reportsRoutes);
+app.use('/api/course-analytics', courseAnalyticsRoutes);
+
+// Engagement Features
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/qr', qrRoutes);
 
 // Health check
 app.get('/', (req, res) => {
@@ -494,8 +553,20 @@ io.on('connection', (socket) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// Catch unhandled errors
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  console.error('Uncaught Exception:', error);
+});
+
 server.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`, { env: process.env.NODE_ENV });
+  console.log(`✅ Server listening on port ${PORT}`);
 });
 
 module.exports = server;

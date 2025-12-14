@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const logger = require('../utils/logger');
 
 const validateRequest = (schema) => {
   return (req, res, next) => {
@@ -12,6 +13,7 @@ const validateRequest = (schema) => {
         field: detail.path.join('.'),
         message: detail.message,
       }));
+      logger.warn('Validation error', { errors, body: req.body });
       return res.status(400).json({
         success: false,
         errors,
@@ -48,7 +50,4 @@ const validateQuery = (schema) => {
   };
 };
 
-module.exports = {
-  validateRequest,
-  validateQuery,
-};
+module.exports = { validateRequest, validateQuery };

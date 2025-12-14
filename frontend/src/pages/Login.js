@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -38,6 +38,7 @@ function Login() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           email: email.toLowerCase(),
           password
@@ -51,11 +52,12 @@ function Login() {
         return;
       }
 
-      // Store token in localStorage
-      localStorage.setItem('token', data.token);
+      // Store token in localStorage and set in auth context
+      const token = data.token;
+      localStorage.setItem('token', token);
 
-      // Login user
-      login(data.user);
+      // Login user and pass token
+      login(data.user, token);
 
       // Redirect based on role
       navigate('/');

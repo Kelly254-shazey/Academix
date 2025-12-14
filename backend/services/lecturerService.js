@@ -16,16 +16,16 @@ class LecturerService {
 
       const query = `
         SELECT 
-          u.id, u.full_name, u.email, u.profile_picture,
+          u.id, u.name, u.email, u.avatar,
           COUNT(DISTINCT c.id) as total_classes,
-          COUNT(DISTINCT s.id) as today_sessions,
-          COUNT(DISTINCT CASE WHEN s.status = 'in_progress' THEN s.id END) as active_sessions,
-          COUNT(DISTINCT CASE WHEN s.status = 'not_started' AND s.start_time > NOW() THEN s.id END) as upcoming_sessions,
-          COALESCE(AVG(CAST(stats.attendance_percent AS DECIMAL(5,2))), 0) as avg_attendance
+          COUNT(DISTINCT cs.id) as today_sessions,
+          COUNT(DISTINCT CASE WHEN cs.status = 'in_progress' THEN cs.id END) as active_sessions,
+          COUNT(DISTINCT CASE WHEN cs.status = 'pending' AND cs.start_time > NOW() THEN cs.id END) as upcoming_sessions,
+          COALESCE(AVG(CAST(saa.attendance_rate AS DECIMAL(5,2))), 0) as avg_attendance
         FROM users u
         LEFT JOIN classes c ON u.id = c.lecturer_id
-        LEFT JOIN sessions s ON c.id = s.class_id AND DATE(s.start_time) = DATE(NOW())
-        LEFT JOIN student_attendance_analytics stats ON c.id = stats.class_id
+        LEFT JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.start_time) = DATE(NOW())
+        LEFT JOIN student_attendance_analytics saa ON c.id = saa.class_id
         WHERE u.id = ? AND u.role = 'lecturer'
         GROUP BY u.id
       `;
@@ -55,25 +55,26 @@ class LecturerService {
 
       const query = `
         SELECT 
-          c.id, c.course_code, c.course_name,
-          s.id as session_id, s.start_time, s.end_time, s.status,
-          s.scanning_enabled, s.started_at, s.cancelled_at,
-          COUNT(al.id) as enrolled_students,
+          c.id, c.class_code, c.course_name,
+          cs.id as session_id, cs.start_time, cs.end_time, cs.status,
+          cs.qr_code, cs.qr_expiry,
+          COUNT(DISTINCT ce.student_id) as enrolled_students,
           COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
           COUNT(CASE WHEN al.status = 'absent' THEN 1 END) as absent_count,
-          COUNT(CASE WHEN al.status = 'excused' THEN 1 END) as excused_count,
+          COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count,
           CASE 
-            WHEN s.status = 'in_progress' THEN 'ACTIVE'
-            WHEN s.status = 'completed' THEN 'COMPLETED'
-            WHEN s.cancelled_at IS NOT NULL THEN 'CANCELLED'
-            WHEN s.start_time > NOW() THEN 'UPCOMING'
-            ELSE 'NOT_STARTED'
+            WHEN cs.status = 'in_progress' THEN 'ACTIVE'
+            WHEN cs.status = 'completed' THEN 'COMPLETED'
+            WHEN cs.status = 'cancelled' THEN 'CANCELLED'
+            WHEN cs.start_time > NOW() THEN 'UPCOMING'
+            ELSE 'PENDING'
           END as class_state
         FROM classes c
-        LEFT JOIN sessions s ON c.id = s.class_id AND DATE(s.start_time) = DATE(NOW())
-        LEFT JOIN attendance_logs al ON s.id = al.session_id
+        LEFT JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.start_time) = DATE(NOW())
+        LEFT JOIN course_enrollments ce ON c.id = ce.class_id
+        LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
         WHERE c.lecturer_id = ?
-        ORDER BY s.start_time ASC
+        ORDER BY cs.start_time ASC
       `;
 
       const [results] = await db.execute(query, [lecturerId]);
@@ -97,16 +98,16 @@ class LecturerService {
 
       const query = `
         SELECT 
-          c.id, c.course_code, c.course_name,
-          s.id as session_id, s.start_time, s.end_time,
-          TIMESTAMPDIFF(MINUTE, NOW(), s.start_time) as minutes_until,
-          COUNT(DISTINCT al.student_id) as enrolled_students
+          c.id, c.class_code, c.course_name,
+          cs.id as session_id, cs.start_time, cs.end_time,
+          TIMESTAMPDIFF(MINUTE, NOW(), cs.start_time) as minutes_until,
+          COUNT(DISTINCT ce.student_id) as enrolled_students
         FROM classes c
-        LEFT JOIN sessions s ON c.id = s.class_id
-        LEFT JOIN attendance_logs al ON s.id = al.session_id
+        LEFT JOIN class_sessions cs ON c.id = cs.class_id
+        LEFT JOIN course_enrollments ce ON c.id = ce.class_id
         WHERE c.lecturer_id = ? 
-          AND s.start_time > NOW()
-        ORDER BY s.start_time ASC
+          AND cs.start_time > NOW()
+        ORDER BY cs.start_time ASC
         LIMIT 1
       `;
 
@@ -218,18 +219,18 @@ class LecturerService {
 
       const query = `
         SELECT 
-          DATE(s.start_time) as date,
-          COUNT(DISTINCT s.id) as sessions_held,
+          DATE(cs.start_time) as date,
+          COUNT(DISTINCT cs.id) as sessions_held,
           COUNT(DISTINCT c.id) as classes,
           COUNT(DISTINCT al.student_id) as students_enrolled,
           COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as students_present,
           ROUND(100 * COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) / 
                 NULLIF(COUNT(DISTINCT al.student_id), 0), 2) as attendance_percent
-        FROM sessions s
-        JOIN classes c ON s.class_id = c.id
-        LEFT JOIN attendance_logs al ON s.id = al.session_id
-        WHERE c.lecturer_id = ? AND DATE(s.start_time) BETWEEN ? AND ?
-        GROUP BY DATE(s.start_time)
+        FROM class_sessions cs
+        JOIN classes c ON cs.class_id = c.id
+        LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
+        WHERE c.lecturer_id = ? AND DATE(cs.start_time) BETWEEN ? AND ?
+        GROUP BY DATE(cs.start_time)
         ORDER BY date DESC
       `;
 
@@ -254,16 +255,17 @@ class LecturerService {
 
       const query = `
         SELECT 
-          c.id, c.course_code, c.course_name,
-          COUNT(DISTINCT al.student_id) as enrolled_students,
+          c.id, c.class_code, c.course_name,
+          COUNT(DISTINCT ce.student_id) as enrolled_students,
           COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_today,
           ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as attendance_rate
         FROM classes c
-        LEFT JOIN sessions s ON c.id = s.class_id AND DATE(s.start_time) = DATE(NOW())
-        LEFT JOIN attendance_logs al ON s.id = al.session_id
+        LEFT JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.start_time) = DATE(NOW())
+        LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
+        LEFT JOIN course_enrollments ce ON c.id = ce.class_id
         WHERE c.lecturer_id = ?
         GROUP BY c.id
-        ORDER BY c.course_code
+        ORDER BY c.class_code
       `;
 
       const [results] = await db.execute(query, [lecturerId]);
@@ -298,20 +300,21 @@ class LecturerService {
       const query = `
         SELECT 
           u.id, u.name, u.email, u.student_id as student_number,
-          COUNT(al.id) as total_sessions,
+          COUNT(ce.id) as enrolled,
           COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
           COUNT(CASE WHEN al.status = 'absent' THEN 1 END) as absent_count,
           COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count,
-          ROUND(100 * COUNT(CASE WHEN al.status = 'present' THEN 1 END) / NULLIF(COUNT(al.id), 0), 2) as attendance_rate
+          ROUND(100 * COUNT(CASE WHEN al.status = 'present' THEN 1 END) / NULLIF(COUNT(DISTINCT cs.id), 0), 2) as attendance_rate
         FROM users u
-        LEFT JOIN attendance_logs al ON u.id = al.student_id
-        LEFT JOIN sessions s ON al.session_id = s.id AND s.class_id = ?
+        JOIN course_enrollments ce ON u.id = ce.student_id AND ce.class_id = ?
+        LEFT JOIN class_sessions cs ON cs.class_id = ?
+        LEFT JOIN attendance_logs al ON u.id = al.student_id AND cs.id = al.class_session_id
         WHERE u.role = 'student'
         GROUP BY u.id
         ORDER BY u.name
       `;
 
-      const [results] = await db.execute(query, [classId]);
+      const [results] = await db.execute(query, [classId, classId]);
 
       return {
         success: true,
@@ -342,8 +345,8 @@ class LecturerService {
 
       // Create a new session
       const [result] = await db.execute(
-        'INSERT INTO sessions (class_id, start_time, status) VALUES (?, NOW(), ?)',
-        [classId, 'in_progress']
+        'INSERT INTO class_sessions (class_id, lecturer_id, start_time, status) VALUES (?, ?, NOW(), ?)',
+        [classId, lecturerId, 'in_progress']
       );
 
       // Update class status if needed
@@ -381,8 +384,8 @@ class LecturerService {
 
       // Update session with delay
       await db.execute(
-        'UPDATE sessions SET start_time = DATE_ADD(start_time, INTERVAL ? MINUTE), status = ? WHERE class_id = ? AND status = ?',
-        [delayMinutes, 'delayed', classId, 'not_started']
+        'UPDATE class_sessions SET start_time = DATE_ADD(start_time, INTERVAL ? MINUTE), status = ? WHERE class_id = ? AND status = ?',
+        [delayMinutes, 'delayed', classId, 'pending']
       );
 
       return {
@@ -414,8 +417,8 @@ class LecturerService {
 
       // Cancel session
       await db.execute(
-        'UPDATE sessions SET status = ?, cancelled_at = NOW() WHERE class_id = ? AND status IN (?, ?)',
-        ['cancelled', classId, 'not_started', 'delayed']
+        'UPDATE class_sessions SET status = ?, attendance_status = ?, updated_at = NOW() WHERE class_id = ? AND status IN (?, ?)',
+        ['cancelled', 'cancelled', classId, 'pending', 'delayed']
       );
 
       return {
@@ -507,7 +510,7 @@ class LecturerService {
         SELECT 
           m.id, m.subject, m.message, m.created_at, m.is_read,
           u.name as sender_name, u.email as sender_email,
-          c.course_name, c.course_code
+          c.course_name, c.class_code
         FROM messages m
         JOIN users u ON m.sender_id = u.id
         LEFT JOIN classes c ON m.class_id = c.id
@@ -563,15 +566,15 @@ class LecturerService {
       if (reportType === 'attendance') {
         query = `
           SELECT 
-            c.course_name, c.course_code,
+            c.course_name, c.class_code,
             COUNT(DISTINCT al.student_id) as total_students,
             COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_students,
             ROUND(100 * COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) / 
                   NULLIF(COUNT(DISTINCT al.student_id), 0), 2) as attendance_rate,
             DATE(al.checkin_time) as date
           FROM classes c
-          LEFT JOIN sessions s ON c.id = s.class_id
-          LEFT JOIN attendance_logs al ON s.id = al.session_id
+          LEFT JOIN class_sessions cs ON c.id = cs.class_id
+          LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
           WHERE c.lecturer_id = ? AND DATE(al.checkin_time) BETWEEN ? AND ?
           GROUP BY c.id, DATE(al.checkin_time)
           ORDER BY date DESC
@@ -580,31 +583,31 @@ class LecturerService {
       } else if (reportType === 'classes') {
         query = `
           SELECT 
-            c.course_name, c.course_code,
-            COUNT(DISTINCT s.id) as sessions_held,
+            c.course_name, c.class_code,
+            COUNT(DISTINCT cs.id) as sessions_held,
             COUNT(DISTINCT al.student_id) as total_students,
             ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as avg_attendance
           FROM classes c
-          LEFT JOIN sessions s ON c.id = s.class_id
-          LEFT JOIN attendance_logs al ON s.id = al.session_id
+          LEFT JOIN class_sessions cs ON c.id = cs.class_id
+          LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
           WHERE c.lecturer_id = ?
           GROUP BY c.id
-          ORDER BY c.course_code
+          ORDER BY c.class_code
         `;
       } else {
         // Default query if no specific reportType
         query = `
           SELECT 
-            c.course_name, c.course_code,
-            COUNT(DISTINCT s.id) as sessions_held,
+            c.course_name, c.class_code,
+            COUNT(DISTINCT cs.id) as sessions_held,
             COUNT(DISTINCT al.student_id) as total_students,
             ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as avg_attendance
           FROM classes c
-          LEFT JOIN sessions s ON c.id = s.class_id
-          LEFT JOIN attendance_logs al ON s.id = al.session_id
+          LEFT JOIN class_sessions cs ON c.id = cs.class_id
+          LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
           WHERE c.lecturer_id = ?
           GROUP BY c.id
-          ORDER BY c.course_code
+          ORDER BY c.class_code
         `;
       }
 

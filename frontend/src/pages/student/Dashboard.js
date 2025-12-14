@@ -41,7 +41,7 @@ export default function StudentDashboard(){
       setLoading(true);
       setError(null);
 
-      const result = await apiClient.get('/dashboard/student');
+      const result = await apiClient.getStudentDashboard();
       if (result.success) {
         setDashboardData(result.data);
       } else {

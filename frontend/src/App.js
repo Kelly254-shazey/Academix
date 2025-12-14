@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
+import apiClient from './services/apiClient';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import StudentPortal from './portals/StudentPortal';
@@ -13,7 +14,14 @@ import LecturerPortal from './portals/LecturerPortal';
 import AdminPortal from './portals/AdminPortal';
 
 function AppContent() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, token } = useAuth();
+
+  // Initialize apiClient with token when it becomes available
+  React.useEffect(() => {
+    if (token) {
+      apiClient.setToken(token);
+    }
+  }, [token]);
 
   // Map various role strings into a canonical portal group
   const getRoleGroup = (role) => {
@@ -61,9 +69,9 @@ function AppContent() {
         />
 
         {/* Portal Routes */}
-        <Route path="/portal/student/*" element={<ProtectedRoute roles={["student"]}><StudentPortal /></ProtectedRoute>} />
-        <Route path="/portal/lecturer/*" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal /></ProtectedRoute>} />
-        <Route path="/portal/admin/*" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal /></ProtectedRoute>} />
+        <Route path="/portal/student/*" element={<ProtectedRoute roles={["student"]}><StudentPortal user={user} token={token} /></ProtectedRoute>} />
+        <Route path="/portal/lecturer/*" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal user={user} token={token} /></ProtectedRoute>} />
+        <Route path="/portal/admin/*" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal user={user} token={token} /></ProtectedRoute>} />
 
         {/* Catch all - redirect to login */}
         <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
