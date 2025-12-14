@@ -256,7 +256,7 @@ class LecturerService {
 
       const query = `
         SELECT 
-          c.id, c.course_code, c.course_name, c.description,
+          c.id, c.course_code, c.course_name,
           c.room_number, c.latitude, c.longitude, c.capacity,
           COUNT(DISTINCT al.student_id) as enrolled_students,
           COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_today,
