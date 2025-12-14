@@ -58,7 +58,6 @@ class LecturerService {
           c.id, c.course_code, c.course_name,
           s.id as session_id, s.start_time, s.end_time, s.status,
           s.scanning_enabled, s.started_at, s.cancelled_at,
-          c.room_number, c.latitude, c.longitude,
           COUNT(al.id) as enrolled_students,
           COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
           COUNT(CASE WHEN al.status = 'absent' THEN 1 END) as absent_count,
@@ -100,7 +99,6 @@ class LecturerService {
         SELECT 
           c.id, c.course_code, c.course_name,
           s.id as session_id, s.start_time, s.end_time,
-          c.room_number, c.latitude, c.longitude,
           TIMESTAMPDIFF(MINUTE, NOW(), s.start_time) as minutes_until,
           COUNT(DISTINCT al.student_id) as enrolled_students
         FROM classes c
@@ -257,7 +255,6 @@ class LecturerService {
       const query = `
         SELECT 
           c.id, c.course_code, c.course_name,
-          c.room_number, c.latitude, c.longitude, c.capacity,
           COUNT(DISTINCT al.student_id) as enrolled_students,
           COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_today,
           ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as attendance_rate
@@ -580,7 +577,7 @@ class LecturerService {
       } else if (reportType === 'classes') {
         query = `
           SELECT 
-            c.course_name, c.course_code, c.room_number,
+            c.course_name, c.course_code,
             COUNT(DISTINCT s.id) as sessions_held,
             COUNT(DISTINCT al.student_id) as total_students,
             ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as avg_attendance
