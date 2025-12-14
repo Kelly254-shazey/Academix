@@ -204,8 +204,8 @@ router.post('/users', authMiddleware, isAdmin, async (req, res) => {
     }
 
     const [result] = await db.execute(
-      `INSERT INTO users (name, email, role, password, department_id, status, created_at) 
-       VALUES (?, ?, ?, ?, ?, 'active', NOW())`,
+      `INSERT INTO users (name, email, role, password, department_id, created_at) 
+       VALUES (?, ?, ?, ?, ?, NOW())`,
       [name, email, role, password || 'temp123', department_id || null]
     );
 
@@ -466,7 +466,7 @@ router.get('/departments', authMiddleware, isAdmin, async (req, res) => {
  */
 router.post('/departments', authMiddleware, isAdmin, async (req, res) => {
   try {
-    const { name, code, head_id } = req.body;
+    const { name, code, hod_id } = req.body;
 
     if (!name || !code) {
       return res.status(400).json({
@@ -476,8 +476,8 @@ router.post('/departments', authMiddleware, isAdmin, async (req, res) => {
     }
 
     const [result] = await db.execute(
-      `INSERT INTO departments (name, code, head_id, created_at) VALUES (?, ?, ?, NOW())`,
-      [name, code, head_id || null]
+      `INSERT INTO departments (name, code, hod_id, created_at) VALUES (?, ?, ?, NOW())`,
+      [name, code, hod_id || null]
     );
 
     res.status(201).json({
