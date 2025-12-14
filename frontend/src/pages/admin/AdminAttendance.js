@@ -50,7 +50,7 @@ export default function AdminAttendance() {
         search: searchTerm
       });
 
-      const recordsResponse = await apiClient.get(`/admin/attendance?${params}`);
+      const recordsResponse = await apiClient.get(`/api/admin/attendance?${params}`);
       if (recordsResponse.success) {
         setAttendanceRecords(recordsResponse.data.records || []);
         setTotalPages(Math.ceil((recordsResponse.data.total || 0) / recordsPerPage));
@@ -59,7 +59,7 @@ export default function AdminAttendance() {
 
       // Fetch classes for filter dropdown
       if (classes.length === 0) {
-        const classesResponse = await apiClient.get('/admin/classes');
+        const classesResponse = await apiClient.get('/api/admin/classes');
         if (classesResponse.success) {
           setClasses(classesResponse.data || []);
         }
@@ -92,7 +92,7 @@ export default function AdminAttendance() {
         export: 'true'
       });
 
-      const response = await apiClient.get(`/admin/attendance/export?${params}`, {
+      const response = await apiClient.get(`/api/admin/attendance/export?${params}`, {
         responseType: 'blob'
       });
 

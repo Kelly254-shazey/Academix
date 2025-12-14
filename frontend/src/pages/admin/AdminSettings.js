@@ -52,7 +52,7 @@ export default function AdminSettings() {
       setLoading(true);
       setError(null);
 
-      const response = await apiClient.get('/admin/settings');
+      const response = await apiClient.get('/api/admin/settings');
       if (response.success) {
         setSettings(response.data);
       }
@@ -74,7 +74,7 @@ export default function AdminSettings() {
       setError(null);
       setSuccess(null);
 
-      const response = await apiClient.put('/admin/settings', settings);
+      const response = await apiClient.put('/api/admin/settings', settings);
       if (response.success) {
         setSuccess('Settings saved successfully');
         setTimeout(() => setSuccess(null), 3000);

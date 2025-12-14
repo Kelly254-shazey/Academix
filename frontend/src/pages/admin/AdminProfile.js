@@ -42,7 +42,7 @@ export default function AdminProfile() {
       setLoading(true);
       setError(null);
 
-      const profileResponse = await apiClient.get('/profile');
+      const profileResponse = await apiClient.get('/api/admin/profile');
       if (profileResponse.success) {
         const profileData = profileResponse.data;
         setProfile(profileData);
@@ -55,7 +55,7 @@ export default function AdminProfile() {
       }
 
       // Fetch admin-specific stats
-      const statsResponse = await apiClient.get('/admin/profile/stats');
+      const statsResponse = await apiClient.get('/api/admin/overview');
       if (statsResponse.success) {
         setStats(statsResponse.data);
       }
@@ -71,7 +71,7 @@ export default function AdminProfile() {
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.put('/profile', editForm);
+      const response = await apiClient.put('/api/admin/profile', editForm);
       if (response.success) {
         setProfile({ ...profile, ...editForm });
         setIsEditing(false);
