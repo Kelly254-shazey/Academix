@@ -1,15 +1,13 @@
 {
-  "name": "academix-monorepo",
+  "name": "academix",
   "version": "1.0.0",
-  "private": true,
-  "devDependencies": {
-    "concurrently": "^8.2.0",
-    "cypress": "^13.6.2"
-  },
   "scripts": {
-    "start": "concurrently \"npm:start-backend\" \"npm:start-frontend\"",
-    "start-backend": "cd backend && npm start",
-    "start-frontend": "cd frontend && npm start",
-    "cy:run": "cypress run"
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd backend && npm start",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
   }
 }
