@@ -73,40 +73,31 @@ function SignUp() {
 
     // Call backend API
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email.toLowerCase(),
-          password: formData.password,
-          role: formData.role,
-          ...(formData.department && { department: formData.department }),
-          ...(formData.role === 'student' && formData.studentId && { studentId: formData.studentId })
-        })
+      const apiClient = await import('../services/apiClient').then(m => m.default);
+      const data = await apiClient.register({
+        name: formData.name,
+        email: formData.email.toLowerCase(),
+        password: formData.password,
+        role: formData.role,
+        ...(formData.department && { department: formData.department }),
+        ...(formData.role === 'student' && formData.studentId && { studentId: formData.studentId })
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || 'Registration failed');
-        setIsLoading(false);
-        return;
+      // Store token
+      if (data && data.token) {
+        localStorage.setItem('token', data.token);
       }
 
-      // Store token
-      localStorage.setItem('token', data.token);
-
-      // Login user with the returned user data
-      login(data.user);
+      // Login user with the returned user data and token
+      if (data && data.user && data.token) {
+        await login(data.user, data.token);
+      }
 
       // Redirect to home
       navigate('/');
     } catch (err) {
       console.error('Sign up error:', err);
-      setError(`Failed to connect to server. Make sure backend is running on ${API_URL}.`);
+      setError(err.message || `Failed to connect to server. Make sure backend is running on ${API_URL}.`);
       setIsLoading(false);
     }
   };

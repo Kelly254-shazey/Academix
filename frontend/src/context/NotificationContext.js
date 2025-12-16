@@ -1,201 +1,71 @@
-import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
-import io from 'socket.io-client';
-import { useAuth } from './AuthContext';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const NotificationContext = createContext();
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
-
-export const useNotifications = () => {
+export const useNotification = () => {
   const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error('useNotifications must be used within NotificationProvider');
+    throw new Error('useNotification must be used within NotificationProvider');
   }
   return context;
 };
 
 export const NotificationProvider = ({ children }) => {
-  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
-  const [lecturerNotifications, setLecturerNotifications] = useState([]);
-  const [socket, setSocket] = useState(null);
-  const [connected, setConnected] = useState(false);
-  // Initialize Socket.IO connection
-  useEffect(() => {
-    if (!user) return;
-    const wsUrl = API_URL.replace(/^http/, 'ws');
-    const newSocket = io(wsUrl, {
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
-      transports: ['websocket', 'polling']
-    });
+  const [unreadCount, setUnreadCount] = useState(0);
 
-    newSocket.on('connect', () => {
-      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
-        console.log('✅ Connected to notification server');
-      }
-      setConnected(true);
-      // Join user's notification room for personal notifications
-      newSocket.emit('join-user-room', user?.id || 'anonymous');
-      // Join course room for course-wide notifications
-      newSocket.emit('join-course-room', user?.courseId || 'general');
-    });
-
-    // INSTANT notification listener - receives in real-time
-    newSocket.on('new-notification', (notification) => {
-      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
-        console.log('🔔 INSTANT notification received:', notification);
-      }
-      // Add to state immediately
-      setNotifications(prev => [notification, ...prev]);
-    });
-
-    newSocket.on('connection-confirmed', (data) => {
-      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
-        console.log('✅ Connection confirmed:', data);
-      }
-    });
-
-    newSocket.on('notification-read', ({ notificationId }) => {
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-      );
-    });
-
-    newSocket.on('notification-deleted', ({ notificationId }) => {
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    });
-
-    newSocket.on('disconnect', () => {
-      if (process.env.REACT_APP_DEBUG_MODE === 'true') {
-        console.log('❌ Disconnected from notification server');
-      }
-      setConnected(false);
-    });
-
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
-  }, [user]);
-
-  // Fetch notifications from backend on mount
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchNotifications = async () => {
-      try {
-        const response = await fetch(`${API_URL}/notifications/user/${user.id}`);
-        const data = await response.json();
-        if (data.success) {
-          setNotifications(data.notifications);
-        }
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
-    };
-
-    fetchNotifications();
-  }, [user]);
-
-  const addNotification = useCallback((notification) => {
-    const newNotif = {
-      id: `notif_${Date.now()}`,
+  const addNotification = (notification) => {
+    const newNotification = {
+      id: Date.now(),
       timestamp: new Date().toISOString(),
       read: false,
       ...notification
     };
-    setNotifications(prev => [newNotif, ...prev]);
-    return newNotif;
-  }, []);
+    setNotifications(prev => [newNotification, ...prev]);
+    setUnreadCount(prev => prev + 1);
+  };
 
-  const addLecturerNotification = useCallback((notification) => {
-    const newNotif = {
-      id: `lecturer_notif_${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      ...notification
-    };
-    setLecturerNotifications(prev => [newNotif, ...prev]);
-    return newNotif;
-  }, []);
-
-  const markAsRead = useCallback((id) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
+  const markAsRead = (id) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, read: true } : notif
+      )
     );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
 
-    // Update on backend
-    if (user) {
-      fetch(`${API_URL}/notifications/${id}/read`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      }).catch(err => console.error('Error marking notification as read:', err));
-    }
-  }, [user]);
+  const markAllAsRead = () => {
+    setNotifications(prev => 
+      prev.map(notif => ({ ...notif, read: true }))
+    );
+    setUnreadCount(0);
+  };
 
-  const deleteNotification = useCallback((id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-
-    // Delete from backend
-    if (user) {
-      fetch(`${API_URL}/notifications/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      }).catch(err => console.error('Error deleting notification:', err));
-    }
-  }, [user]);
-
-  const getUnreadCount = useCallback(() => {
-    return notifications.filter(n => !n.read).length;
-  }, [notifications]);
-
-  const clearAllNotifications = useCallback(() => {
-    setNotifications([]);
-  }, []);
-
-  const sendNotificationToStudents = useCallback(async (notification) => {
-    try {
-      const response = await fetch(`${API_URL}/notifications/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...notification,
-          instructorId: user?.id,
-          instructorName: user?.name
-        })
-      });
-      const data = await response.json();
-      if (data.success) {
-        addLecturerNotification(data.notification);
-        return data;
+  const removeNotification = (id) => {
+    setNotifications(prev => {
+      const notification = prev.find(n => n.id === id);
+      if (notification && !notification.read) {
+        setUnreadCount(count => Math.max(0, count - 1));
       }
-    } catch (error) {
-      console.error('Error sending notification:', error);
-      throw error;
-    }
-  }, [user, addLecturerNotification]);
+      return prev.filter(n => n.id !== id);
+    });
+  };
 
-  const value = {
-    notifications,
-    lecturerNotifications,
-    addNotification,
-    addLecturerNotification,
-    markAsRead,
-    deleteNotification,
-    getUnreadCount,
-    clearAllNotifications,
-    sendNotificationToStudents,
-    socket,
-    connected
+  const clearAll = () => {
+    setNotifications([]);
+    setUnreadCount(0);
   };
 
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider value={{
+      notifications,
+      unreadCount,
+      addNotification,
+      markAsRead,
+      markAllAsRead,
+      removeNotification,
+      clearAll
+    }}>
       {children}
     </NotificationContext.Provider>
   );

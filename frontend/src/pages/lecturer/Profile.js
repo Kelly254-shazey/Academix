@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User, Mail, Phone, MapPin, Calendar, Edit, Save, X } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);

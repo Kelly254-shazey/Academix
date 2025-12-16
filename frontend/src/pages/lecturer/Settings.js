@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Settings, Bell, Shield, Save } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function SettingsPage() {
   const defaultSettings = {

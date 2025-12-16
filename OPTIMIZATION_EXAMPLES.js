@@ -1,11 +1,4 @@
-// ============================================================================
-// OPTIMIZED Admin Service - Reduced from 8 subqueries to 2 efficient queries
-// File: backend/services/adminService_optimized.js
-// Purpose: Demonstrate how to refactor the dashboard query
-// ============================================================================
 
-// BEFORE: 8 separate subqueries (SLOW ~2-5 seconds)
-/*
 const [totals] = await db.execute(`
   SELECT
     (SELECT COUNT(*) FROM users) as total_users,
@@ -17,7 +10,6 @@ const [totals] = await db.execute(`
     (SELECT COUNT(*) FROM attendance_logs) as total_attendance_records,
     (SELECT COUNT(*) FROM class_sessions WHERE session_date >= CURDATE()) as active_sessions
 `);
-*/
 
 // AFTER: Single query using UNION/GROUP BY (FAST ~200-300ms)
 async function getInstitutionOverviewOptimized(adminId) {

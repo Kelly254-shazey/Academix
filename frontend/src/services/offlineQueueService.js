@@ -87,17 +87,17 @@ class OfflineQueueService {
           // - Check geolocation bounds
           // - Verify student hasn't already scanned
           // - Check device fingerprint
-          const response = await apiClient.post('/api/attendance/scan', {
-            qrToken: item.data.qrToken,
-            sessionId: item.data.sessionId,
-            latitude: item.data.latitude,
-            longitude: item.data.longitude,
-            deviceId: item.data.deviceId,
-            scanTime: item.timestamp, // Include original scan time
-            offlineScan: true // Flag for audit log
-          });
+          const response = await apiClient.scanQR(
+            item.data.qrToken,
+            {
+              latitude: item.data.latitude,
+              longitude: item.data.longitude
+            },
+            item.data.deviceId
+          );
 
-          if (response.status === 200 && response.data.success) {
+          if (response && response.success) {
+
             // Backend validated and stored in database
             item.status = 'completed';
             processed++;
@@ -107,7 +107,7 @@ class OfflineQueueService {
             item.attempts++;
             item.status = item.attempts >= item.maxAttempts ? 'failed' : 'pending';
             failed++;
-            console.warn(`⚠️  Scan ${item.id} rejected:`, response.data.message);
+            console.warn(`⚠️  Scan ${item.id} rejected:`, response.message || 'Unknown error');
             failedScans.push(item);
           }
         } catch (error) {

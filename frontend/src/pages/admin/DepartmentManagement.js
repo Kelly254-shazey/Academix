@@ -11,7 +11,7 @@ import {
   XCircle,
   Upload
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function DepartmentManagement() {
   const [departments, setDepartments] = useState([]);

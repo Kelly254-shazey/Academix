@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState({

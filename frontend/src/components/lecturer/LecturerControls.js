@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function LecturerControls({ classId, onStart, onDelay, onCancel, onChangeRoom }){
   const [confirmOpen, setConfirmOpen] = useState(false);

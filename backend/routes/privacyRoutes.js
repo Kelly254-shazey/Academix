@@ -15,8 +15,7 @@ const logger = require('../utils/logger');
  * User/admin requests data export
  */
 router.post('/data-export-request',
-  auditAction('CREATE', 'privacy_request'),
-  async (req, res) => {
+  auditAction('CREATE', 'privacy_request'), async (req, res) => {
     try {
       const { userId, includePersonal = true, includeAcademic = true, format = 'json' } = req.body;
 
@@ -57,8 +56,7 @@ router.post('/data-export-request',
  * GET /api/privacy/my-data
  * Get current user's personal data
  */
-router.get('/my-data',
-  async (req, res) => {
+router.get('/my-data', async (req, res) => {
     try {
       const result = await privacyService.getUserPersonalData(req.user.id);
 
@@ -78,8 +76,7 @@ router.get('/my-data',
  * Request personal data deletion
  */
 router.post('/request-deletion',
-  auditAction('CREATE', 'deletion_request'),
-  async (req, res) => {
+  auditAction('CREATE', 'deletion_request'), async (req, res) => {
     try {
       const { userId, reason = '', password } = req.body;
 
@@ -120,9 +117,7 @@ router.post('/request-deletion',
  * List privacy requests (admin only)
  */
 router.get('/requests',
-  requireRole(['admin', 'superadmin']),
-  requirePermission('manage_privacy'),
-  async (req, res) => {
+  requirePermission('manage_privacy'), async (req, res) => {
     try {
       const filters = {
         status: req.query.status,
@@ -155,10 +150,8 @@ router.get('/requests',
  * Approve privacy request (admin only)
  */
 router.post('/request/:requestId/approve',
-  requireRole(['admin', 'superadmin']),
   requirePermission('manage_privacy'),
-  auditAction('UPDATE', 'privacy_request'),
-  async (req, res) => {
+  auditAction('UPDATE', 'privacy_request'), async (req, res) => {
     try {
       const { notes } = req.body;
 
@@ -196,10 +189,8 @@ router.post('/request/:requestId/approve',
  * Deny privacy request (admin only)
  */
 router.post('/request/:requestId/deny',
-  requireRole(['admin', 'superadmin']),
   requirePermission('manage_privacy'),
-  auditAction('UPDATE', 'privacy_request'),
-  async (req, res) => {
+  auditAction('UPDATE', 'privacy_request'), async (req, res) => {
     try {
       const { reason } = req.body;
 
@@ -236,9 +227,7 @@ router.post('/request/:requestId/deny',
  * Get consent audit trail (admin only)
  */
 router.get('/audit',
-  requireRole(['admin', 'superadmin']),
-  requirePermission('view_privacy'),
-  async (req, res) => {
+  requirePermission('view_privacy'), async (req, res) => {
     try {
       const filters = {
         userId: req.query.userId,

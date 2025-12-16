@@ -1,9 +1,15 @@
 const express = require('express');
 const router = express.Router();
+const { authenticateToken } = require('../middlewares/authMiddleware');
+const { requireRole } = require('../middlewares/rbacMiddleware');
 const messageService = require('../services/messageService');
+const { sendSuccess, sendError, sendValidationError } = require('../utils/responseHelper');
 
 // In-memory storage for data manipulation audit log (for demo purposes)
 const dataAuditLog = [];
+
+// All admin endpoints require authentication
+router.use(authenticateToken);
 
 // ==================== MESSAGING ENDPOINTS ====================
 
@@ -13,19 +19,14 @@ router.get('/messages/student/:studentId', async (req, res) => {
     const { studentId } = req.params;
     const messages = await messageService.getMessagesByStudentId(studentId);
 
-    res.json({
-      success: true,
+    return sendSuccess(res, 'Messages retrieved successfully', {
       studentId,
       messages,
       unreadCount: messages.filter(m => !m.is_read && m.sender_type === 'student').length
     });
   } catch (error) {
     console.error('Error fetching messages:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch messages',
-      error: error.message
-    });
+    return sendError(res, 'Failed to fetch messages', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -34,18 +35,13 @@ router.get('/messages/all', async (req, res) => {
   try {
     const conversations = await messageService.getConversations();
 
-    res.json({
-      success: true,
+    return sendSuccess(res, 'Conversations retrieved successfully', {
       conversations,
       totalStudents: conversations.length
     });
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch conversations',
-      error: error.message
-    });
+    return sendError(res, 'Failed to fetch conversations', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -55,15 +51,12 @@ router.post('/messages/send', async (req, res) => {
     const { studentId, message, senderId } = req.body;
 
     if (!studentId || !message) {
-      return res.status(400).json({
-        success: false,
-        message: 'studentId and message are required'
-      });
+      return sendValidationError(res, 'Validation failed', ['studentId and message are required']);
     }
     
     const payload = {
       studentId,
-      senderId: senderId || 'admin_001',
+      senderId: senderId || req.user.id,
       senderType: 'admin',
       message
     };
@@ -72,32 +65,22 @@ router.post('/messages/send', async (req, res) => {
     // Emit real-time notification via Socket.IO
     if (req.io) {
       req.io.to(`user_${studentId}`).emit('new-admin-message', {
-        message: chatMessage.message, // Corrected: senderType was not defined
+        message: chatMessage.message,
         senderType: payload.senderType,
         timestamp: chatMessage.timestamp
       });
 
-      // Notify admin of message
-      req.io.to('admin_001').emit('new-student-message', {
+      req.io.to('admin').emit('message-sent', {
         studentId,
-        studentName: 'Admin', // Corrected: studentName was not defined
         message: chatMessage.message,
         timestamp: chatMessage.timestamp
       });
     }
 
-    res.json({
-      success: true,
-      message: 'Message sent successfully',
-      data: chatMessage
-    });
+    return sendSuccess(res, 'Message sent successfully', chatMessage, 201);
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send message',
-      error: error.message
-    });
+    return sendError(res, 'Failed to send message', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -107,10 +90,7 @@ router.post('/messages/student-send', async (req, res) => {
     const { studentId, message } = req.body;
 
     if (!studentId || !message) {
-      return res.status(400).json({
-        success: false,
-        message: 'studentId and message are required'
-      });
+      return sendValidationError(res, 'Validation failed', ['studentId and message are required']);
     }
     
     const payload = {
@@ -123,28 +103,21 @@ router.post('/messages/student-send', async (req, res) => {
 
     // Emit real-time notification via Socket.IO
     if (req.io) {
-      req.io.to('admin_001').emit('new-student-message', {
+      req.io.to('admin').emit('new-student-message', {
         studentId,
-        studentName: 'Unknown Student', // Corrected: studentName was not defined. Consider fetching student name.
         message: chatMessage.message,
         timestamp: chatMessage.timestamp
       });
     }
 
-    res.json({
-      success: true,
-      message: 'Message sent to admin successfully',
-      data: chatMessage
-    });
+    return sendSuccess(res, 'Message sent to admin successfully', chatMessage, 201);
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send message',
-      error: error.message
-    });
+    return sendError(res, 'Failed to send message', 500, process.env.NODE_ENV === 'development', error);
   }
 });
+
+// ==================== DATA MANIPULATION ENDPOINTS ====================
 
 // ==================== DATA MANIPULATION ENDPOINTS ====================
 
@@ -154,10 +127,7 @@ router.post('/data/attendance/update', (req, res) => {
     const { studentId, lectureId, status, reason, courseName } = req.body;
 
     if (!studentId || !lectureId || !status) {
-      return res.status(400).json({
-        success: false,
-        message: 'studentId, lectureId, and status are required'
-      });
+      return sendValidationError(res, 'Validation failed', ['studentId, lectureId, and status are required']);
     }
 
     // TODO: Replace with actual database update. Use parameterized queries to prevent SQL injection.
@@ -170,27 +140,19 @@ router.post('/data/attendance/update', (req, res) => {
       newStatus: status,
       reason,
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
+      adminId: req.user.id
     });
 
-    res.json({
-      success: true,
-      message: 'Attendance record updated successfully',
-      data: {
-        studentId,
-        lectureId,
-        status,
-        reason,
-        updatedAt: new Date().toISOString()
-      }
+    return sendSuccess(res, 'Attendance record updated successfully', {
+      studentId,
+      lectureId,
+      status,
+      reason,
+      updatedAt: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error updating attendance:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update attendance',
-      error: error.message
-    });
+    return sendError(res, 'Failed to update attendance', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -200,10 +162,7 @@ router.post('/data/student/update', (req, res) => {
     const { studentId, updates } = req.body;
 
     if (!studentId || !updates) {
-      return res.status(400).json({
-        success: false,
-        message: 'studentId and updates are required'
-      });
+      return sendValidationError(res, 'Validation failed', ['studentId and updates are required']);
     }
 
     // TODO: Replace with actual database update. Use parameterized queries to prevent SQL injection.
@@ -214,25 +173,17 @@ router.post('/data/student/update', (req, res) => {
       targetStudentId: studentId,
       updates,
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
+      adminId: req.user.id
     });
 
-    res.json({
-      success: true,
-      message: 'Student data updated successfully',
-      data: {
-        studentId,
-        updates,
-        updatedAt: new Date().toISOString()
-      }
+    return sendSuccess(res, 'Student data updated successfully', {
+      studentId,
+      updates,
+      updatedAt: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error updating student data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update student data',
-      error: error.message
-    });
+    return sendError(res, 'Failed to update student data', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -242,10 +193,7 @@ router.post('/data/attendance/bulk-update', (req, res) => {
     const { records } = req.body;
 
     if (!records || !Array.isArray(records) || records.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'records array is required'
-      });
+      return sendValidationError(res, 'Validation failed', ['records array is required and must not be empty']);
     }
 
     // TODO: Replace with actual database update. Use parameterized queries to prevent SQL injection.
@@ -256,24 +204,16 @@ router.post('/data/attendance/bulk-update', (req, res) => {
       recordCount: records.length,
       records,
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
+      adminId: req.user.id
     });
 
-    res.json({
-      success: true,
-      message: `${records.length} attendance records updated successfully`,
-      data: {
-        recordCount: records.length,
-        updatedAt: new Date().toISOString()
-      }
+    return sendSuccess(res, `${records.length} attendance records updated successfully`, {
+      recordCount: records.length,
+      updatedAt: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error bulk updating attendance:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to bulk update attendance',
-      error: error.message
-    });
+    return sendError(res, 'Failed to bulk update attendance', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -283,10 +223,7 @@ router.post('/data/student/delete', (req, res) => {
     const { studentId, reason } = req.body;
 
     if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'studentId is required'
-      });
+      return sendValidationError(res, 'Validation failed', ['studentId is required']);
     }
 
     // TODO: Replace with actual database operation (delete or archive).
@@ -297,24 +234,16 @@ router.post('/data/student/delete', (req, res) => {
       targetStudentId: studentId,
       reason: reason || 'No reason provided',
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
+      adminId: req.user.id
     });
 
-    res.json({
-      success: true,
-      message: 'Student record deleted/archived successfully',
-      data: {
-        studentId,
-        deletedAt: new Date().toISOString()
-      }
+    return sendSuccess(res, 'Student record deleted/archived successfully', {
+      studentId,
+      deletedAt: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error deleting student record:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete student record',
-      error: error.message
-    });
+    return sendError(res, 'Failed to delete student record', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -326,8 +255,7 @@ router.get('/audit-log', (req, res) => {
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(parseInt(offset), parseInt(offset) + parseInt(limit));
 
-    res.json({
-      success: true,
+    return sendSuccess(res, 'Audit log retrieved successfully', {
       auditLog: paginatedLog,
       total: dataAuditLog.length,
       limit: parseInt(limit),
@@ -335,11 +263,7 @@ router.get('/audit-log', (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching audit log:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch audit log',
-      error: error.message
-    });
+    return sendError(res, 'Failed to fetch audit log', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -349,10 +273,7 @@ router.post('/data/export', (req, res) => {
     const { studentIds, dataType } = req.body;
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'studentIds array is required'
-      });
+      return sendValidationError(res, 'Validation failed', ['studentIds array is required and must not be empty']);
     }
 
     // TODO: Replace with actual data export logic (e.g., generating a CSV file).
@@ -363,26 +284,18 @@ router.post('/data/export', (req, res) => {
       recordCount: studentIds.length,
       dataType: dataType || 'all',
       timestamp: new Date().toISOString(),
-      adminId: 'admin_001' // TODO: Replace with authenticated admin user ID
+      adminId: req.user.id
     });
 
-    res.json({
-      success: true,
-      message: 'Data exported successfully',
-      data: {
-        recordCount: studentIds.length,
-        dataType: dataType || 'all',
-        exportedAt: new Date().toISOString(),
-        fileFormat: 'csv'
-      }
+    return sendSuccess(res, 'Data exported successfully', {
+      recordCount: studentIds.length,
+      dataType: dataType || 'all',
+      exportedAt: new Date().toISOString(),
+      fileFormat: 'csv'
     });
   } catch (error) {
     console.error('Error exporting data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to export data',
-      error: error.message
-    });
+    return sendError(res, 'Failed to export data', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
@@ -390,14 +303,10 @@ router.post('/data/export', (req, res) => {
 router.get('/communication/stats', async (req, res) => {
   try {
     const stats = await messageService.getCommunicationStats();
-    res.json({ success: true, stats });
+    return sendSuccess(res, 'Communication statistics retrieved successfully', stats);
   } catch (error) {
     console.error('Error fetching communication stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch communication stats',
-      error: error.message
-    });
+    return sendError(res, 'Failed to fetch communication statistics', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 

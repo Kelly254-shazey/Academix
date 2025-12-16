@@ -1,0 +1,30 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\w\\Academix\\backend\\logs\\.92f17be6ea5ab8977f7369c44b42b05731fed9cb-audit.json",
+    "files": [
+        {
+            "date": 1765781354444,
+            "name": "C:\\Users\\w\\Academix\\backend\\logs\\combined-2025-12-15.log",
+            "hash": "878eb3487c7a1226cd81cbf9bd595bb52af99f17975826b49712bf46ab2ba1f9"
+        },
+        {
+            "date": 1765857727780,
+            "name": "C:\\Users\\w\\Academix\\backend\\logs\\combined-2025-12-16.log",
+            "hash": "3c7b9e01b95a64884dd7c330b2c87677ad3fe77aca5d3834f084655eff6feb14"
+        },
+        {
+            "date": 1765866001349,
+            "name": "C:\\Users\\w\\Academix\\backend\\logs\\combined-2025-12-16.log.1",
+            "hash": "2cc761a4790ba476ede38b7a1f475a57170e34f9b833ac49d2f43f0d9e114fbd"
+        },
+        {
+            "date": 1765867762738,
+            "name": "C:\\Users\\w\\Academix\\backend\\logs\\combined-2025-12-16.log.2",
+            "hash": "2e189f0342e54d5b9df59351cfb5e0c126b8c7ad3cbaa2d4934ab0e4ff764836"
+        }
+    ],
+    "hashType": "sha256"
+}

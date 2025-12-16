@@ -1,7 +1,4 @@
-/**
- * Database Schema for AI-Powered Attendance System
- * Creates tables for QR tokens, attendance scans, risk scoring, and audit logs
- */
+
 
 async function initializeSchema(db) {
   try {

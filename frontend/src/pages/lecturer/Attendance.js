@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Users, CheckCircle, XCircle, Clock, Download } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function Attendance() {
   const [attendanceData, setAttendanceData] = useState([]);

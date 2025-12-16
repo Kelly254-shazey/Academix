@@ -5,7 +5,7 @@ import LecturerQRDisplay from '../../components/lecturer/LecturerQRDisplay';
 import RosterManagement from '../../components/lecturer/RosterManagement';
 import LecturerSchedulePanel from '../../components/lecturer/LecturerSchedulePanel';
 import useSocket from '../../hooks/useSocket';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function LecturerDashboard(){
   const [dashboardData, setDashboardData] = useState({

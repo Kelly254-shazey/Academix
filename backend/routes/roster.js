@@ -15,7 +15,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const rosterService = require('../services/rosterService');
 const attendanceVerificationService = require('../services/attendanceVerificationService');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
   markAttendanceSchema,
   bulkMarkAttendanceSchema,
@@ -42,9 +42,8 @@ const isLecturer = (req, res, next) => {
  */
 router.get(
   '/:classId/sessions/:sessionId/roster',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { classId, sessionId } = req.params;
 
@@ -75,9 +74,8 @@ router.get(
  */
 router.get(
   '/:classId/sessions/:sessionId/roster/summary',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { classId, sessionId } = req.params;
 
@@ -107,9 +105,8 @@ router.get(
  */
 router.post(
   '/:classId/sessions/:sessionId/roster/mark',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { error, value } = markAttendanceSchema.validate({
         classId: parseInt(req.params.classId),
@@ -195,9 +192,8 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/roster/bulk-mark',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { error, value } = bulkMarkAttendanceSchema.validate({
         classId: parseInt(req.params.classId),
@@ -276,9 +272,8 @@ router.post(
  */
 router.get(
   '/:classId/roster/at-risk',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { classId } = req.params;
       const threshold = parseInt(req.query.threshold) || 75;
@@ -310,9 +305,8 @@ router.get(
  */
 router.get(
   '/:classId/roster/student/:studentId/history',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { classId, studentId } = req.params;
       const limit = parseInt(req.query.limit) || 50;
@@ -344,9 +338,8 @@ router.get(
  */
 router.post(
   '/:classId/sessions/:sessionId/attendance/verify',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { error, value } = attendanceVerificationSchema.validate({
         classId: parseInt(req.params.classId),
@@ -408,9 +401,8 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/attendance/unverify',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { error, value } = attendanceUnverifySchema.validate({
         classId: parseInt(req.params.classId),

@@ -12,7 +12,7 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const qrGenerationService = require('../services/qrGenerationService');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
   lecturerQRCheckinSchema,
   qrGenerationSchema,
@@ -35,7 +35,7 @@ const isLecturer = (req, res, next) => {
  * POST /api/lecturer/checkin
  * Lecturer QR check-in for authentication
  */
-router.post('/checkin', authMiddleware, isLecturer, async (req, res) => {
+router.post('/checkin', authenticateToken, isLecturer, async (req, res) => {
   try {
     const { error, value } = lecturerQRCheckinSchema.validate(req.body);
 
@@ -107,34 +107,18 @@ router.post('/checkin', authMiddleware, isLecturer, async (req, res) => {
  */
 router.post(
   '/:classId/sessions/:sessionId/qr',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
-      const { error, value } = qrGenerationSchema.validate({
-        classId: parseInt(req.params.classId),
-        sessionId: parseInt(req.params.sessionId),
-        ...req.body,
-      });
-
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation error',
-          details: error.details[0].message,
-        });
-      }
-
-      const { classId, sessionId, validitySeconds } = value;
+      const { classId, sessionId } = req.params;
       const lecturerId = req.user.id;
-
-      const options = validitySeconds ? { validitySeconds } : {};
+      const validitySeconds = req.body.validitySeconds || 35;
 
       const result = await qrGenerationService.generateQR(
-        classId,
-        sessionId,
+        parseInt(classId),
+        parseInt(sessionId),
         lecturerId,
-        options
+        { validitySeconds }
       );
 
       if (!result.success) {
@@ -166,9 +150,8 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/qr/rotate',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { classId, sessionId } = req.params;
       const lecturerId = req.user.id;
@@ -208,8 +191,7 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/qr/validate',
-  authMiddleware,
-  async (req, res) => {
+  authenticateToken, async (req, res) => {
     try {
       const { error, value } = qrValidationSchema.validate({
         classId: parseInt(req.params.classId),
@@ -259,9 +241,8 @@ router.post(
  */
 router.get(
   '/:classId/sessions/:sessionId/qr',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { classId, sessionId } = req.params;
 
@@ -298,9 +279,8 @@ router.get(
  */
 router.get(
   '/:classId/sessions/:sessionId/qr/history',
-  authMiddleware,
-  isLecturer,
-  async (req, res) => {
+  authenticateToken,
+  isLecturer, async (req, res) => {
     try {
       const { classId, sessionId } = req.params;
       const limit = parseInt(req.query.limit) || 20;

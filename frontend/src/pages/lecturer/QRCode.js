@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { QrCode, RefreshCw, Download, Copy } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function QRCodePage() {
   const [sessions, setSessions] = useState([]);

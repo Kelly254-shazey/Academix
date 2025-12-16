@@ -63,3 +63,19 @@ button, a, input[type="button"], input[type="submit"] {
     min-width: 40px;
   }
 }
+
+/* Toast animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}

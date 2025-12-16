@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function SupportPanel() {
   const [activeTab, setActiveTab] = useState('ai-assistant');

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, Users, MapPin, BookOpen, TrendingUp } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function Classes() {
   const [classes, setClasses] = useState([]);

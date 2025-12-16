@@ -1,51 +1,107 @@
-const db = require('../database');
+/**
+ * Message Service
+ * Handles messaging between users and admins
+ */
 
-exports.getConversations = async () => {
-  // This is a complex query. In a real-world scenario, this would be optimized.
-  // It gets the last message for each student conversation.
-  const [rows] = await db.query(`
-    SELECT 
-      u.id AS studentId,
-      u.name AS studentName,
-      (SELECT message FROM admin_messages WHERE student_id = u.id ORDER BY created_at DESC LIMIT 1) AS lastMessage,
-      (SELECT created_at FROM admin_messages WHERE student_id = u.id ORDER BY created_at DESC LIMIT 1) AS lastMessageTime,
-      (SELECT COUNT(*) FROM admin_messages WHERE student_id = u.id AND is_read = 0 AND sender_type = 'student') AS unreadCount
-    FROM users u
-    WHERE u.role = 'student' AND EXISTS (SELECT 1 FROM admin_messages WHERE student_id = u.id)
-    ORDER BY lastMessageTime DESC
-  `);
-  return rows;
-};
+class MessageService {
+  constructor() {
+    this.messages = new Map(); // In-memory storage for demo
+  }
 
-exports.getMessagesByStudentId = async (studentId) => {
-  const [messages] = await db.query(
-    'SELECT * FROM admin_messages WHERE student_id = ? ORDER BY created_at ASC',
-    [studentId]
-  );
-  // Mark messages as read
-  await db.query(
-    "UPDATE admin_messages SET is_read = 1 WHERE student_id = ? AND sender_type = 'student' AND is_read = 0",
-    [studentId]
-  );
-  return messages;
-};
+  async sendMessage(payload) {
+    const { studentId, senderId, senderType, message } = payload;
+    
+    const messageData = {
+      id: `msg_${Date.now()}`,
+      studentId,
+      senderId,
+      senderType,
+      message,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
 
-exports.sendMessage = async (payload) => {
-  const { studentId, message, senderId, senderType } = payload;
-  const [result] = await db.query(
-    'INSERT INTO admin_messages (student_id, sender_id, sender_type, message) VALUES (?, ?, ?, ?)',
-    [studentId, senderId, senderType, message]
-  );
-  const [rows] = await db.query('SELECT * FROM admin_messages WHERE id = ?', [result.insertId]);
-  return rows;
-};
+    // Store message (in production, this would be in database)
+    if (!this.messages.has(studentId)) {
+      this.messages.set(studentId, []);
+    }
+    this.messages.get(studentId).push(messageData);
 
-exports.getCommunicationStats = async () => {
-    const [[stats]] = await db.query(`
-        SELECT
-            (SELECT COUNT(DISTINCT id) FROM users WHERE role = 'student') AS totalStudents,
-            (SELECT COUNT(*) FROM admin_messages) AS totalMessages,
-            (SELECT COUNT(*) FROM admin_messages WHERE is_read = 0 AND sender_type = 'student') AS unreadMessages
-    `);
-    return stats;
-};
+    return messageData;
+  }
+
+  async getMessagesByStudentId(studentId) {
+    return this.messages.get(studentId) || [];
+  }
+
+  async getConversations() {
+    const conversations = [];
+    for (const [studentId, messages] of this.messages.entries()) {
+      const lastMessage = messages[messages.length - 1];
+      const unreadCount = messages.filter(m => !m.read && m.senderType === 'student').length;
+      
+      conversations.push({
+        studentId,
+        lastMessage,
+        unreadCount,
+        totalMessages: messages.length
+      });
+    }
+    return conversations;
+  }
+
+  async getCommunicationStats() {
+    const totalMessages = Array.from(this.messages.values()).reduce((sum, msgs) => sum + msgs.length, 0);
+    const totalConversations = this.messages.size;
+    
+    return {
+      totalMessages,
+      totalConversations,
+      averageMessagesPerConversation: totalConversations > 0 ? Math.round(totalMessages / totalConversations) : 0
+    };
+  }
+
+  async markAsRead(messageIds, userId) {
+    // Mark messages as read (simplified implementation)
+    for (const [studentId, messages] of this.messages.entries()) {
+      messages.forEach(msg => {
+        if (messageIds.includes(msg.id)) {
+          msg.read = true;
+        }
+      });
+    }
+    return { success: true, markedCount: messageIds.length };
+  }
+
+  async markAsUnread(messageIds, userId) {
+    // Mark messages as unread (simplified implementation)
+    for (const [studentId, messages] of this.messages.entries()) {
+      messages.forEach(msg => {
+        if (messageIds.includes(msg.id)) {
+          msg.read = false;
+        }
+      });
+    }
+    return { success: true, markedCount: messageIds.length };
+  }
+
+  async deleteNotification(notificationId, userId) {
+    // Delete notification (simplified implementation)
+    for (const [studentId, messages] of this.messages.entries()) {
+      const index = messages.findIndex(msg => msg.id === notificationId);
+      if (index !== -1) {
+        messages.splice(index, 1);
+        return { success: true };
+      }
+    }
+    return { success: false, message: 'Notification not found' };
+  }
+
+  async clearAllNotifications(userId) {
+    // Clear all notifications for user
+    this.messages.delete(userId);
+    return { success: true };
+  }
+}
+
+module.exports = new MessageService();

@@ -16,7 +16,7 @@
 const express = require('express');
 const router = express.Router();
 const adminService = require('../services/adminService');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/rbacMiddleware');
 const logger = require('../utils/logger');
 const db = require('../database');
@@ -36,7 +36,7 @@ const isAdmin = (req, res, next) => {
  * GET /api/admin/overview
  * Get admin dashboard overview
  */
-router.get('/overview', authMiddleware, isAdmin, async (req, res) => {
+router.get('/overview', authenticateToken, isAdmin, async (req, res) => {
   try {
     const adminId = req.user.id;
     const result = await adminService.getAdminDashboardSummary();
@@ -59,7 +59,7 @@ router.get('/overview', authMiddleware, isAdmin, async (req, res) => {
  * GET /api/admin/recent-activity
  * Get recent system activity
  */
-router.get('/recent-activity', authMiddleware, isAdmin, async (req, res) => {
+router.get('/recent-activity', authenticateToken, isAdmin, async (req, res) => {
   try {
     const [activity] = await db.execute(`
       SELECT 
@@ -100,7 +100,7 @@ router.get('/recent-activity', authMiddleware, isAdmin, async (req, res) => {
  * GET /api/admin/attendance-trends
  * Get attendance trends data
  */
-router.get('/attendance-trends', authMiddleware, isAdmin, async (req, res) => {
+router.get('/attendance-trends', authenticateToken, isAdmin, async (req, res) => {
   try {
     const [trends] = await db.execute(`
       SELECT 
@@ -138,7 +138,7 @@ router.get('/attendance-trends', authMiddleware, isAdmin, async (req, res) => {
  * GET /api/admin/users
  * Get all users with filters
  */
-router.get('/users', authMiddleware, isAdmin, async (req, res) => {
+router.get('/users', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { role, search, status, department, page = 1, limit = 20 } = req.query;
 
@@ -183,7 +183,7 @@ router.get('/users', authMiddleware, isAdmin, async (req, res) => {
  * POST /api/admin/users
  * Create new user
  */
-router.post('/users', authMiddleware, isAdmin, async (req, res) => {
+router.post('/users', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { name, email, role, password, department_id, student_id, lecturer_id } = req.body;
 
@@ -232,7 +232,7 @@ router.post('/users', authMiddleware, isAdmin, async (req, res) => {
  * PUT /api/admin/users/:userId
  * Update user
  */
-router.put('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
+router.put('/users/:userId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     const { name, email, role, department_id } = req.body;
@@ -273,7 +273,7 @@ router.put('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
  * DELETE /api/admin/users/:userId
  * Delete user
  */
-router.delete('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
+router.delete('/users/:userId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -297,7 +297,7 @@ router.delete('/users/:userId', authMiddleware, isAdmin, async (req, res) => {
  * GET /api/admin/classes
  * Get all classes
  */
-router.get('/classes', authMiddleware, isAdmin, async (req, res) => {
+router.get('/classes', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { department, search, page = 1, limit = 20 } = req.query;
 
@@ -345,7 +345,7 @@ router.get('/classes', authMiddleware, isAdmin, async (req, res) => {
  * POST /api/admin/classes
  * Create class
  */
-router.post('/classes', authMiddleware, isAdmin, async (req, res) => {
+router.post('/classes', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { course_code, course_name, lecturer_id, department_id, day_of_week, start_time, end_time } = req.body;
 
@@ -386,7 +386,7 @@ router.post('/classes', authMiddleware, isAdmin, async (req, res) => {
  * PUT /api/admin/classes/:classId
  * Update class
  */
-router.put('/classes/:classId', authMiddleware, isAdmin, async (req, res) => {
+router.put('/classes/:classId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { classId } = req.params;
     const { course_code, course_name, lecturer_id, day_of_week, start_time, end_time } = req.body;
@@ -415,7 +415,7 @@ router.put('/classes/:classId', authMiddleware, isAdmin, async (req, res) => {
  * DELETE /api/admin/classes/:classId
  * Delete class
  */
-router.delete('/classes/:classId', authMiddleware, isAdmin, async (req, res) => {
+router.delete('/classes/:classId', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { classId } = req.params;
 
@@ -439,7 +439,7 @@ router.delete('/classes/:classId', authMiddleware, isAdmin, async (req, res) => 
  * GET /api/admin/departments
  * Get all departments
  */
-router.get('/departments', authMiddleware, isAdmin, async (req, res) => {
+router.get('/departments', authenticateToken, isAdmin, async (req, res) => {
   try {
     // Return empty departments array - departments table doesn't exist in schema yet
     // This can be extended when departments table is created
@@ -463,7 +463,7 @@ router.get('/departments', authMiddleware, isAdmin, async (req, res) => {
  * POST /api/admin/departments
  * Create department
  */
-router.post('/departments', authMiddleware, isAdmin, async (req, res) => {
+router.post('/departments', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { name, code, hod_id } = req.body;
 
@@ -502,7 +502,7 @@ router.post('/departments', authMiddleware, isAdmin, async (req, res) => {
  * GET /api/admin/profile
  * Get admin profile
  */
-router.get('/profile', authMiddleware, isAdmin, async (req, res) => {
+router.get('/profile', authenticateToken, isAdmin, async (req, res) => {
   try {
     const adminId = req.user.id;
 
@@ -543,7 +543,7 @@ router.get('/profile', authMiddleware, isAdmin, async (req, res) => {
  * PUT /api/admin/profile
  * Update admin profile
  */
-router.put('/profile', authMiddleware, isAdmin, async (req, res) => {
+router.put('/profile', authenticateToken, isAdmin, async (req, res) => {
   try {
     const adminId = req.user.id;
     const { name, email } = req.body;
@@ -585,7 +585,7 @@ router.put('/profile', authMiddleware, isAdmin, async (req, res) => {
  * GET /api/admin/settings
  * Get admin settings
  */
-router.get('/settings', authMiddleware, isAdmin, async (req, res) => {
+router.get('/settings', authenticateToken, isAdmin, async (req, res) => {
   try {
     // Return default system settings
     const settings = {
@@ -636,7 +636,7 @@ router.get('/settings', authMiddleware, isAdmin, async (req, res) => {
  * PUT /api/admin/settings
  * Update admin settings
  */
-router.put('/settings', authMiddleware, isAdmin, async (req, res) => {
+router.put('/settings', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { settings } = req.body;
 
@@ -660,7 +660,7 @@ router.put('/settings', authMiddleware, isAdmin, async (req, res) => {
  * GET /api/admin/reports
  * Get system reports
  */
-router.get('/reports', authMiddleware, isAdmin, async (req, res) => {
+router.get('/reports', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { type = 'overview', startDate, endDate } = req.query;
 

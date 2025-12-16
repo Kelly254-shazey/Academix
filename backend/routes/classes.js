@@ -1,16 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/rbacMiddleware');
-
+const { sendSuccess, sendError, sendValidationError } = require('../utils/responseHelper');
 const classController = require('../controllers/classController');
 
-
-// GET /classes - list classes
+// GET /classes - list classes (public, no auth required for listing)
 router.get('/', classController.getAllClasses);
 
 // GET /classes/lecturer - get classes for current lecturer
-router.get('/lecturer', authMiddleware, requireRole('lecturer'), async (req, res) => {
+router.get('/lecturer', authenticateToken, async (req, res) => {
   try {
     const db = require('../database');
 
@@ -39,47 +38,33 @@ router.get('/lecturer', authMiddleware, requireRole('lecturer'), async (req, res
       ORDER BY c.day_of_week, c.start_time
     `, [req.user.id]);
 
-    res.json({
-      success: true,
-      message: 'Lecturer classes retrieved successfully',
-      data: classes || []
-    });
+    return sendSuccess(res, 'Lecturer classes retrieved successfully', classes || []);
   } catch (error) {
     console.error('Error fetching lecturer classes:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendError(res, 'Failed to fetch lecturer classes', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
-
-// GET /classes - list classes
-router.get('/', classController.getAllClasses);
-
-
-// POST /classes - create a class
-router.post('/', classController.createClass);
-
+// POST /classes - create a class (admin/lecturer only)
+router.post('/', authenticateToken, classController.createClass);
 
 // GET /classes/:id - get class by id
 router.get('/:id', classController.getClassById);
 
+// PUT /classes/:id - update class (lecturer/admin only)
+router.put('/:id', authenticateToken, classController.updateClass);
 
-// PUT /classes/:id - update class
-router.put('/:id', classController.updateClass);
+// DELETE /classes/:id - delete class (admin only)
+router.delete('/:id', authenticateToken, classController.deleteClass);
 
-// DELETE /classes/:id - delete class
-router.delete('/:id', classController.deleteClass);
+// POST /classes/:classId/sessions - create a class session (lecturer/admin only)
+router.post('/:classId/sessions', authenticateToken, classController.createSession);
 
+// POST /classes/:classId/sessions/:sessionId/scan - student scans QR (student only)
+router.post('/:classId/sessions/:sessionId/scan', authenticateToken, classController.scanSession);
 
-// POST /classes/:classId/sessions - create a class session
-router.post('/:classId/sessions', classController.createSession);
-
-
-// POST /classes/:classId/sessions/:sessionId/scan
-router.post('/:classId/sessions/:sessionId/scan', classController.scanSession);
-
-// Student enrollment routes
 // GET /classes/available - get available classes for enrollment (students)
-router.get('/available', authMiddleware, requireRole('student'), async (req, res) => {
+router.get('/available', authenticateToken, async (req, res) => {
   try {
     const db = require('../database');
 
@@ -104,19 +89,15 @@ router.get('/available', authMiddleware, requireRole('student'), async (req, res
       ORDER BY c.day_of_week, c.start_time
     `, [req.user.id]);
 
-    res.json({
-      success: true,
-      message: 'Available classes retrieved successfully',
-      data: classes || []
-    });
+    return sendSuccess(res, 'Available classes retrieved successfully', classes || []);
   } catch (error) {
     console.error('Error fetching available classes:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendError(res, 'Failed to fetch available classes', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
 // POST /classes/:classId/enroll - enroll in a class
-router.post('/:classId/enroll', authMiddleware, requireRole('student'), async (req, res) => {
+router.post('/:classId/enroll', authenticateToken, async (req, res) => {
   try {
     const { classId } = req.params;
     const studentId = req.user.id;
@@ -129,10 +110,7 @@ router.post('/:classId/enroll', authMiddleware, requireRole('student'), async (r
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Already enrolled in this class'
-      });
+      return sendValidationError(res, 'Already enrolled in this class');
     }
 
     // Enroll the student
@@ -141,18 +119,15 @@ router.post('/:classId/enroll', authMiddleware, requireRole('student'), async (r
       [classId, studentId]
     );
 
-    res.json({
-      success: true,
-      message: 'Successfully enrolled in class'
-    });
+    return sendSuccess(res, 'Successfully enrolled in class', null, 201);
   } catch (error) {
     console.error('Error enrolling in class:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendError(res, 'Failed to enroll in class', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 
 // DELETE /classes/:classId/enroll - unenroll from a class
-router.delete('/:classId/enroll', authMiddleware, requireRole('student'), async (req, res) => {
+router.delete('/:classId/enroll', authenticateToken, async (req, res) => {
   try {
     const { classId } = req.params;
     const studentId = req.user.id;
@@ -164,19 +139,13 @@ router.delete('/:classId/enroll', authMiddleware, requireRole('student'), async 
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Not enrolled in this class'
-      });
+      return sendError(res, 'Not enrolled in this class', 404);
     }
 
-    res.json({
-      success: true,
-      message: 'Successfully unenrolled from class'
-    });
+    return sendSuccess(res, 'Successfully unenrolled from class');
   } catch (error) {
     console.error('Error unenrolling from class:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendError(res, 'Failed to unenroll from class', 500, process.env.NODE_ENV === 'development', error);
   }
 });
 

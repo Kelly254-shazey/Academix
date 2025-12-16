@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import socketService from '../services/socketService';
 import apiClient from '../services/apiClient';
 import ErrorBoundary from '../components/ErrorBoundary';
-import Toast, { useToast, ToastContainer } from '../components/Toast';
+import { useToast, ToastContainer } from '../components/Toast';
 import {
   validateEmail,
   validateSearch,
@@ -29,25 +29,29 @@ const AdminPortal = ({ user, token }) => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const { addToast } = useToast();
+  const { toasts, addToast, removeToast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+    
     const initialize = async () => {
       try {
+        if (!mounted) return;
         setIsLoading(true);
         addToast('Initializing admin portal...', 'info');
 
         // Connect to Socket.IO
         await socketService.connect(token, user.id, 'admin');
 
-        // Fetch all data
+        // Fetch all data with fallbacks
         const [dashboardData, usersData, logsData, analyticsData] = await Promise.all([
-          apiClient.getAdminDashboard(),
-          apiClient.getAllUsers(),
-          apiClient.getAuditLogs({ limit: 100 }),
-          apiClient.getAttendanceAnalytics()
+          apiClient.get('/admin/overview').catch(() => ({ totalUsers: 0, studentCount: 0, lecturerCount: 0, activeSessions: 0 })),
+          apiClient.get('/admin/users').catch(() => ({ data: [] })),
+          apiClient.get('/admin/audit-log').catch(() => ({ data: [] })),
+          apiClient.get('/admin/reports?type=attendance').catch(() => ({ averageAttendance: 0, lowRisk: 0, mediumRisk: 0, highRisk: 0, critical: 0 }))
         ]);
 
+        if (!mounted) return;
         setDashboard(dashboardData);
         setUsers(usersData.data || []);
         setAuditLogs(logsData.data || []);
@@ -57,19 +61,23 @@ const AdminPortal = ({ user, token }) => {
         addToast('✓ Admin portal ready', 'success');
         setError(null);
       } catch (err) {
+        if (!mounted) return;
         console.error('Error initializing:', err);
         const errorMsg = err.message || 'Failed to initialize';
         setError(errorMsg);
         addToast('Error: ' + errorMsg, 'error');
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
 
     initialize();
 
-    return () => socketService.disconnect();
-  }, [user.id, token, addToast]);
+    return () => {
+      mounted = false;
+      socketService.disconnect();
+    };
+  }, [user.id, token]);
 
   // Auto-refresh data
   useEffect(() => {
@@ -79,7 +87,9 @@ const AdminPortal = ({ user, token }) => {
         refreshDashboard();
       }, 5000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [autoRefresh, activeTab]);
 
   const setupRealTimeListeners = useCallback(() => {
@@ -101,10 +111,10 @@ const AdminPortal = ({ user, token }) => {
     try {
       setRefreshing(true);
       const [dashboardData, usersData, logsData, analyticsData] = await Promise.all([
-        apiClient.getAdminDashboard(),
-        apiClient.getAllUsers(),
-        apiClient.getAuditLogs({ limit: 100 }),
-        apiClient.getAttendanceAnalytics()
+        apiClient.get('/admin/overview').catch(() => ({ totalUsers: 0, studentCount: 0, lecturerCount: 0, activeSessions: 0 })),
+        apiClient.get('/admin/users').catch(() => ({ data: [] })),
+        apiClient.get('/admin/audit-log').catch(() => ({ data: [] })),
+        apiClient.get('/admin/reports?type=attendance').catch(() => ({ averageAttendance: 0, lowRisk: 0, mediumRisk: 0, highRisk: 0, critical: 0 }))
       ]);
 
       setDashboard(dashboardData);
@@ -149,6 +159,16 @@ const AdminPortal = ({ user, token }) => {
                 >
                   {refreshing ? '⟳ ...' : '🔄 Refresh'}
                 </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                  }}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
+                >
+                  🚪 Logout
+                </button>
               </div>
             </div>
           </div>
@@ -157,21 +177,26 @@ const AdminPortal = ({ user, token }) => {
         {/* Navigation Tabs - Sticky */}
         <div className="sticky top-16 z-10 bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4">
-            <nav className="flex space-x-4 overflow-x-auto" role="tablist">
+            <nav className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2 py-2" role="tablist">
               {[
                 { id: 'dashboard', label: '📊 Dashboard' },
                 { id: 'users', label: '👥 Users' },
-                { id: 'communications', label: '💬 Communications' },
-                { id: 'audit', label: '📋 Audit Logs' },
-                { id: 'analytics', label: '📈 Analytics' }
+                { id: 'communications', label: '💬 Messages' },
+                { id: 'complaints', label: '📝 Complaints' },
+                { id: 'reports', label: '📋 Reports' },
+                { id: 'department', label: '🏢 Department' },
+                { id: 'audit', label: '📋 Audit' },
+                { id: 'analytics', label: '📈 Analytics' },
+                { id: 'profile', label: '👤 Profile' },
+                { id: 'settings', label: '⚙️ Settings' }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap ${
+                  className={`py-2 px-3 rounded text-xs font-medium transition text-center ${
                     activeTab === tab.id
-                      ? 'border-red-500 text-red-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {tab.label}
@@ -218,6 +243,23 @@ const AdminPortal = ({ user, token }) => {
               addToast={addToast}
             />
           }
+          {activeTab === 'complaints' && 
+            <ComplaintsTab 
+              addToast={addToast}
+            />
+          }
+          {activeTab === 'reports' && 
+            <ReportsTab 
+              user={user}
+              addToast={addToast}
+            />
+          }
+          {activeTab === 'department' && 
+            <DepartmentTab 
+              user={user}
+              addToast={addToast}
+            />
+          }
           {activeTab === 'audit' && 
             <AuditLogsTab 
               logs={auditLogs}
@@ -230,9 +272,21 @@ const AdminPortal = ({ user, token }) => {
               addToast={addToast}
             />
           }
+          {activeTab === 'profile' && 
+            <ProfileTab 
+              user={user}
+              addToast={addToast}
+            />
+          }
+          {activeTab === 'settings' && 
+            <SettingsTab 
+              user={user}
+              addToast={addToast}
+            />
+          }
         </main>
 
-        <ToastContainer />
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     </ErrorBoundary>
   );
@@ -338,7 +392,10 @@ const UsersTab = ({ users = [], onUpdate, addToast }) => {
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const filtered = users.filter(u => {
+  // Ensure users is always an array
+  const usersList = Array.isArray(users) ? users : [];
+
+  const filtered = usersList.filter(u => {
     const matchesSearch = 
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -362,8 +419,8 @@ const UsersTab = ({ users = [], onUpdate, addToast }) => {
   const handleDelete = async (userId) => {
     if (!window.confirm('Are you sure? This action cannot be undone.')) return;
     try {
-      await apiClient.deleteUser(userId);
-      onUpdate(users.filter(u => u.id !== userId));
+      await apiClient.delete(`/admin/users/${userId}`);
+      onUpdate(usersList.filter(u => u.id !== userId));
       addToast('✓ User deleted', 'success');
     } catch (err) {
       addToast('Error deleting user', 'error');
@@ -459,18 +516,18 @@ const UsersTab = ({ users = [], onUpdate, addToast }) => {
       </div>
 
       <p className="text-sm text-gray-600">
-        Showing {filtered.length} of {users.length} users
+        Showing {filtered.length} of {usersList.length} users
       </p>
     </div>
   );
 };
 
 /**
- * Communications Tab - Send messages and alerts
+ * Communications Tab - Send messages to lecturers and students
  */
 const CommunicationsTab = ({ addToast }) => {
   const [messageType, setMessageType] = useState('broadcast');
-  const [recipientRole, setRecipientRole] = useState('all');
+  const [recipientRole, setRecipientRole] = useState('students');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -484,18 +541,19 @@ const CommunicationsTab = ({ addToast }) => {
 
     try {
       setSending(true);
-      await apiClient.sendCommunication({
-        type: messageType,
-        role: recipientRole,
+      await apiClient.post('/admin/communications/send', {
+        recipientRole,
+        messageType,
         subject,
-        message
+        message,
+        priority: messageType === 'alert' ? 'high' : 'normal'
       });
 
       setSubject('');
       setMessage('');
-      addToast('✓ Message sent', 'success');
+      addToast('✓ Message sent successfully', 'success');
     } catch (err) {
-      addToast('Error sending message: ' + err.message, 'error');
+      addToast('Error sending message', 'error');
     } finally {
       setSending(false);
     }
@@ -526,10 +584,9 @@ const CommunicationsTab = ({ addToast }) => {
             onChange={(e) => setRecipientRole(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
           >
+            <option value="students">All Students</option>
+            <option value="lecturers">All Lecturers</option>
             <option value="all">All Users</option>
-            <option value="student">All Students</option>
-            <option value="lecturer">All Lecturers</option>
-            <option value="admin">All Admins</option>
           </select>
         </div>
 
@@ -578,9 +635,12 @@ const AuditLogsTab = ({ logs = [], addToast }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAction, setFilterAction] = useState('all');
 
-  const actions = [...new Set(logs.map(l => l.action))];
+  // Ensure logs is always an array
+  const logsList = Array.isArray(logs) ? logs : [];
 
-  const filtered = logs.filter(l => {
+  const actions = [...new Set(logsList.map(l => l.action))];
+
+  const filtered = logsList.filter(l => {
     const matchesSearch = l.userId.includes(searchQuery) || l.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesAction = filterAction === 'all' || l.action === filterAction;
     return matchesSearch && matchesAction;
@@ -734,6 +794,530 @@ const AnalyticsTab = ({ data, addToast }) => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+/**
+ * Complaints Tab - Anonymous student complaints
+ */
+const ComplaintsTab = ({ addToast }) => {
+  const [complaints, setComplaints] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchComplaints();
+  }, []);
+
+  const fetchComplaints = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get('/admin/complaints').catch(() => ({ data: [] }));
+      setComplaints(response.data || []);
+    } catch (err) {
+      setComplaints([]);
+      addToast('No complaints available', 'info');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      await apiClient.put(`/admin/complaints/${id}`, { status });
+      setComplaints(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+      addToast('✓ Status updated', 'success');
+    } catch (err) {
+      addToast('Error updating status', 'error');
+    }
+  };
+
+  const complaintsList = Array.isArray(complaints) ? complaints : [];
+  const filtered = complaintsList.filter(c => filterStatus === 'all' || c.status === filterStatus);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg shadow p-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold">📝 Anonymous Complaints</h2>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+        >
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="investigating">Investigating</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-8">Loading complaints...</div>
+      ) : filtered.length > 0 ? (
+        <div className="space-y-3">
+          {filtered.map((complaint, idx) => (
+            <div key={complaint.id || idx} className="bg-white rounded-lg shadow p-4">
+              <div className="flex justify-between items-start mb-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  complaint.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                  complaint.status === 'investigating' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {complaint.status || 'pending'}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {complaint.createdAt ? new Date(complaint.createdAt).toLocaleDateString() : 'Recent'}
+                </span>
+              </div>
+              <p className="text-gray-800 mb-3">{complaint.message || 'Anonymous complaint'}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleStatusUpdate(complaint.id || idx, 'investigating')}
+                  className="px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
+                >
+                  Investigate
+                </button>
+                <button
+                  onClick={() => handleStatusUpdate(complaint.id || idx, 'resolved')}
+                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                >
+                  Resolve
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+          <p>No complaints found</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Reports Tab - Send reports to super admin
+ */
+const ReportsTab = ({ user, addToast }) => {
+  const [reportType, setReportType] = useState('general');
+  const [subject, setSubject] = useState('');
+  const [content, setContent] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!subject || !content) {
+      addToast('Please fill all fields', 'error');
+      return;
+    }
+
+    try {
+      setSending(true);
+      await apiClient.post('/admin/reports/super-admin', {
+        type: reportType,
+        subject,
+        content,
+        adminId: user.id
+      });
+      setSubject('');
+      setContent('');
+      addToast('✓ Report sent to super admin', 'success');
+    } catch (err) {
+      addToast('Error sending report', 'error');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
+      <h2 className="text-xl font-bold mb-6">📋 Send Report to Super Admin</h2>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+          <select
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+          >
+            <option value="general">General Report</option>
+            <option value="incident">Incident Report</option>
+            <option value="performance">Performance Report</option>
+            <option value="resource">Resource Request</option>
+            <option value="urgent">Urgent Issue</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Report subject"
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows="8"
+            placeholder="Detailed report content"
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={sending}
+          className="w-full px-4 py-3 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 font-bold"
+        >
+          {sending ? '📤 Sending...' : '📤 Send Report'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+/**
+ * Department Tab - Manage departmental issues
+ */
+const DepartmentTab = ({ user, addToast }) => {
+  const [issues, setIssues] = useState([]);
+  const [newIssue, setNewIssue] = useState({ title: '', description: '', priority: 'medium' });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchDepartmentIssues();
+  }, []);
+
+  const fetchDepartmentIssues = async () => {
+    try {
+      setLoading(true);
+      const dept = user.department || 'general';
+      const response = await apiClient.get(`/admin/department/${dept}/issues`).catch(() => ({ data: [] }));
+      setIssues(response.data || []);
+    } catch (err) {
+      setIssues([]);
+      addToast('No department issues found', 'info');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateIssue = async (e) => {
+    e.preventDefault();
+    if (!newIssue.title || !newIssue.description) {
+      addToast('Please fill all fields', 'error');
+      return;
+    }
+
+    try {
+      const response = await apiClient.post('/admin/department/issues', {
+        ...newIssue,
+        department: user.department,
+        createdBy: user.id
+      });
+      setIssues(prev => [response.data, ...prev]);
+      setNewIssue({ title: '', description: '', priority: 'medium' });
+      addToast('✓ Issue created', 'success');
+    } catch (err) {
+      addToast('Error creating issue', 'error');
+    }
+  };
+
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      await apiClient.put(`/admin/department/issues/${id}`, { status });
+      setIssues(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+      addToast('✓ Status updated', 'success');
+    } catch (err) {
+      addToast('Error updating status', 'error');
+    }
+  };
+
+  const issuesList = Array.isArray(issues) ? issues : [];
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-bold mb-4">🏢 Department: {user.department || 'Not Assigned'}</h2>
+        
+        <form onSubmit={handleCreateIssue} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Issue title"
+              value={newIssue.title}
+              onChange={(e) => setNewIssue(prev => ({ ...prev, title: e.target.value }))}
+              className="px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+            />
+            <select
+              value={newIssue.priority}
+              onChange={(e) => setNewIssue(prev => ({ ...prev, priority: e.target.value }))}
+              className="px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+            >
+              <option value="low">Low Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <textarea
+            placeholder="Issue description"
+            value={newIssue.description}
+            onChange={(e) => setNewIssue(prev => ({ ...prev, description: e.target.value }))}
+            rows="3"
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            ➕ Create Issue
+          </button>
+        </form>
+      </div>
+
+      <div className="space-y-3">
+        {loading ? (
+          <div className="text-center py-8">Loading issues...</div>
+        ) : (
+          issuesList.map(issue => (
+            <div key={issue.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-lg">{issue.title}</h3>
+                <div className="flex gap-2">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    issue.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                    issue.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                    issue.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {issue.priority}
+                  </span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    issue.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                    issue.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {issue.status || 'pending'}
+                  </span>
+                </div>
+              </div>
+              <p className="text-gray-700 mb-3">{issue.description}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleStatusUpdate(issue.id, 'in-progress')}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  In Progress
+                </button>
+                <button
+                  onClick={() => handleStatusUpdate(issue.id, 'resolved')}
+                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                >
+                  Resolve
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Profile Tab - Admin profile management
+ */
+const ProfileTab = ({ user, addToast }) => {
+  const [profile, setProfile] = useState({
+    name: user.name || '',
+    email: user.email || '',
+    phone: '',
+    department: user.department || '',
+    bio: ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      await apiClient.put('/admin/profile', profile);
+      addToast('✓ Profile updated', 'success');
+    } catch (err) {
+      addToast('Error updating profile', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
+      <h2 className="text-xl font-bold mb-6">👤 Admin Profile</h2>
+
+      <form onSubmit={handleSave} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              type="text"
+              value={profile.name}
+              onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={profile.email}
+              onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <input
+              type="tel"
+              value={profile.phone}
+              onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <input
+              type="text"
+              value={profile.department}
+              onChange={(e) => setProfile(prev => ({ ...prev, department: e.target.value }))}
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+          <textarea
+            value={profile.bio}
+            onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
+            rows="4"
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full px-4 py-3 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 font-bold"
+        >
+          {saving ? '💾 Saving...' : '💾 Save Profile'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+/**
+ * Settings Tab - Admin settings
+ */
+const SettingsTab = ({ user, addToast }) => {
+  const [settings, setSettings] = useState({
+    notifications: true,
+    autoRefresh: false,
+    theme: 'light',
+    language: 'en'
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await apiClient.put('/admin/settings', settings);
+      addToast('✓ Settings saved', 'success');
+    } catch (err) {
+      addToast('Error saving settings', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
+      <h2 className="text-xl font-bold mb-6">⚙️ Admin Settings</h2>
+
+      <div className="space-y-6">
+        <div>
+          <h3 className="font-medium text-gray-900 mb-3">Notifications</h3>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={settings.notifications}
+              onChange={(e) => setSettings(prev => ({ ...prev, notifications: e.target.checked }))}
+              className="w-4 h-4"
+            />
+            <span>Enable email notifications</span>
+          </label>
+        </div>
+
+        <div>
+          <h3 className="font-medium text-gray-900 mb-3">Dashboard</h3>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={settings.autoRefresh}
+              onChange={(e) => setSettings(prev => ({ ...prev, autoRefresh: e.target.checked }))}
+              className="w-4 h-4"
+            />
+            <span>Auto-refresh dashboard</span>
+          </label>
+        </div>
+
+        <div>
+          <h3 className="font-medium text-gray-900 mb-3">Appearance</h3>
+          <select
+            value={settings.theme}
+            onChange={(e) => setSettings(prev => ({ ...prev, theme: e.target.value }))}
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+          >
+            <option value="light">Light Theme</option>
+            <option value="dark">Dark Theme</option>
+            <option value="auto">Auto</option>
+          </select>
+        </div>
+
+        <div>
+          <h3 className="font-medium text-gray-900 mb-3">Language</h3>
+          <select
+            value={settings.language}
+            onChange={(e) => setSettings(prev => ({ ...prev, language: e.target.value }))}
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-red-600"
+          >
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+          </select>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full px-4 py-3 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 font-bold"
+        >
+          {saving ? '💾 Saving...' : '💾 Save Settings'}
+        </button>
+      </div>
     </div>
   );
 };

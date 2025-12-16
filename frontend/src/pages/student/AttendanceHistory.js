@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+import apiClient from '../../services/apiClient';
 
 const AttendanceHistory = () => {
   const [attendance, setAttendance] = useState([]);
@@ -11,17 +10,9 @@ const AttendanceHistory = () => {
     const fetchAttendance = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
-        // Fetch attendance analytics
-        const response = await fetch(`${API_URL}/attendance-analytics/per-course`, { headers });
-        if (response.ok) {
-          const data = await response.json();
-          setAttendance(data.data || []);
-        } else {
-          setError('Failed to fetch attendance data');
-        }
+        // Fetch attendance analytics via apiClient
+        const data = await apiClient.get('/attendance-analytics/per-course');
+        setAttendance(data.data || data || []);
       } catch (err) {
         setError('Error fetching attendance data');
       } finally {

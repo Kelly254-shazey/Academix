@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5001') + '/api';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -32,38 +32,21 @@ function Login() {
         return;
       }
 
-      // Call backend API
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: email.toLowerCase(),
-          password
-        })
-      });
+      // Call backend API via apiClient
+      const apiClient = await import('../services/apiClient').then(m => m.default);
+      const data = await apiClient.login(email.toLowerCase(), password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || 'Login failed');
-        return;
+      // Login user and pass token (apiClient.login sets token internally)
+      if (data && data.token) {
+        localStorage.setItem('token', data.token);
       }
-
-      // Store token in localStorage and set in auth context
-      const token = data.token;
-      localStorage.setItem('token', token);
-
-      // Login user and pass token
-      login(data.user, token);
+      login(data.user, data.token);
 
       // Redirect based on role
       navigate('/');
     } catch (err) {
       console.error('Login error:', err);
-      setError(`Failed to connect to server. Make sure backend is running on ${API_URL}.`);
+      setError(`Failed to connect to server. Make sure backend is running on http://localhost:5003.`);
     } finally {
       setIsLoading(false);
     }

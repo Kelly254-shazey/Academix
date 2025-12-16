@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import apiClient from '../services/apiClient';
 import './Messages.css';
 
 function Messages({ setUnreadMessages }) {
@@ -8,20 +9,13 @@ function Messages({ setUnreadMessages }) {
   const [messageText, setMessageText] = useState('');
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch(`${API_URL}/messages?userId=${user.id}`, { headers });
-      if (!res.ok) {
-        throw new Error('Failed to fetch conversations');
-      }
-      const data = await res.json();
-      // Expect an array of conversations
+      const data = await apiClient.get('/messages', { userId: user.id });
       setConversations(data.conversations || data || []);
     } catch (err) {
       console.error('Error loading conversations:', err);
@@ -29,7 +23,7 @@ function Messages({ setUnreadMessages }) {
     } finally {
       setLoading(false);
     }
-  }, [user, API_URL]);
+  }, [user]);
 
   useEffect(() => {
     fetchConversations();
@@ -40,9 +34,7 @@ function Messages({ setUnreadMessages }) {
     // Mark as read on backend if supported
     (async () => {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-        await fetch(`${API_URL}/messages/${chat.id}/mark-read`, { method: 'PUT', headers });
+        await apiClient.put(`/messages/${chat.id}/mark-read`, {});
       } catch (err) {
         // ignore
       }
@@ -60,15 +52,7 @@ function Messages({ setUnreadMessages }) {
     if (!messageText.trim() || !selectedChat) return;
     (async () => {
       try {
-        const token = localStorage.getItem('token');
-        const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-        const res = await fetch(`${API_URL}/messages/send`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ to: selectedChat.id, text: messageText })
-        });
-        if (!res.ok) throw new Error('Send failed');
-        const data = await res.json();
+        const data = await apiClient.post('/messages/send', { to: selectedChat.id, text: messageText });
         // If backend returns updated conversation, replace it; otherwise append locally
         if (data.conversation) {
           setConversations(prev => prev.map(c => c.id === data.conversation.id ? data.conversation : c));

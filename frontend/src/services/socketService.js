@@ -28,19 +28,29 @@ class SocketService {
   connect(token, userId, userRole) {
     return new Promise((resolve, reject) => {
       try {
+        // Don't create new connection if already connected
+        if (this.connected && this.socket) {
+          resolve(this.socket);
+          return;
+        }
+
         this.userId = userId;
         this.userRole = userRole;
 
-        this.socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:5002', {
+        // Use socket URL or derive from API URL
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003/api';
+        const backendUrl = apiUrl.replace(/\/api\/?$/i, '');
+        const socketUrl = process.env.REACT_APP_SOCKET_URL || backendUrl;
+
+        this.socket = io(socketUrl, {
           auth: {
             token,
             userId,
             userRole
           },
-          reconnection: true,
-          reconnectionDelay: 1000,
-          reconnectionDelayMax: 5000,
-          reconnectionAttempts: this.maxReconnectAttempts
+          reconnection: false, // Disable auto-reconnection to prevent spam
+          timeout: 10000,
+          forceNew: false
         });
 
         // Connection established
@@ -260,4 +270,5 @@ class SocketService {
 }
 
 // Export singleton instance
-export default new SocketService();
+const socketService = new SocketService();
+export default socketService;

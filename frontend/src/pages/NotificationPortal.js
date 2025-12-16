@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import apiClient from '../services/apiClient';
 import './NotificationPortal.css';
 
 function NotificationPortal() {
@@ -25,14 +26,9 @@ function NotificationPortal() {
   React.useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5002'}/classes`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setCourses(data.data || []);
-          if (data.data?.length > 0) setSelectedCourse(data.data[0].name || data.data[0].course_name);
-        }
+        const data = await apiClient.get('/classes');
+        setCourses(data.data || data || []);
+        if ((data.data || data)?.length > 0) setSelectedCourse((data.data || data)[0].name || (data.data || data)[0].course_name);
       } catch (err) {
         console.error('Error fetching courses:', err);
         setCourses([]);

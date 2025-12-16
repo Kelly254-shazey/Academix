@@ -1,12 +1,12 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
-const { validateRequest } = require('../middlewares/validation');
-const schemas = require('../validators/schemas');
+const { authenticateToken } = require('../middlewares/authMiddleware');
+
+
 const userSettingsService = require('../services/userSettingsService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/settings
 // Get user settings
@@ -41,11 +41,9 @@ router.get('/student', async (req, res) => {
 // PUT /api/settings
 // Update user settings
 router.put(
-  '/',
-  validateRequest(schemas.updateSettingsSchema),
-  async (req, res) => {
+  '/', async (req, res) => {
     try {
-      const result = await userSettingsService.updateSettings(req.user.id, req.validatedData);
+      const result = await userSettingsService.updateSettings(req.user.id, req.body);
       res.json({
         success: true,
         data: result,
@@ -60,11 +58,9 @@ router.put(
 // PUT /api/settings/student
 // Update student settings explicitly
 router.put(
-  '/student',
-  validateRequest(schemas.updateSettingsSchema),
-  async (req, res) => {
+  '/student', async (req, res) => {
     try {
-      const result = await userSettingsService.updateSettings(req.user.id, req.validatedData);
+      const result = await userSettingsService.updateSettings(req.user.id, req.body);
       res.json({
         success: true,
         data: result,
@@ -79,11 +75,9 @@ router.put(
 // POST /api/settings/change-password
 // Change password
 router.post(
-  '/change-password',
-  validateRequest(schemas.changePasswordSchema),
-  async (req, res) => {
+  '/change-password', async (req, res) => {
     try {
-      const { current_password, new_password } = req.validatedData;
+      const { current_password, new_password } = req.body;
       const result = await userSettingsService.changePassword(
         req.user.id,
         current_password,

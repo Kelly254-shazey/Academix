@@ -5,7 +5,7 @@ import {
   Search,
   User
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function AdminMessaging() {
   const [conversations, setConversations] = useState([]);

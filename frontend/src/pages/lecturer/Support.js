@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Send, Phone, Mail, Clock, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function Support() {
   const [tickets, setTickets] = useState([]);

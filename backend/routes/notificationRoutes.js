@@ -1,12 +1,10 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
-const { validateRequest } = require('../middlewares/validation');
-const schemas = require('../validators/schemas');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const notificationService = require('../services/notificationService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/notifications
 // Get user notifications
@@ -44,12 +42,9 @@ router.get('/unread-count', async (req, res) => {
 
 // POST /api/notifications/mark-read
 // Mark notifications as read
-router.post(
-  '/mark-read',
-  validateRequest(schemas.markNotificationSchema),
-  async (req, res) => {
+router.post('/mark-read', async (req, res) => {
     try {
-      const result = await notificationService.markAsRead(req.validatedData.ids, req.user.id);
+      const result = await notificationService.markAsRead(req.body.ids, req.user.id);
       res.json({
         success: true,
         data: result,
@@ -63,12 +58,9 @@ router.post(
 
 // POST /api/notifications/mark-unread
 // Mark notifications as unread
-router.post(
-  '/mark-unread',
-  validateRequest(schemas.markNotificationSchema),
-  async (req, res) => {
+router.post('/mark-unread', async (req, res) => {
     try {
-      const result = await notificationService.markAsUnread(req.validatedData.ids, req.user.id);
+      const result = await notificationService.markAsUnread(req.body.ids, req.user.id);
       res.json({
         success: true,
         data: result,

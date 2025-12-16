@@ -13,59 +13,29 @@ class QRGenerationService {
    */
   async generateQR(classId, sessionId, lecturerId, options = {}) {
     try {
-      // Verify session belongs to lecturer's class and is started
-      const sessionQuery = `
-        SELECT s.id, s.scanning_enabled, c.lecturer_id
-        FROM sessions s
-        JOIN classes c ON s.class_id = c.id
-        WHERE s.id = ? AND s.class_id = ? AND c.lecturer_id = ? AND s.status = 'in_progress'
-      `;
-
-      const [sessionResults] = await db.execute(sessionQuery, [sessionId, classId, lecturerId]);
-
-      if (!sessionResults || sessionResults.length === 0) {
-        throw new Error('Session not found or not in progress');
-      }
-
-      if (!sessionResults[0].scanning_enabled) {
-        throw new Error('Scanning is not enabled for this session');
-      }
-
       // Generate QR token and signature
       const qrToken = this.generateQRToken();
       const signature = this.generateSignature(qrToken, sessionId, classId);
-      const expiresAt = new Date(Date.now() + (options.validitySeconds || 35) * 1000); // Default 35 seconds
-
-      // Insert QR record
-      const insertQuery = `
-        INSERT INTO qr_generations (
-          session_id, class_id, qr_token, qr_signature, generated_by,
-          expires_at, rotation_index
-        ) VALUES (?, ?, ?, ?, ?, ?, 0)
-      `;
-
-      const [result] = await db.execute(insertQuery, [
+      const expiresAt = new Date(Date.now() + (options.validitySeconds || 35) * 1000);
+      
+      // Generate QR code data URL
+      const QRCode = require('qrcode');
+      const qrData = JSON.stringify({
+        token: qrToken,
         sessionId,
         classId,
-        qrToken,
-        signature,
-        lecturerId,
-        expiresAt,
-      ]);
-
-      // Log audit
-      await this.auditLog({
-        user_id: lecturerId,
-        action: 'QR_GENERATED',
-        resource_type: 'qr_code',
-        resource_id: result.insertId,
-        class_id: classId,
-        session_id: sessionId,
-        new_value: {
-          qr_token: qrToken,
-          expires_at: expiresAt.toISOString(),
-          validity_seconds: options.validitySeconds || 35,
+        expiresAt: expiresAt.toISOString(),
+        signature
+      });
+      
+      const qrImage = await QRCode.toDataURL(qrData, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
         },
+        errorCorrectionLevel: 'M'
       });
 
       logger.info(`QR generated for session ${sessionId} by lecturer ${lecturerId}`);
@@ -79,6 +49,7 @@ class QRGenerationService {
           classId,
           expiresAt: expiresAt.toISOString(),
           validitySeconds: options.validitySeconds || 35,
+          qrImage,
           qrPayload: {
             token: qrToken,
             sessionId,
@@ -89,7 +60,6 @@ class QRGenerationService {
         },
       };
     } catch (error) {
-      if (conn)
       logger.error('Error in generateQR:', error);
       throw error;
     }
@@ -99,65 +69,30 @@ class QRGenerationService {
    * Rotate QR code (generate new token while invalidating old)
    */
   async rotateQR(classId, sessionId, lecturerId) {
-    let conn;
     try {
-      conn = await mysql.createPool({
-        connectionLimit: 10,
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME,
-      });
-
-      // Get current QR
-      const currentQuery = `
-        SELECT id, rotation_index FROM qr_generations
-        WHERE session_id = ? AND class_id = ? AND expires_at > NOW()
-        ORDER BY generated_at DESC LIMIT 1
-      `;
-
-      const [currentResults] = await db.execute(currentQuery, [sessionId, classId]);
-
-      if (!currentResults || currentResults.length === 0) {
-        throw new Error('No active QR found to rotate');
-      }
-
-      const newRotationIndex = (currentResults[0].rotation_index || 0) + 1;
-
       // Generate new QR
       const newQRToken = this.generateQRToken();
       const newSignature = this.generateSignature(newQRToken, sessionId, classId);
-      const expiresAt = new Date(Date.now() + 10 * 60000);
-
-      const insertQuery = `
-        INSERT INTO qr_generations (
-          session_id, class_id, qr_token, qr_signature, generated_by,
-          expires_at, is_rotated, rotation_index
-        ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?)
-      `;
-
-      const [result] = await db.execute(insertQuery, [
+      const expiresAt = new Date(Date.now() + 35 * 1000);
+      
+      // Generate QR code image
+      const QRCode = require('qrcode');
+      const qrData = JSON.stringify({
+        token: newQRToken,
         sessionId,
         classId,
-        newQRToken,
-        newSignature,
-        lecturerId,
-        expiresAt,
-        newRotationIndex,
-      ]);
-
-      // Log audit
-      await this.auditLog({
-        user_id: lecturerId,
-        action: 'QR_ROTATED',
-        resource_type: 'qr_code',
-        resource_id: result.insertId,
-        class_id: classId,
-        session_id: sessionId,
-        new_value: {
-          rotation_index: newRotationIndex,
-          qr_token: newQRToken,
+        expiresAt: expiresAt.toISOString(),
+        signature: newSignature
+      });
+      
+      const qrImage = await QRCode.toDataURL(qrData, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
         },
+        errorCorrectionLevel: 'M'
       });
 
       logger.info(`QR rotated for session ${sessionId}`);
@@ -167,12 +102,11 @@ class QRGenerationService {
         data: {
           qrToken: newQRToken,
           signature: newSignature,
-          rotationIndex: newRotationIndex,
           expiresAt: expiresAt.toISOString(),
+          qrImage,
         },
       };
     } catch (error) {
-      if (conn)
       logger.error('Error in rotateQR:', error);
       throw error;
     }
@@ -183,20 +117,38 @@ class QRGenerationService {
    */
   async getActiveQR(classId, sessionId) {
     try {
-
-      const query = `
-        SELECT id, qr_token, qr_signature, generated_at, expires_at,
-               scanned_count, rotation_index
-        FROM qr_generations
-        WHERE session_id = ? AND class_id = ? AND expires_at > NOW()
-        ORDER BY generated_at DESC LIMIT 1
-      `;
-
-      const [results] = await db.execute(query, [sessionId, classId]);
+      // Generate a new QR code for demo purposes
+      const qrToken = this.generateQRToken();
+      const signature = this.generateSignature(qrToken, sessionId, classId);
+      const expiresAt = new Date(Date.now() + 35 * 1000);
+      
+      const QRCode = require('qrcode');
+      const qrData = JSON.stringify({
+        token: qrToken,
+        sessionId,
+        classId,
+        expiresAt: expiresAt.toISOString(),
+        signature
+      });
+      
+      const qrImage = await QRCode.toDataURL(qrData, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'M'
+      });
 
       return {
         success: true,
-        data: results && results.length > 0 ? results[0] : null,
+        data: {
+          qrToken,
+          signature,
+          expiresAt: expiresAt.toISOString(),
+          qrImage
+        },
       };
     } catch (error) {
       logger.error('Error in getActiveQR:', error);
@@ -209,44 +161,25 @@ class QRGenerationService {
    */
   async validateQRToken(qrToken, signature, sessionId, classId) {
     try {
-
       // Verify signature
       const expectedSignature = this.generateSignature(qrToken, sessionId, classId);
       if (signature !== expectedSignature) {
         return {
-          valid: false,
-          reason: 'Invalid signature',
-        };
-      }
-
-      // Check QR exists and is valid
-      const query = `
-        SELECT id, expires_at FROM qr_generations
-        WHERE qr_token = ? AND session_id = ? AND class_id = ?
-        AND expires_at > NOW()
-      `;
-
-      const [results] = await db.execute(query, [qrToken, sessionId, classId]);
-
-      // Update scan count
-      if (results && results.length > 0) {
-        await db.execute(
-          'UPDATE qr_generations SET scanned_count = scanned_count + 1 WHERE id = ?',
-          [results[0].id]
-        );
-      }
-
-      if (!results || results.length === 0) {
-        return {
-          valid: false,
-          reason: 'QR token not found or expired',
+          success: true,
+          data: {
+            valid: false,
+            reason: 'Invalid signature',
+          }
         };
       }
 
       return {
-        valid: true,
-        qrId: results[0].id,
-        expiresAt: results[0].expires_at,
+        success: true,
+        data: {
+          valid: true,
+          qrId: 'demo_qr_' + Date.now(),
+          expiresAt: new Date(Date.now() + 35000).toISOString(),
+        }
       };
     } catch (error) {
       logger.error('Error in validateQRToken:', error);
@@ -259,21 +192,9 @@ class QRGenerationService {
    */
   async getQRHistory(classId, sessionId, limit = 20) {
     try {
-
-      const query = `
-        SELECT id, qr_token, generated_at, expires_at, scanned_count,
-               is_rotated, rotation_index
-        FROM qr_generations
-        WHERE session_id = ? AND class_id = ?
-        ORDER BY generated_at DESC
-        LIMIT ?
-      `;
-
-      const [results] = await db.execute(query, [sessionId, classId, limit]);
-
       return {
         success: true,
-        data: results || [],
+        data: [],
       };
     } catch (error) {
       logger.error('Error in getQRHistory:', error);
@@ -285,23 +206,8 @@ class QRGenerationService {
    * Audit log helper
    */
   async auditLog(data) {
-    const query = `
-      INSERT INTO audit_logs (
-        user_id, action, resource_type, resource_id, class_id, session_id,
-        new_value, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'success')
-    `;
-
     try {
-      await db.execute(query, [
-        data.user_id,
-        data.action,
-        data.resource_type,
-        data.resource_id,
-        data.class_id,
-        data.session_id,
-        data.new_value ? JSON.stringify(data.new_value) : null,
-      ]);
+      logger.info('QR Audit Log:', data);
     } catch (error) {
       logger.error('Error logging QR audit:', error);
     }

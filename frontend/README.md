@@ -1,114 +1,142 @@
-# 🎓 Attendance System - Frontend README
+# Academix Frontend
 
-## Overview
+React-based frontend for the Academix attendance management system.
 
-React-based frontend for the Real-Time Attendance Management System. Provides role-based dashboards for Students, Lecturers, and Admins with real-time WebSocket integration.
+## Features
 
-## 🏗️ Architecture
+- **Multi-role Authentication**: Student, Lecturer, and Admin portals
+- **Real-time Updates**: Socket.IO integration for live notifications
+- **QR Code Scanning**: Attendance marking via QR codes
+- **Offline Support**: Queue scans when offline, sync when online
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **Export Functionality**: CSV/JSON export capabilities
 
-### Context Providers
-1. **AuthContext** - User authentication and JWT token management
-2. **NotificationContext** - Socket.IO connection and real-time events
+## Quick Start
 
-### Custom Hooks
-- **useClasses()** - Class management API calls
-- **useAttendance()** - Attendance marking and retrieval
-- **useAnalytics()** - Analytics and reporting
+### Prerequisites
 
-### Components
-- **ProtectedRoute** - Route guard for authenticated users
-- **Navbar** - Navigation with user menu and notifications
-
-### Pages
-- **Login** - User authentication
-- **StudentDashboard** - View classes, attendance, notifications
-- **LecturerDashboard** - Mark attendance, view analytics
-- **AdminDashboard** - Platform-wide statistics
-
-## 🚀 Getting Started
+- Node.js 16+ and npm
+- Backend server running on http://localhost:5002
 
 ### Installation
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` if needed to match your backend URL.
+
+3. **Start development server:**
+   ```bash
+   npm start
+   ```
+   Or use the batch script: `start-frontend.bat`
+
+The app will open at http://localhost:3000
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── context/            # React context providers
+├── hooks/              # Custom React hooks
+├── pages/              # Main pages (Login, SignUp)
+├── portals/            # Role-specific portals
+├── services/           # API and external services
+├── utils/              # Utility functions
+└── App.js              # Main app component
+```
+
+## Key Components
+
+### Portals
+- **StudentPortal**: Dashboard, QR scanning, timetable, notifications
+- **LecturerPortal**: QR generation, session management, reports
+- **AdminPortal**: User management, analytics, communications
+
+### Services
+- **apiClient**: Centralized HTTP client for backend API
+- **socketService**: Real-time WebSocket communication
+- **offlineQueueService**: Offline scan queuing and sync
+
+## Environment Variables
+
 ```bash
-npm install
+REACT_APP_BACKEND_URL=http://localhost:5002/api
+REACT_APP_SOCKET_URL=http://localhost:5002
+REACT_APP_DEBUG_MODE=true
 ```
 
-### Environment Configuration
+## Available Scripts
+
+- `npm start` - Start development server
+- `npm build` - Build for production
+- `npm test` - Run tests
+- `npm run eject` - Eject from Create React App
+
+## Authentication Flow
+
+1. User logs in via `/login`
+2. Backend returns JWT token and user data
+3. Token stored in localStorage
+4. User redirected to appropriate portal based on role
+5. Socket.IO connection established for real-time updates
+
+## Offline Support
+
+The app supports offline QR scanning:
+- Scans are queued locally when offline
+- Automatic sync when connection restored
+- Visual indicators for offline status
+- Failed scans are retried with exponential backoff
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Backend Connection Failed**
+   - Ensure backend is running on http://localhost:5002
+   - Check REACT_APP_BACKEND_URL in .env
+
+2. **Socket Connection Issues**
+   - Verify REACT_APP_SOCKET_URL matches backend
+   - Check browser console for WebSocket errors
+
+3. **Build Errors**
+   - Clear node_modules: `rm -rf node_modules && npm install`
+   - Check for TypeScript errors in console
+
+### Debug Mode
+
+Set `REACT_APP_DEBUG_MODE=true` to enable:
+- Detailed error messages
+- Console logging
+- Development tools
+
+## Production Build
+
 ```bash
-# .env
-REACT_APP_API_URL=http://localhost:5000/api
-REACT_APP_SOCKET_URL=http://localhost:5000
+npm run build
 ```
 
-### Start Development Server
-```bash
-npm start
-```
+Builds optimized production files in `build/` directory.
 
-## 📱 Features
+## Browser Support
 
-### Student Dashboard
-- View enrolled classes
-- Check attendance records
-- View real-time notifications
-- Download attendance reports
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
 
-### Lecturer Dashboard
-- View all classes
-- Mark student attendance
-- View class statistics
-- Access attendance analytics
+## Contributing
 
-### Admin Dashboard
-- Platform overview statistics
-- User management
-- System monitoring
-- Report generation
-
-## 🔌 Real-Time Integration
-
-### Socket.IO Events
-```javascript
-// Connect to WebSocket
-socket.emit('user:join', userId);
-socket.emit('class:join', classId);
-
-// Listen for updates
-socket.on('notification:received', (data) => {});
-socket.on('attendance:updated', (data) => {});
-socket.on('class:cancelled', (data) => {});
-```
-
-## 📚 API Integration
-
-All API calls are handled through custom hooks:
-```javascript
-const { classes, getStudentClasses } = useClasses();
-const { markAttendance } = useAttendance();
-const { report, getStudentReport } = useAnalytics();
-```
-
-## 🎨 Styling
-
-- **Mobile-First Design** - Works on all screen sizes
-- **Responsive Breakpoints** - 320px, 768px, 1200px+
-- **CSS Variables** - Easy theme customization
-- **Gradient Backgrounds** - Modern UI design
-
-## 🧪 Local Testing
-
-1. **Login**: Use demo credentials
-2. **Real-Time**: Open two browser windows to test notifications
-3. **Responsive**: Use DevTools to test mobile layout
-4. **WebSocket**: Check Network tab in DevTools for Socket.IO connections
-
-## 📦 Dependencies
-
-- react@18.2.0
-- react-router-dom@6.8.0
-- axios@1.3.2
-- socket.io-client@4.5.4
-- date-fns@2.29.3
-
----
-
-See main README.md for full documentation.
+1. Follow existing code style
+2. Add proper error handling
+3. Include TypeScript types where applicable
+4. Test on multiple devices/browsers

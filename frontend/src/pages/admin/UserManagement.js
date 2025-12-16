@@ -13,7 +13,7 @@ import {
   XCircle,
   Upload
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);

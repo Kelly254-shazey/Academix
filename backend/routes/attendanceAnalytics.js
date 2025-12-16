@@ -1,14 +1,12 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
-const { validateRequest, validateQuery } = require('../middlewares/validation');
-const schemas = require('../validators/schemas');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const attendanceAnalyticsService = require('../services/attendanceAnalyticsService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
 
 // All routes require authentication
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/attendance/overall
 // Get overall attendance percentage
@@ -42,12 +40,9 @@ router.get('/per-course', async (req, res) => {
 
 // GET /api/attendance/analytics
 // Get attendance analytics with trends
-router.get(
-  '/analytics',
-  validateQuery(schemas.attendanceAnalyticsSchema),
-  async (req, res) => {
+router.get('/analytics', async (req, res) => {
     try {
-      const { start_date, end_date, include_trends } = req.validatedQuery;
+      const { start_date, end_date, include_trends } = req.query;
       const result = await attendanceAnalyticsService.getAttendanceAnalytics(
         req.user.id,
         start_date,
@@ -121,12 +116,9 @@ router.get('/absentee-risk', async (req, res) => {
 
 // GET /api/attendance/summary
 // Get attendance summary for date range
-router.get(
-  '/summary',
-  validateQuery(schemas.analyticsQuerySchema),
-  async (req, res) => {
+router.get('/summary', async (req, res) => {
     try {
-      const { start_date, end_date } = req.validatedQuery;
+      const { start_date, end_date } = req.query;
       const startDate = start_date || new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
       const endDate = end_date || new Date().toISOString().split('T')[0];
 

@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const reportingService = require('../services/reportingService');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole, requirePermission, auditAction } = require('../middlewares/rbacMiddleware');
 const { exportJobSchema, reportRequestSchema } = require('../validators/adminSchemas');
 const logger = require('../utils/logger');
@@ -16,7 +16,7 @@ const logger = require('../utils/logger');
  * GET /api/reports/student
  * Get student attendance reports and analytics
  */
-router.get('/student', authMiddleware, async (req, res) => {
+router.get('/student', authenticateToken, async (req, res) => {
   try {
     const period = req.query.period || 'month'; // week, month, semester, year
     const attendanceAnalyticsService = require('../services/attendanceAnalyticsService');
@@ -62,7 +62,7 @@ router.get('/student', authMiddleware, async (req, res) => {
 });
 
 // All other report routes require admin role
-router.use(requireRole(['admin', 'superadmin']));
+
 
 /**
  * POST /api/reports/export-job
@@ -70,8 +70,7 @@ router.use(requireRole(['admin', 'superadmin']));
  */
 router.post('/export-job',
   requirePermission('manage_reports'),
-  auditAction('CREATE', 'export_job'),
-  async (req, res) => {
+  auditAction('CREATE', 'export_job'), async (req, res) => {
     try {
       const { error } = exportJobSchema.validate(req.body);
       if (error) {
@@ -116,8 +115,7 @@ router.post('/export-job',
  * Get status of export job
  */
 router.get('/export-job/:jobId',
-  requirePermission('view_reports'),
-  async (req, res) => {
+  requirePermission('view_reports'), async (req, res) => {
     try {
       const result = await reportingService.getExportJobStatus(req.params.jobId);
 
@@ -141,8 +139,7 @@ router.get('/export-job/:jobId',
  * List all export jobs with pagination and filters
  */
 router.get('/export-jobs',
-  requirePermission('view_reports'),
-  async (req, res) => {
+  requirePermission('view_reports'), async (req, res) => {
     try {
       const filters = {
         status: req.query.status,
@@ -176,8 +173,7 @@ router.get('/export-jobs',
  */
 router.post('/attendance-report',
   requirePermission('manage_reports'),
-  auditAction('CREATE', 'attendance_report'),
-  async (req, res) => {
+  auditAction('CREATE', 'attendance_report'), async (req, res) => {
     try {
       const { dateFrom, dateTo, departmentId, format = 'pdf' } = req.body;
 
@@ -213,8 +209,7 @@ router.post('/attendance-report',
  */
 router.post('/department-report',
   requirePermission('manage_reports'),
-  auditAction('CREATE', 'department_report'),
-  async (req, res) => {
+  auditAction('CREATE', 'department_report'), async (req, res) => {
     try {
       const { departmentId, format = 'pdf', includeMetrics = true } = req.body;
 
@@ -249,8 +244,7 @@ router.post('/department-report',
  */
 router.delete('/export-job/:jobId',
   requirePermission('manage_reports'),
-  auditAction('DELETE', 'export_job'),
-  async (req, res) => {
+  auditAction('DELETE', 'export_job'), async (req, res) => {
     try {
       const result = await reportingService.cancelExportJob(req.params.jobId);
 

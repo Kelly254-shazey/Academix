@@ -13,7 +13,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const classSessionService = require('../services/classSessionService');
 const classService = require('../services/classService');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
   sessionStartSchema,
   sessionDelaySchema,
@@ -52,9 +52,8 @@ const validateLecturerAccess = async (req, res, next) => {
  */
 router.post(
   '/:classId/sessions/:sessionId/start',
-  authMiddleware,
-  validateLecturerAccess,
-  async (req, res) => {
+  authenticateToken,
+  validateLecturerAccess, async (req, res) => {
     try {
       const { error, value } = sessionStartSchema.validate({
         classId: parseInt(req.params.classId),
@@ -103,9 +102,8 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/delay',
-  authMiddleware,
-  validateLecturerAccess,
-  async (req, res) => {
+  authenticateToken,
+  validateLecturerAccess, async (req, res) => {
     try {
       const { error, value } = sessionDelaySchema.validate({
         classId: parseInt(req.params.classId),
@@ -163,9 +161,8 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/cancel',
-  authMiddleware,
-  validateLecturerAccess,
-  async (req, res) => {
+  authenticateToken,
+  validateLecturerAccess, async (req, res) => {
     try {
       const { error, value } = sessionCancelSchema.validate({
         classId: parseInt(req.params.classId),
@@ -221,9 +218,8 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/room-change',
-  authMiddleware,
-  validateLecturerAccess,
-  async (req, res) => {
+  authenticateToken,
+  validateLecturerAccess, async (req, res) => {
     try {
       const { error, value } = roomChangeSchema.validate({
         classId: parseInt(req.params.classId),
@@ -288,9 +284,8 @@ router.post(
  */
 router.post(
   '/:classId/sessions/:sessionId/scanning',
-  authMiddleware,
-  validateLecturerAccess,
-  async (req, res) => {
+  authenticateToken,
+  validateLecturerAccess, async (req, res) => {
     try {
       const { error, value } = toggleScanningSchema.validate({
         classId: parseInt(req.params.classId),
@@ -341,9 +336,8 @@ router.post(
  */
 router.get(
   '/:classId/sessions/:sessionId/state',
-  authMiddleware,
-  validateLecturerAccess,
-  async (req, res) => {
+  authenticateToken,
+  validateLecturerAccess, async (req, res) => {
     try {
       const { classId, sessionId } = req.params;
 

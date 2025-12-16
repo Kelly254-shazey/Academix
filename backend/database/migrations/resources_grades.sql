@@ -1,0 +1,32 @@
+-- Resources Table
+CREATE TABLE IF NOT EXISTS resources (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  class_id INT NOT NULL,
+  lecturer_id INT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  type ENUM('video', 'document', 'link', 'assignment') NOT NULL,
+  url VARCHAR(500),
+  file_size INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (lecturer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Grades Table
+CREATE TABLE IF NOT EXISTS grades (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  student_id INT NOT NULL,
+  class_id INT NOT NULL,
+  lecturer_id INT NOT NULL,
+  assignment_name VARCHAR(255) NOT NULL,
+  grade DECIMAL(5,2) NOT NULL,
+  max_grade DECIMAL(5,2) DEFAULT 100,
+  comments TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+  FOREIGN KEY (lecturer_id) REFERENCES users(id) ON DELETE CASCADE
+);

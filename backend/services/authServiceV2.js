@@ -122,7 +122,7 @@ exports.login = async (data, clientIP) => {
 
     // Find user
     const [rows] = await db.execute(
-      `SELECT id, name, email, password_hash, role, avatar, department, student_id, status FROM users WHERE email = ?`,
+      `SELECT id, name, email, password_hash, role, avatar, department, student_id FROM users WHERE email = ?`,
       [normalizedEmail]
     );
 
@@ -134,12 +134,6 @@ exports.login = async (data, clientIP) => {
     }
 
     const user = rows[0];
-
-    // Check if account is active
-    if (user.status && user.status !== 'active') {
-      await recordLoginAttempt(normalizedEmail, 'failed-inactive-account', clientIP);
-      throw { code: 'ACCOUNT_INACTIVE', message: 'This account is inactive', status: 403 };
-    }
 
     // Verify password (async)
     let isPasswordValid = false;
@@ -184,15 +178,15 @@ exports.login = async (data, clientIP) => {
     await recordLoginAttempt(normalizedEmail, 'success', clientIP);
 
     // Update last login timestamp
-    try {
-      await db.execute(
-        `UPDATE users SET last_login = NOW() WHERE id = ?`,
-        [user.id]
-      );
-    } catch (error) {
-      logger.error('Error updating last login:', error);
-      // Don't fail login if this fails
-    }
+    // NOTE: last_login column doesn't exist yet, skipping for now
+    // try {
+    //   await db.execute(
+    //     `UPDATE users SET last_login = NOW() WHERE id = ?`,
+    //     [user.id]
+    //   );
+    // } catch (error) {
+    //   logger.error('Error updating last login:', error);
+    // }
 
     logger.info('Successful login', {
       userId: user.id,
@@ -251,15 +245,9 @@ exports.register = async (data) => {
       throw AuthErrors.INVALID_EMAIL_FORMAT;
     }
 
-    // Validate password strength (minimum 8 characters, at least one uppercase, one number)
-    if (password.length < 8) {
-      throw { code: 'WEAK_PASSWORD', message: 'Password must be at least 8 characters long', status: 400 };
-    }
-    if (!/[A-Z]/.test(password)) {
-      throw { code: 'WEAK_PASSWORD', message: 'Password must contain at least one uppercase letter', status: 400 };
-    }
-    if (!/[0-9]/.test(password)) {
-      throw { code: 'WEAK_PASSWORD', message: 'Password must contain at least one number', status: 400 };
+    // Validate password strength (minimum 6 characters)
+    if (password.length < 6) {
+      throw { code: 'WEAK_PASSWORD', message: 'Password must be at least 6 characters long', status: 400 };
     }
 
     // Check if password and confirmPassword match
@@ -419,7 +407,7 @@ exports.verifyToken = async (token) => {
 exports.getUserById = async (userId) => {
   try {
     const [rows] = await db.execute(
-      `SELECT id, name, email, role, avatar, department, student_id, created_at, last_login FROM users WHERE id = ?`,
+      `SELECT id, name, email, role, avatar, department, student_id, created_at FROM users WHERE id = ?`,
       [userId]
     );
 

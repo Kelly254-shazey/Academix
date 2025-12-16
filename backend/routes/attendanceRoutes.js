@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { 
   validateQRScan, 
   verifyClassSession, 
@@ -24,11 +24,10 @@ const logger = require('../utils/logger');
  */
 router.post(
   '/scan',
-  authMiddleware,
+  authenticateToken,
   scanAttemptLimiter,
   validateQRScan,
-  verifyClassSession,
-  async (req, res) => {
+  verifyClassSession, async (req, res) => {
     try {
       const studentId = req.user.id;
       const { classSessionId, latitude, longitude } = req.body;
@@ -151,7 +150,7 @@ router.post(
  * GET /api/attendance/session/:sessionId/qr
  * Get current QR token for a session (Lecturer only)
  */
-router.get('/session/:sessionId/qr', authMiddleware, async (req, res) => {
+router.get('/session/:sessionId/qr', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const lecturerId = req.user.id;
@@ -197,7 +196,7 @@ router.get('/session/:sessionId/qr', authMiddleware, async (req, res) => {
  * GET /api/attendance/session/:sessionId/status
  * Get real-time attendance status for a session
  */
-router.get('/session/:sessionId/status', authMiddleware, async (req, res) => {
+router.get('/session/:sessionId/status', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const userId = req.user.id;
@@ -261,7 +260,7 @@ router.get('/session/:sessionId/status', authMiddleware, async (req, res) => {
  * GET /api/attendance/history/:studentId
  * Get student's attendance history with risk analysis
  */
-router.get('/history/:studentId', authMiddleware, async (req, res) => {
+router.get('/history/:studentId', authenticateToken, async (req, res) => {
   try {
     const { studentId } = req.params;
     const userId = req.user.id;
@@ -315,7 +314,7 @@ router.get('/history/:studentId', authMiddleware, async (req, res) => {
  * GET /api/attendance/insights/:classId
  * Get AI insights for a class (Lecturer/Admin only)
  */
-router.get('/insights/:classId', authMiddleware, async (req, res) => {
+router.get('/insights/:classId', authenticateToken, async (req, res) => {
   try {
     const { classId } = req.params;
     const userId = req.user.id;
@@ -356,7 +355,7 @@ router.get('/insights/:classId', authMiddleware, async (req, res) => {
  * GET /api/attendance/alerts
  * Get attendance alerts for admin review
  */
-router.get('/alerts', authMiddleware, async (req, res) => {
+router.get('/alerts', authenticateToken, async (req, res) => {
   try {
     // Admin/Superadmin only
     if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {

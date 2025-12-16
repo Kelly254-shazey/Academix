@@ -1,10 +1,10 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const aiInsightsService = require('../services/aiInsightsService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/ai/absenteeism-risk
 // Get absenteeism risk prediction

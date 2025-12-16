@@ -12,9 +12,11 @@ import SignUp from './pages/SignUp';
 import StudentPortal from './portals/StudentPortal';
 import LecturerPortal from './portals/LecturerPortal';
 import AdminPortal from './portals/AdminPortal';
+import './services/connectionManager'; // Initialize connection manager
+import HealthCheck from './components/HealthCheck';
 
 function AppContent() {
-  const { user, isLoading, token } = useAuth();
+  const { user, isLoading, token, logout } = useAuth();
 
   // Initialize apiClient with token when it becomes available
   React.useEffect(() => {
@@ -62,20 +64,27 @@ function AppContent() {
         <Route
           path="/"
           element={
-            <ProtectedRoute>
-              <RoleRedirect />
-            </ProtectedRoute>
+            user ? (
+              <ProtectedRoute>
+                <RoleRedirect />
+              </ProtectedRoute>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
 
         {/* Portal Routes */}
-        <Route path="/portal/student/*" element={<ProtectedRoute roles={["student"]}><StudentPortal user={user} token={token} /></ProtectedRoute>} />
-        <Route path="/portal/lecturer/*" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal user={user} token={token} /></ProtectedRoute>} />
-        <Route path="/portal/admin/*" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal user={user} token={token} /></ProtectedRoute>} />
+        <Route path="/portal/student/*" element={<ProtectedRoute roles={["student"]}><StudentPortal user={user} token={token} onLogout={logout} /></ProtectedRoute>} />
+        <Route path="/portal/lecturer/*" element={<ProtectedRoute roles={["lecturer"]}><LecturerPortal user={user} token={token} onLogout={logout} /></ProtectedRoute>} />
+        <Route path="/portal/admin/*" element={<ProtectedRoute roles={["admin","hod","superadmin"]}><AdminPortal user={user} token={token} onLogout={logout} /></ProtectedRoute>} />
 
         {/* Catch all - redirect to login */}
         <Route path="*" element={<Navigate to={user ? "/" : "/login"} />} />
       </Routes>
+      
+      {/* Health Check in Development (disabled) */}
+      {false && process.env.REACT_APP_DEBUG_MODE === 'true' && <HealthCheck />}
     </main>
   );
   }

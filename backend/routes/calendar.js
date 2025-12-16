@@ -1,19 +1,17 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
-const { validateRequest } = require('../middlewares/validation');
-const schemas = require('../validators/schemas');
+const { authenticateToken } = require('../middlewares/authMiddleware');
+
+
 const calendarService = require('../services/calendarService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // POST /api/calendar/events
 // Create event (admin only)
 router.post(
-  '/events',
-  validateRequest(schemas.createEventSchema),
-  async (req, res) => {
+  '/events', async (req, res) => {
     try {
       if (req.user.role !== 'admin' && req.user.role !== 'lecturer') {
         return res.status(403).json({ success: false, message: 'Unauthorized' });
@@ -29,7 +27,7 @@ router.post(
         end_time,
         location,
         description,
-      } = req.validatedData;
+      } = req.body;
 
       const result = await calendarService.createEvent(
         title,

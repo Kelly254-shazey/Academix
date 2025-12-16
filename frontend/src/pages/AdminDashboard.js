@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, BookOpen, TrendingUp, Activity, AlertTriangle, Settings, MessageSquare, FileText, RefreshCw, Shield, Clock } from 'lucide-react';
-import apiClient from '../utils/apiClient';
+import apiClient from '../services/apiClient';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

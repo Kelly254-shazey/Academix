@@ -12,7 +12,7 @@ import {
   Save,
   X
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function AdminProfile() {
   const [profile, setProfile] = useState(null);

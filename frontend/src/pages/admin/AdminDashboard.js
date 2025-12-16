@@ -13,7 +13,7 @@ import {
   Calendar,
   Shield
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({

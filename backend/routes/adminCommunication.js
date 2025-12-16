@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/rbacMiddleware');
 const logger = require('../utils/logger');
 
@@ -14,7 +14,7 @@ const logger = require('../utils/logger');
  * POST /api/admin/communicate/message/:userId
  * Send direct message from admin to a specific user
  */
-router.post('/communicate/message/:userId', authMiddleware, requireRole('admin'), async (req, res) => {
+router.post('/communicate/message/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const { message, messageType = 'info', priority = 'normal' } = req.body;
@@ -90,7 +90,7 @@ router.post('/communicate/message/:userId', authMiddleware, requireRole('admin')
  * POST /api/admin/communicate/broadcast/:role
  * Send broadcast message to all users with specific role
  */
-router.post('/communicate/broadcast/:role', authMiddleware, requireRole('admin'), async (req, res) => {
+router.post('/communicate/broadcast/:role', authenticateToken, async (req, res) => {
   try {
     const { role } = req.params;
     const { message, messageType = 'announcement', priority = 'normal' } = req.body;
@@ -155,7 +155,7 @@ router.post('/communicate/broadcast/:role', authMiddleware, requireRole('admin')
  * POST /api/admin/communicate/alert
  * Send urgent system alert to all connected users
  */
-router.post('/communicate/alert', authMiddleware, requireRole('admin'), async (req, res) => {
+router.post('/communicate/alert', authenticateToken, async (req, res) => {
   try {
     const { message, severity = 'warning', affectedUsers = [] } = req.body;
     const adminId = req.user.id;
@@ -203,7 +203,7 @@ router.post('/communicate/alert', authMiddleware, requireRole('admin'), async (r
  * GET /api/admin/communicate/messages/:userId
  * Retrieve all messages received by a user
  */
-router.get('/communicate/messages/:userId', authMiddleware, requireRole('admin'), async (req, res) => {
+router.get('/communicate/messages/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -227,7 +227,7 @@ router.get('/communicate/messages/:userId', authMiddleware, requireRole('admin')
  * POST /api/admin/communicate/alert/lecturer/:classSessionId
  * Send urgent alert to lecturer about a specific class session
  */
-router.post('/communicate/alert/lecturer/:classSessionId', authMiddleware, requireRole('admin'), async (req, res) => {
+router.post('/communicate/alert/lecturer/:classSessionId', authenticateToken, async (req, res) => {
   try {
     const { classSessionId } = req.params;
     const { message, alertType = 'general', severity = 'warning' } = req.body;
@@ -301,7 +301,7 @@ router.post('/communicate/alert/lecturer/:classSessionId', authMiddleware, requi
  * POST /api/admin/communicate/mark-read/:messageId
  * Mark a message as read
  */
-router.post('/communicate/mark-read/:messageId', authMiddleware, async (req, res) => {
+router.post('/communicate/mark-read/:messageId', authenticateToken, async (req, res) => {
   try {
     const { messageId } = req.params;
     const userId = req.user.id;

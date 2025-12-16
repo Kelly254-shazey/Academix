@@ -1,13 +1,13 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/rbacMiddleware');
 const router = express.Router();
 
 // All dashboard routes require authentication
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // Dashboard routes
-router.get('/student', requireRole('student'), async (req, res) => {
+router.get('/student', async (req, res) => {
   try {
     // Get student-specific dashboard data
     const db = require('../database');
@@ -111,7 +111,7 @@ router.get('/student', requireRole('student'), async (req, res) => {
   }
 });
 
-router.get('/lecturer', requireRole('lecturer'), async (req, res) => {
+router.get('/lecturer', async (req, res) => {
   try {
     // Get lecturer-specific dashboard data
     const db = require('../database');
@@ -198,7 +198,7 @@ router.get('/lecturer', requireRole('lecturer'), async (req, res) => {
   }
 });
 
-router.get('/admin', requireRole('admin'), async (req, res) => {
+router.get('/admin', async (req, res) => {
   try {
     // Get admin-specific dashboard data
     const db = require('../database');

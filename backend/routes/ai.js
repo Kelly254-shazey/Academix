@@ -1,6 +1,6 @@
 const express = require('express');
 const aiService = require('../services/aiService');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/rbacMiddleware');
 
 const router = express.Router();
@@ -10,7 +10,7 @@ const router = express.Router();
  * Get AI-generated insights for logged-in user based on role
  * Returns: Absenteeism predictions, anomalies, and recommendations
  */
-router.get('/insights', authMiddleware, async (req, res) => {
+router.get('/insights', authenticateToken, async (req, res) => {
   try {
     const insights = await aiService.getInsights();
     res.json({
@@ -34,7 +34,7 @@ router.get('/insights', authMiddleware, async (req, res) => {
  * GET /api/ai/anomalies
  * Get attendance anomalies detected by AI
  */
-router.get('/anomalies', authMiddleware, requireRole('admin', 'lecturer'), async (req, res) => {
+router.get('/anomalies', authenticateToken, async (req, res) => {
   try {
     // TODO: Implement anomaly detection query from database
     // For now, return empty array
@@ -59,7 +59,7 @@ router.get('/anomalies', authMiddleware, requireRole('admin', 'lecturer'), async
  * GET /api/ai/risk-predictions
  * Get absenteeism risk predictions for students
  */
-router.get('/risk-predictions', authMiddleware, requireRole('lecturer', 'admin'), async (req, res) => {
+router.get('/risk-predictions', authenticateToken, async (req, res) => {
   try {
     // TODO: Implement risk prediction query from database
     // For now, return empty array

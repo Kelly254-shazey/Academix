@@ -1,4 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import apiClient from '../services/apiClient';
+import socketService from '../services/socketService';
+import healthCheckService from '../services/healthCheck';
 
 const AuthContext = createContext();
 
@@ -16,30 +19,43 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Check if user and token are already stored
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
 
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
-        setToken(storedToken);
+        const userData = JSON.parse(storedUser);
+        // Only restore session if token is valid
+        // For now, always require fresh login
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        apiClient.setToken(null);
       } catch (error) {
         console.error('Error parsing stored auth data:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
     }
+    
+    // Start health monitoring (disabled to prevent rate limiting)
+    // healthCheckService.startMonitoring();
+    
     setIsLoading(false);
+    
+    return () => {
+      healthCheckService.stopMonitoring();
+    };
   }, []);
 
-  const login = (userData, token) => {
+  const login = async (userData, token) => {
     const userToStore = {
       id: userData.id,
       name: userData.name,
       email: userData.email,
       role: userData.role,
-      avatar: userData.avatar || '👨‍🎓',
+      avatar: userData.avatar || '👨🎓',
       studentId: userData.studentId,
       employeeId: userData.employeeId,
       department: userData.department || 'General',
@@ -51,61 +67,50 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       setToken(token);
       localStorage.setItem('token', token);
+      apiClient.setToken(token);
+      
+      // Initialize socket connection
+      try {
+        await socketService.connect(token, userToStore.id, userToStore.role);
+        console.log('✅ Socket connected successfully');
+      } catch (error) {
+        console.error('❌ Socket connection failed:', error);
+      }
     }
     localStorage.setItem('user', JSON.stringify(userToStore));
   };
 
   const logout = () => {
+    // Disconnect socket
+    socketService.disconnect();
+    
     setUser(null);
     setToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    apiClient.setToken(null);
   };
 
   const signup = async (userData) => {
     try {
-      // For demo mode, accept signup without backend
-      // In production, uncomment the backend API call below
-      
-      // If backend is available, try to register
-      try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
-        const response = await fetch(`${apiUrl}/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: userData.email,
-            password: userData.password,
-            name: userData.name,
-            role: userData.role || 'student',
-            department: userData.department || 'General',
-            studentId: userData.studentId,
-            subject: userData.subject
-          })
-        });
+      const apiClientModule = await import('../services/apiClient');
+      const data = await apiClientModule.default.register({
+        email: userData.email,
+        password: userData.password,
+        name: userData.name,
+        role: userData.role || 'student',
+        department: userData.department || 'General',
+        studentId: userData.studentId,
+        subject: userData.subject
+      });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Registration failed');
-        }
-
-        // Store token
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-          setToken(data.token);
-        }
-
-        // Login user and pass token
-        login(data.user, data.token);
-        return data;
-      } catch (backendError) {
-        // Backend registration failed — do not fall back to demo mode.
-        console.error('Backend registration failed:', backendError.message);
-        throw backendError;
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
       }
+
+      await login(data.user, data.token);
+      return data;
     } catch (error) {
       console.error('Signup error:', error);
       throw error;
@@ -123,24 +128,15 @@ export const AuthProvider = ({ children }) => {
     if (!storedToken) return false;
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${apiUrl}/auth/verify`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${storedToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        login(data.user);
+      apiClient.setToken(storedToken);
+      const data = await apiClient.verifyToken();
+      if (data && data.user) {
+        await login(data.user, storedToken);
         setToken(storedToken);
         return true;
-      } else {
-        logout();
-        return false;
       }
+      logout();
+      return false;
     } catch (error) {
       console.error('Token verification error:', error);
       logout();

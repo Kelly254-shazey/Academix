@@ -19,7 +19,7 @@ const Toast = ({ message, type = 'info', duration = 3000, onClose }) => {
   }[type];
 
   return (
-    <div className={`${bgColor} text-white px-6 py-3 rounded shadow-lg animate-fade-in`}>
+    <div className={`${bgColor} text-white px-6 py-3 rounded shadow-lg transition-all duration-300 ease-in-out transform translate-x-0 opacity-100`}>
       {message}
     </div>
   );
@@ -54,3 +54,5 @@ export const useToast = () => {
 
   return { toasts, addToast, removeToast };
 };
+
+export default Toast;

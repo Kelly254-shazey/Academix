@@ -11,7 +11,7 @@ import {
   Send,
   Plus
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function AdminSupport() {
   const [activeTab, setActiveTab] = useState('tickets');

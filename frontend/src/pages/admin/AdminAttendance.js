@@ -12,7 +12,7 @@ import {
   TrendingUp,
   AlertTriangle
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function AdminAttendance() {
   const [attendanceRecords, setAttendanceRecords] = useState([]);

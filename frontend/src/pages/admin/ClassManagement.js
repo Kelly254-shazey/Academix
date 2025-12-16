@@ -12,7 +12,7 @@ import {
   AlertTriangle,
   XCircle
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 export default function ClassManagement() {
   const [classes, setClasses] = useState([]);

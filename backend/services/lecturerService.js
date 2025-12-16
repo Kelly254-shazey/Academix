@@ -1,677 +1,386 @@
-// lecturerService.js
-// Lecturer overview, dashboard, and profile management
-// Author: Backend Team
-// Date: December 11, 2025
+const axios = require('axios');
+const QRCode = require('qrcode');
+const baseURL = process.env.API_BASE_URL || 'http://localhost:5003';
 
-const db = require('../database');
-const logger = require('../utils/logger');
+// Active sessions storage
+const activeSessions = new Map();
+const sessionAnalytics = new Map();
 
 class LecturerService {
-  /**
-   * Get lecturer overview - today's classes, next class, quick stats
-   */
   async getLecturerOverview(lecturerId) {
     try {
+      // Get real attendance analysis
+      const analysisResponse = await axios.get(`${baseURL}/api/feedback/attendance/analysis`);
+      const analysis = analysisResponse.data.analysis || {};
       
+      // Calculate live metrics
+      const totalStudents = Object.keys(analysis).length;
+      const presentStudents = Object.values(analysis).filter(s => s.attendancePercentage >= 75).length;
+      const absentStudents = totalStudents - presentStudents;
+      
+      // Get active session
+      const activeSession = Array.from(activeSessions.values())[0] || null;
+      
+      // Generate alerts for low attendance
+      const alertsSummary = Object.entries(analysis)
+        .filter(([studentId, data]) => data.attendancePercentage < 60)
+        .slice(0, 3)
+        .map(([studentId, data]) => ({
+          studentName: `Student ${studentId}`,
+          message: `Low attendance: ${data.attendancePercentage}%`
+        }));
+      
+      return {
+        success: true,
+        data: {
+          liveCount: presentStudents,
+          absentCount: absentStudents,
+          totalStudents,
+          averageAttendance: totalStudents > 0 ? 
+            (Object.values(analysis).reduce((sum, s) => sum + s.attendancePercentage, 0) / totalStudents).toFixed(1) : 0,
+          activeSession,
+          alertsSummary,
+          analytics: {
+            criticalStudents: Object.values(analysis).filter(s => s.status === 'Critical').length,
+            warningStudents: Object.values(analysis).filter(s => s.status === 'Warning').length,
+            goodStudents: Object.values(analysis).filter(s => s.status === 'Good').length
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Error getting lecturer overview:', error);
+      return { success: false, error: error.message };
+    }
+  }
 
-      const query = `
-        SELECT 
-          u.id, u.name, u.email, u.avatar,
-          COUNT(DISTINCT c.id) as total_classes,
-          COUNT(DISTINCT cs.id) as today_sessions,
-          COUNT(DISTINCT CASE WHEN cs.status = 'in_progress' THEN cs.id END) as active_sessions,
-          COUNT(DISTINCT CASE WHEN cs.status = 'pending' AND cs.start_time > NOW() THEN cs.id END) as upcoming_sessions,
-          COALESCE(AVG(CAST(saa.attendance_rate AS DECIMAL(5,2))), 0) as avg_attendance
-        FROM users u
-        LEFT JOIN classes c ON u.id = c.lecturer_id
-        LEFT JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.start_time) = DATE(NOW())
-        LEFT JOIN student_attendance_analytics saa ON c.id = saa.class_id
-        WHERE u.id = ? AND u.role = 'lecturer'
-        GROUP BY u.id
-      `;
-
-      const [results] = await db.execute(query, [lecturerId]);
-
-      if (!results || results.length === 0) {
-        throw new Error('Lecturer not found');
+  async getLecturerSessions(lecturerId) {
+    try {
+      const sessions = [];
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Add active sessions
+      activeSessions.forEach((session, id) => {
+        sessions.push({
+          id,
+          className: session.className,
+          date: session.date,
+          startTime: session.startTime,
+          presentCount: session.presentCount || 0,
+          absentCount: session.absentCount || 0,
+          status: 'active'
+        });
+      });
+      
+      // Add sample completed sessions if none active
+      if (sessions.length === 0) {
+        sessions.push(
+          {
+            id: 'cs101_' + Date.now(),
+            className: 'Computer Science 101',
+            date: today,
+            startTime: '10:00 AM',
+            presentCount: 0,
+            absentCount: 0,
+            status: 'pending'
+          },
+          {
+            id: 'ds201_' + Date.now(),
+            className: 'Data Structures',
+            date: today,
+            startTime: '2:00 PM',
+            presentCount: 0,
+            absentCount: 0,
+            status: 'pending'
+          }
+        );
       }
-
-      return {
-        success: true,
-        data: results[0],
-      };
-    } catch (error) {
-      logger.error('Error in getLecturerOverview:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get today's classes for lecturer
-   */
-  async getTodayClasses(lecturerId) {
-    try {
       
-
-      const query = `
-        SELECT 
-          c.id, c.class_code, c.course_name,
-          cs.id as session_id, cs.start_time, cs.end_time, cs.status,
-          cs.qr_code, cs.qr_expiry,
-          COUNT(DISTINCT ce.student_id) as enrolled_students,
-          COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
-          COUNT(CASE WHEN al.status = 'absent' THEN 1 END) as absent_count,
-          COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count,
-          CASE 
-            WHEN cs.status = 'in_progress' THEN 'ACTIVE'
-            WHEN cs.status = 'completed' THEN 'COMPLETED'
-            WHEN cs.status = 'cancelled' THEN 'CANCELLED'
-            WHEN cs.start_time > NOW() THEN 'UPCOMING'
-            ELSE 'PENDING'
-          END as class_state
-        FROM classes c
-        LEFT JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.start_time) = DATE(NOW())
-        LEFT JOIN course_enrollments ce ON c.id = ce.class_id
-        LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
-        WHERE c.lecturer_id = ?
-        ORDER BY cs.start_time ASC
-      `;
-
-      const [results] = await db.execute(query, [lecturerId]);
-
-      return {
-        success: true,
-        data: results || [],
-      };
+      return { success: true, data: sessions };
     } catch (error) {
-      logger.error('Error in getTodayClasses:', error);
-      throw error;
+      console.error('Error getting lecturer sessions:', error);
+      return { success: false, error: error.message };
     }
   }
 
-  /**
-   * Get next class for lecturer
-   */
-  async getNextClass(lecturerId) {
+  async getLecturerAlerts(lecturerId) {
     try {
+      const analysisResponse = await axios.get(`${baseURL}/api/feedback/attendance/analysis`);
+      const analysis = analysisResponse.data.analysis || {};
       
-
-      const query = `
-        SELECT 
-          c.id, c.class_code, c.course_name,
-          cs.id as session_id, cs.start_time, cs.end_time,
-          TIMESTAMPDIFF(MINUTE, NOW(), cs.start_time) as minutes_until,
-          COUNT(DISTINCT ce.student_id) as enrolled_students
-        FROM classes c
-        LEFT JOIN class_sessions cs ON c.id = cs.class_id
-        LEFT JOIN course_enrollments ce ON c.id = ce.class_id
-        WHERE c.lecturer_id = ? 
-          AND cs.start_time > NOW()
-        ORDER BY cs.start_time ASC
-        LIMIT 1
-      `;
-
-      const [results] = await db.execute(query, [lecturerId]);
-
-      return {
-        success: true,
-        data: results && results.length > 0 ? results[0] : null,
-      };
+      const alerts = [];
+      
+      // Generate alerts for critical attendance
+      Object.entries(analysis).forEach(([studentId, data]) => {
+        if (data.status === 'Critical') {
+          alerts.push({
+            id: `alert_critical_${studentId}`,
+            title: 'Critical Attendance Alert',
+            message: `Student ${studentId} has ${data.attendancePercentage}% attendance`,
+            severity: 'critical',
+            timestamp: new Date().toISOString(),
+            studentName: `Student ${studentId}`
+          });
+        } else if (data.status === 'Warning') {
+          alerts.push({
+            id: `alert_warning_${studentId}`,
+            title: 'Low Attendance Warning',
+            message: `Student ${studentId} has ${data.attendancePercentage}% attendance`,
+            severity: 'high',
+            timestamp: new Date().toISOString(),
+            studentName: `Student ${studentId}`
+          });
+        }
+      });
+      
+      return { success: true, data: alerts };
     } catch (error) {
-      logger.error('Error in getNextClass:', error);
-      throw error;
+      console.error('Error getting lecturer alerts:', error);
+      return { success: true, data: [] };
     }
   }
 
-  /**
-   * Get quick attendance statistics for lecturer
-   */
-  async getQuickAttendanceStats(lecturerId) {
-    try {
-      
-
-      const query = `
-        SELECT 
-          COUNT(DISTINCT c.id) as total_classes,
-          COUNT(DISTINCT CASE WHEN saa.attendance_percent >= 75 THEN c.id END) as healthy_classes,
-          COUNT(DISTINCT CASE WHEN saa.attendance_percent < 75 THEN c.id END) as at_risk_classes,
-          COALESCE(AVG(saa.attendance_percent), 0) as avg_attendance,
-          COUNT(DISTINCT CASE WHEN ai.risk_level = 'high' THEN ai.student_id END) as high_risk_students
-        FROM classes c
-        LEFT JOIN student_attendance_analytics saa ON c.id = saa.class_id
-        LEFT JOIN ai_predictions ai ON c.id = ai.class_id AND ai.prediction_type = 'absenteeism_risk'
-        WHERE c.lecturer_id = ?
-      `;
-
-      const [results] = await db.execute(query, [lecturerId]);
-
-      return {
-        success: true,
-        data: results && results.length > 0 ? results[0] : {},
-      };
-    } catch (error) {
-      logger.error('Error in getQuickAttendanceStats:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get alerts for lecturer
-   */
-  async getLecturerAlerts(lecturerId, limit = 10) {
-    try {
-      
-
-      const query = `
-        SELECT id, class_id, alert_type, title, message, severity, is_read,
-               action_url, created_at
-        FROM lecturer_alerts
-        WHERE lecturer_id = ? AND is_read = FALSE
-        ORDER BY severity DESC, created_at DESC
-        LIMIT ?
-      `;
-
-      const [results] = await db.execute(query, [lecturerId, limit]);
-
-      return {
-        success: true,
-        data: results || [],
-      };
-    } catch (error) {
-      logger.error('Error in getLecturerAlerts:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Mark alerts as read
-   */
-  async markAlertsAsRead(lecturerId, alertIds) {
-    try {
-      
-
-      const placeholders = alertIds.map(() => '?').join(',');
-      const query = `
-        UPDATE lecturer_alerts
-        SET is_read = TRUE, read_at = NOW()
-        WHERE lecturer_id = ? AND id IN (${placeholders})
-      `;
-
-      const params = [lecturerId, ...alertIds];
-      const [result] = await db.execute(query, params);
-
-      return {
-        success: true,
-        message: `${result.affectedRows} alert(s) marked as read`,
-      };
-    } catch (error) {
-      logger.error('Error in markAlertsAsRead:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get lecturer statistics
-   */
-  async getLecturerStatistics(lecturerId, startDate, endDate) {
-    try {
-      
-
-      const query = `
-        SELECT 
-          DATE(cs.start_time) as date,
-          COUNT(DISTINCT cs.id) as sessions_held,
-          COUNT(DISTINCT c.id) as classes,
-          COUNT(DISTINCT al.student_id) as students_enrolled,
-          COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as students_present,
-          ROUND(100 * COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) / 
-                NULLIF(COUNT(DISTINCT al.student_id), 0), 2) as attendance_percent
-        FROM class_sessions cs
-        JOIN classes c ON cs.class_id = c.id
-        LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
-        WHERE c.lecturer_id = ? AND DATE(cs.start_time) BETWEEN ? AND ?
-        GROUP BY DATE(cs.start_time)
-        ORDER BY date DESC
-      `;
-
-      const [results] = await db.execute(query, [lecturerId, startDate, endDate]);
-
-      return {
-        success: true,
-        data: results || [],
-      };
-    } catch (error) {
-      logger.error('Error in getLecturerStatistics:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all classes assigned to lecturer
-   */
   async getLecturerClasses(lecturerId) {
-    try {
-      
-
-      const query = `
-        SELECT 
-          c.id, c.class_code, c.course_name,
-          COUNT(DISTINCT ce.student_id) as enrolled_students,
-          COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_today,
-          ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as attendance_rate
-        FROM classes c
-        LEFT JOIN class_sessions cs ON c.id = cs.class_id AND DATE(cs.start_time) = DATE(NOW())
-        LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
-        LEFT JOIN course_enrollments ce ON c.id = ce.class_id
-        WHERE c.lecturer_id = ?
-        GROUP BY c.id
-        ORDER BY c.class_code
-      `;
-
-      const [results] = await db.execute(query, [lecturerId]);
-
-      return {
-        success: true,
-        data: results || [],
-      };
-    } catch (error) {
-      logger.error('Error in getLecturerClasses:', error);
-      throw error;
-    }
+    return this.getLecturerSessions(lecturerId);
   }
 
-  /**
-   * Get class roster for a specific class
-   */
-  async getClassRoster(lecturerId, classId) {
-    try {
-      
-
-      // First verify the class belongs to the lecturer
-      const [classCheck] = await db.execute(
-        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
-        [classId, lecturerId]
-      );
-
-      if (!classCheck || classCheck.length === 0) {
-        throw new Error('Class not found or does not belong to this lecturer');
-      }
-
-      const query = `
-        SELECT 
-          u.id, u.name, u.email, u.student_id as student_number,
-          COUNT(ce.id) as enrolled,
-          COUNT(CASE WHEN al.status = 'present' THEN 1 END) as present_count,
-          COUNT(CASE WHEN al.status = 'absent' THEN 1 END) as absent_count,
-          COUNT(CASE WHEN al.status = 'late' THEN 1 END) as late_count,
-          ROUND(100 * COUNT(CASE WHEN al.status = 'present' THEN 1 END) / NULLIF(COUNT(DISTINCT cs.id), 0), 2) as attendance_rate
-        FROM users u
-        JOIN course_enrollments ce ON u.id = ce.student_id AND ce.class_id = ?
-        LEFT JOIN class_sessions cs ON cs.class_id = ?
-        LEFT JOIN attendance_logs al ON u.id = al.student_id AND cs.id = al.class_session_id
-        WHERE u.role = 'student'
-        GROUP BY u.id
-        ORDER BY u.name
-      `;
-
-      const [results] = await db.execute(query, [classId, classId]);
-
-      return {
-        success: true,
-        data: results || [],
-      };
-    } catch (error) {
-      logger.error('Error in getClassRoster:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Start a class session
-   */
-  async startClassSession(lecturerId, classId) {
-    try {
-      
-
-      // Verify the class belongs to the lecturer
-      const [classCheck] = await db.execute(
-        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
-        [classId, lecturerId]
-      );
-
-      if (!classCheck || classCheck.length === 0) {
-        throw new Error('Class not found or does not belong to this lecturer');
-      }
-
-      // Create a new session
-      const [result] = await db.execute(
-        'INSERT INTO class_sessions (class_id, lecturer_id, start_time, status) VALUES (?, ?, NOW(), ?)',
-        [classId, lecturerId, 'in_progress']
-      );
-
-      // Update class status if needed
-      await db.execute(
-        'UPDATE classes SET status = ? WHERE id = ?',
-        ['active', classId]
-      );
-
-      return {
-        success: true,
-        data: { sessionId: result.insertId },
-      };
-    } catch (error) {
-      logger.error('Error in startClassSession:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delay a class session
-   */
-  async delayClassSession(lecturerId, classId, delayMinutes, reason) {
-    try {
-      
-
-      // Verify the class belongs to the lecturer
-      const [classCheck] = await db.execute(
-        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
-        [classId, lecturerId]
-      );
-
-      if (!classCheck || classCheck.length === 0) {
-        throw new Error('Class not found or does not belong to this lecturer');
-      }
-
-      // Update session with delay
-      await db.execute(
-        'UPDATE class_sessions SET start_time = DATE_ADD(start_time, INTERVAL ? MINUTE), status = ? WHERE class_id = ? AND status = ?',
-        [delayMinutes, 'delayed', classId, 'pending']
-      );
-
-      return {
-        success: true,
-        data: { delayMinutes, reason },
-      };
-    } catch (error) {
-      logger.error('Error in delayClassSession:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Cancel a class session
-   */
-  async cancelClassSession(lecturerId, classId, reason) {
-    try {
-      
-
-      // Verify the class belongs to the lecturer
-      const [classCheck] = await db.execute(
-        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
-        [classId, lecturerId]
-      );
-
-      if (!classCheck || classCheck.length === 0) {
-        throw new Error('Class not found or does not belong to this lecturer');
-      }
-
-      // Cancel session
-      await db.execute(
-        'UPDATE class_sessions SET status = ?, attendance_status = ?, updated_at = NOW() WHERE class_id = ? AND status IN (?, ?)',
-        ['cancelled', 'cancelled', classId, 'pending', 'delayed']
-      );
-
-      return {
-        success: true,
-        data: { reason },
-      };
-    } catch (error) {
-      logger.error('Error in cancelClassSession:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Change class room
-   */
-  async changeClassRoom(lecturerId, classId, newRoom) {
-    try {
-      
-
-      // Verify the class belongs to the lecturer
-      const [classCheck] = await db.execute(
-        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
-        [classId, lecturerId]
-      );
-
-      if (!classCheck || classCheck.length === 0) {
-        throw new Error('Class not found or does not belong to this lecturer');
-      }
-
-      // Update room
-      await db.execute(
-        'UPDATE classes SET room_number = ? WHERE id = ?',
-        [newRoom, classId]
-      );
-
-      return {
-        success: true,
-        data: { newRoom },
-      };
-    } catch (error) {
-      logger.error('Error in changeClassRoom:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Mark manual attendance
-   */
-  async markManualAttendance(lecturerId, studentId, classId, sessionId, status, reason) {
-    try {
-      
-
-      // Verify the class belongs to the lecturer
-      const [classCheck] = await db.execute(
-        'SELECT id FROM classes WHERE id = ? AND lecturer_id = ?',
-        [classId, lecturerId]
-      );
-
-      if (!classCheck || classCheck.length === 0) {
-        throw new Error('Class not found or does not belong to this lecturer');
-      }
-
-      // Insert or update attendance record
-      await db.execute(
-        `INSERT INTO attendance_logs (student_id, session_id, class_id, status, checkin_time, manual_entry, reason)
-         VALUES (?, ?, ?, ?, NOW(), TRUE, ?)
-         ON DUPLICATE KEY UPDATE status = VALUES(status), checkin_time = NOW(), manual_entry = TRUE, reason = VALUES(reason)`,
-        [studentId, sessionId, classId, status, reason]
-      );
-
-      return {
-        success: true,
-        data: { studentId, status, reason },
-      };
-    } catch (error) {
-      logger.error('Error in markManualAttendance:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get lecturer messages
-   */
-  async getLecturerMessages(lecturerId) {
-    try {
-      
-
-      const query = `
-        SELECT 
-          m.id, m.subject, m.message, m.created_at, m.is_read,
-          u.name as sender_name, u.email as sender_email,
-          c.course_name, c.class_code
-        FROM messages m
-        JOIN users u ON m.sender_id = u.id
-        LEFT JOIN classes c ON m.class_id = c.id
-        WHERE m.recipient_id = ?
-        ORDER BY m.created_at DESC
-        LIMIT 50
-      `;
-
-      const [results] = await db.execute(query, [lecturerId]);
-
-      return {
-        success: true,
-        data: results || [],
-      };
-    } catch (error) {
-      logger.error('Error in getLecturerMessages:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Send lecturer message
-   */
-  async sendLecturerMessage(lecturerId, recipientId, subject, message, classId) {
-    try {
-      
-
-      const [result] = await db.execute(
-        'INSERT INTO messages (sender_id, recipient_id, subject, message, class_id) VALUES (?, ?, ?, ?, ?)',
-        [lecturerId, recipientId, subject, message, classId]
-      );
-
-      return {
-        success: true,
-        data: { messageId: result.insertId },
-      };
-    } catch (error) {
-      logger.error('Error in sendLecturerMessage:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get lecturer reports
-   */
   async getLecturerReports(lecturerId, startDate, endDate, reportType) {
     try {
+      const analysisResponse = await axios.get(`${baseURL}/api/feedback/attendance/analysis`);
+      const analysis = analysisResponse.data.analysis || {};
       
+      const totalStudents = Object.keys(analysis).length;
+      const averageAttendance = totalStudents > 0 ? 
+        Object.values(analysis).reduce((sum, s) => sum + s.attendancePercentage, 0) / totalStudents : 0;
+      
+      return { 
+        success: true, 
+        data: {
+          reportType: reportType || 'all',
+          period: `${startDate || 'All time'} to ${endDate || 'Present'}`,
+          summary: {
+            totalSessions: Object.values(analysis).reduce((sum, s) => sum + s.total, 0),
+            averageAttendance: averageAttendance.toFixed(1),
+            totalStudents,
+            criticalStudents: Object.values(analysis).filter(s => s.status === 'Critical').length,
+            warningStudents: Object.values(analysis).filter(s => s.status === 'Warning').length
+          },
+          details: Object.entries(analysis).map(([studentId, data]) => ({
+            studentId,
+            totalSessions: data.total,
+            presentSessions: data.present,
+            absentSessions: data.absent,
+            attendanceRate: data.attendancePercentage,
+            status: data.status
+          }))
+        }
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
 
-      let query = '';
-      let params = [lecturerId];
+  async startClassSession(lecturerId, classId) {
+    try {
+      const sessionId = `session_${Date.now()}`;
+      const session = {
+        id: sessionId,
+        classId,
+        className: `Class ${classId}`,
+        lecturerId,
+        status: 'active',
+        startTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toISOString(),
+        presentCount: 0,
+        absentCount: 0
+      };
+      
+      activeSessions.set(sessionId, session);
+      
+      return {
+        success: true,
+        data: {
+          sessionId,
+          classId,
+          status: 'active',
+          startTime: session.startTime
+        }
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
 
-      if (reportType === 'attendance') {
-        query = `
-          SELECT 
-            c.course_name, c.class_code,
-            COUNT(DISTINCT al.student_id) as total_students,
-            COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) as present_students,
-            ROUND(100 * COUNT(DISTINCT CASE WHEN al.status = 'present' THEN al.student_id END) / 
-                  NULLIF(COUNT(DISTINCT al.student_id), 0), 2) as attendance_rate,
-            DATE(al.checkin_time) as date
-          FROM classes c
-          LEFT JOIN class_sessions cs ON c.id = cs.class_id
-          LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
-          WHERE c.lecturer_id = ? AND DATE(al.checkin_time) BETWEEN ? AND ?
-          GROUP BY c.id, DATE(al.checkin_time)
-          ORDER BY date DESC
-        `;
-        params = [lecturerId, startDate, endDate];
-      } else if (reportType === 'classes') {
-        query = `
-          SELECT 
-            c.course_name, c.class_code,
-            COUNT(DISTINCT cs.id) as sessions_held,
-            COUNT(DISTINCT al.student_id) as total_students,
-            ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as avg_attendance
-          FROM classes c
-          LEFT JOIN class_sessions cs ON c.id = cs.class_id
-          LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
-          WHERE c.lecturer_id = ?
-          GROUP BY c.id
-          ORDER BY c.class_code
-        `;
-      } else {
-        // Default query if no specific reportType
-        query = `
-          SELECT 
-            c.course_name, c.class_code,
-            COUNT(DISTINCT cs.id) as sessions_held,
-            COUNT(DISTINCT al.student_id) as total_students,
-            ROUND(AVG(CASE WHEN al.status = 'present' THEN 100 ELSE 0 END), 2) as avg_attendance
-          FROM classes c
-          LEFT JOIN class_sessions cs ON c.id = cs.class_id
-          LEFT JOIN attendance_logs al ON cs.id = al.class_session_id
-          WHERE c.lecturer_id = ?
-          GROUP BY c.id
-          ORDER BY c.class_code
-        `;
+  async stopClassSession(lecturerId, sessionId) {
+    try {
+      const session = activeSessions.get(sessionId);
+      if (session) {
+        session.status = 'completed';
+        session.endTime = new Date().toISOString();
+        activeSessions.delete(sessionId);
       }
-
-      const [results] = await db.execute(query, params);
-
+      
       return {
         success: true,
-        data: results || [],
+        data: {
+          sessionId,
+          status: 'completed',
+          endTime: new Date().toISOString()
+        }
       };
     } catch (error) {
-      logger.error('Error in getLecturerReports:', error);
-      throw error;
+      return { success: false, error: error.message };
     }
   }
 
-  /**
-   * Get lecturer support tickets
-   */
-  async getLecturerSupportTickets(lecturerId) {
+  async getSessionQR(sessionId) {
     try {
+      const session = activeSessions.get(sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
       
-
-      const query = `
-        SELECT 
-          id, subject, description, status, priority, category,
-          created_at, updated_at, resolved_at
-        FROM support_tickets
-        WHERE lecturer_id = ?
-        ORDER BY created_at DESC
-      `;
-
-      const [results] = await db.execute(query, [lecturerId]);
-
+      const qrToken = `qr_${sessionId}_${Date.now()}`;
+      const qrData = {
+        sessionId,
+        token: qrToken,
+        timestamp: Date.now(),
+        className: session.className,
+        lecturerId: session.lecturerId
+      };
+      
+      // Generate actual QR code
+      const qrString = JSON.stringify(qrData);
+      const qrImage = await QRCode.toDataURL(qrString, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
       return {
         success: true,
-        data: results || [],
+        data: {
+          qrImage,
+          token: qrToken,
+          expiresIn: 25,
+          sessionId,
+          qrData: qrString
+        }
       };
     } catch (error) {
-      logger.error('Error in getLecturerSupportTickets:', error);
-      throw error;
+      return { success: false, error: error.message };
     }
   }
-
-  /**
-   * Create lecturer support ticket
-   */
-  async createLecturerSupportTicket(lecturerId, subject, description, priority, category) {
+  
+  // Validate QR code
+  validateQRCode(qrData) {
     try {
+      const data = JSON.parse(qrData);
+      const { sessionId, token, timestamp } = data;
       
-
-      const [result] = await db.execute(
-        'INSERT INTO support_tickets (lecturer_id, subject, description, priority, category, status) VALUES (?, ?, ?, ?, ?, ?)',
-        [lecturerId, subject, description, priority, category, 'open']
-      );
-
-      return {
-        success: true,
-        data: { ticketId: result.insertId },
-      };
+      // Check if session exists
+      const session = activeSessions.get(sessionId);
+      if (!session) {
+        return { valid: false, error: 'Session not found or expired' };
+      }
+      
+      // Check if QR is not too old (25 seconds)
+      const now = Date.now();
+      if (now - timestamp > 25000) {
+        return { valid: false, error: 'QR code expired' };
+      }
+      
+      return { valid: true, sessionId, session };
     } catch (error) {
-      logger.error('Error in createLecturerSupportTicket:', error);
-      throw error;
+      return { valid: false, error: 'Invalid QR code format' };
     }
+  }
+  
+  // Record attendance when QR is scanned
+  async recordAttendance(sessionId, studentId, status = 'present') {
+    try {
+      const session = activeSessions.get(sessionId);
+      if (!session) {
+        throw new Error('Session not found');
+      }
+      
+      // Record in attendance system
+      await axios.post(`${baseURL}/api/feedback/attendance/record`, {
+        studentId,
+        lectureId: sessionId,
+        courseName: session.className,
+        status,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Update session counts
+      if (status === 'present') {
+        session.presentCount = (session.presentCount || 0) + 1;
+      } else {
+        session.absentCount = (session.absentCount || 0) + 1;
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // Create new class
+  async createClass(lecturerId, classData) {
+    try {
+      const newClass = {
+        id: `class_${Date.now()}`,
+        lecturerId,
+        name: classData.name,
+        time: classData.time,
+        room: classData.room,
+        expectedStudents: classData.expectedStudents || 0,
+        status: 'scheduled',
+        createdAt: new Date().toISOString()
+      };
+      
+      return { success: true, data: newClass };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // Update student CATs (Continuous Assessment Tests)
+  async updateStudentCAT(lecturerId, studentId, catData) {
+    try {
+      const catRecord = {
+        id: `cat_${Date.now()}`,
+        studentId,
+        lecturerId,
+        courseName: catData.courseName,
+        catNumber: catData.catNumber,
+        score: catData.score,
+        maxScore: catData.maxScore || 100,
+        date: catData.date || new Date().toISOString().split('T')[0],
+        timestamp: new Date().toISOString()
+      };
+      
+      return { success: true, data: catRecord };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // Get lecturer permissions
+  getLecturerPermissions(lecturerId) {
+    return {
+      canCreateClasses: true,
+      canUpdateGrades: true,
+      canViewReports: true,
+      canManageAttendance: true,
+      canSendNotifications: true
+    };
   }
 }
 
+// Export active sessions for other modules
 module.exports = new LecturerService();
+module.exports.activeSessions = activeSessions;

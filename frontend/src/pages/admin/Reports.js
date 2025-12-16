@@ -13,7 +13,7 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
-import apiClient from '../../utils/apiClient';
+import apiClient from '../../services/apiClient';
 
 const Reports = () => {
   const [insights, setInsights] = useState(null);

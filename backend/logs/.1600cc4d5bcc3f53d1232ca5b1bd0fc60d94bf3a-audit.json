@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "c:\\Users\\w\\Academix\\backend\\logs\\.1600cc4d5bcc3f53d1232ca5b1bd0fc60d94bf3a-audit.json",
+    "files": [
+        {
+            "date": 1765785694006,
+            "name": "c:\\Users\\w\\Academix\\backend\\logs\\error-2025-12-15.log",
+            "hash": "3e75b5d90d312a1ad5999be2d7b781accb036f9982aaf8cc600b1a1dc0c1a53f"
+        },
+        {
+            "date": 1765864005584,
+            "name": "c:\\Users\\w\\Academix\\backend\\logs\\error-2025-12-16.log",
+            "hash": "ffd4ba1c7da17d3c1ba8065e64fc4e000ca3f95b69c8dcea56408ace5dcba6ea"
+        }
+    ],
+    "hashType": "sha256"
+}

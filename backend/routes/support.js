@@ -1,21 +1,19 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
-const { validateRequest } = require('../middlewares/validation');
-const schemas = require('../validators/schemas');
+const { authenticateToken } = require('../middlewares/authMiddleware');
+
+
 const supportService = require('../services/supportService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // POST /api/support/tickets
 // Create support ticket
 router.post(
-  '/tickets',
-  validateRequest(schemas.createTicketSchema),
-  async (req, res) => {
+  '/tickets', async (req, res) => {
     try {
-      const { category, subject, description, priority } = req.validatedData;
+      const { category, subject, description, priority } = req.body;
       const result = await supportService.createTicket(
         req.user.id,
         category,
@@ -83,11 +81,9 @@ router.get('/tickets/:id', async (req, res) => {
 // POST /api/support/tickets/:id/responses
 // Add response to ticket
 router.post(
-  '/tickets/:id/responses',
-  validateRequest(schemas.addTicketResponseSchema),
-  async (req, res) => {
+  '/tickets/:id/responses', async (req, res) => {
     try {
-      const { response_text, is_internal } = req.validatedData;
+      const { response_text, is_internal } = req.body;
 
       // Only admins can add internal responses
       if (is_internal && req.user.role !== 'admin') {
@@ -115,9 +111,7 @@ router.post(
 // PUT /api/support/tickets/:id
 // Update ticket (admin only)
 router.put(
-  '/tickets/:id',
-  validateRequest(schemas.updateTicketSchema),
-  async (req, res) => {
+  '/tickets/:id', async (req, res) => {
     try {
       if (req.user.role !== 'admin') {
         return res.status(403).json({ success: false, message: 'Only admins can update tickets' });
@@ -125,8 +119,8 @@ router.put(
 
       const result = await supportService.updateTicketStatus(
         req.params.id,
-        req.validatedData.status,
-        req.validatedData.assigned_admin_id || req.user.id
+        req.body.status,
+        req.body.assigned_admin_id || req.user.id
       );
 
       res.json({

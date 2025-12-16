@@ -1,10 +1,10 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const gamificationService = require('../services/gamificationService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // GET /api/gamification/badges
 // Get student badges

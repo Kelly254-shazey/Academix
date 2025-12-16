@@ -1,21 +1,19 @@
 const express = require('express');
-const authMiddleware = require('../middleware/auth');
-const { validateRequest } = require('../middlewares/validation');
-const schemas = require('../validators/schemas');
+const { authenticateToken } = require('../middlewares/authMiddleware');
+
+
 const qrValidationService = require('../services/qrValidationService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // POST /api/qr/validate-and-checkin
 // Validate QR and perform check-in
 router.post(
-  '/validate-and-checkin',
-  validateRequest(schemas.qrValidationSchema),
-  async (req, res) => {
+  '/validate-and-checkin', async (req, res) => {
     try {
-      const { qr_token, latitude, longitude, device_fingerprint } = req.validatedData;
+      const { qr_token, latitude, longitude, device_fingerprint } = req.body;
 
       const result = await qrValidationService.processQRCheckin(
         req.user.id,

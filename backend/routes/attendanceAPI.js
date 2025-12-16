@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/rbacMiddleware');
 const logger = require('../utils/logger');
 
@@ -21,7 +21,7 @@ const smartNotificationService = require('../services/smartNotificationService')
  * Lecturer initiates attendance window for a class session
  * Generates QR token and broadcasts to all students
  */
-router.post('/session/:sessionId/start', authMiddleware, requireRole('lecturer'), async (req, res) => {
+router.post('/session/:sessionId/start', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const lecturerId = req.user.id;
@@ -98,7 +98,7 @@ router.post('/session/:sessionId/start', authMiddleware, requireRole('lecturer')
  * Lecturer closes attendance window for a class session
  * Invalidates QR token and generates final summary
  */
-router.post('/session/:sessionId/stop', authMiddleware, requireRole('lecturer'), async (req, res) => {
+router.post('/session/:sessionId/stop', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const lecturerId = req.user.id;
@@ -179,12 +179,10 @@ router.post('/session/:sessionId/stop', authMiddleware, requireRole('lecturer'),
  * Validates token, records scan, calculates risk score, generates alerts
  */
 router.post('/scan', 
-  authMiddleware,
-  requireRole('student'),
+  authenticateToken,
   qrValidation.validateQRScan,
   qrValidation.verifyClassSession,
-  qrValidation.scanAttemptLimiter,
-  async (req, res) => {
+  qrValidation.scanAttemptLimiter, async (req, res) => {
     try {
       const { token, classSessionId, latitude, longitude } = req.body;
       const studentId = req.user.id;
@@ -345,7 +343,7 @@ router.post('/scan',
  * GET /api/attendance/session/:sessionId/qr
  * Lecturer retrieves current QR code for the session
  */
-router.get('/session/:sessionId/qr', authMiddleware, requireRole('lecturer'), async (req, res) => {
+router.get('/session/:sessionId/qr', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const lecturerId = req.user.id;
@@ -404,7 +402,7 @@ router.get('/session/:sessionId/qr', authMiddleware, requireRole('lecturer'), as
  * GET /api/attendance/session/:sessionId/status
  * Real-time attendance statistics
  */
-router.get('/session/:sessionId/status', authMiddleware, async (req, res) => {
+router.get('/session/:sessionId/status', authenticateToken, async (req, res) => {
   try {
     const { sessionId } = req.params;
 
@@ -465,7 +463,7 @@ router.get('/session/:sessionId/status', authMiddleware, async (req, res) => {
  * GET /api/attendance/history/:studentId
  * Student's attendance history with risk analysis
  */
-router.get('/history/:studentId', authMiddleware, async (req, res) => {
+router.get('/history/:studentId', authenticateToken, async (req, res) => {
   try {
     const { studentId } = req.params;
     const requesterId = req.user.id;
@@ -528,7 +526,7 @@ router.get('/history/:studentId', authMiddleware, async (req, res) => {
  * GET /api/attendance/insights/:classId
  * AI insights for lecturer (pattern analysis, flags)
  */
-router.get('/insights/:classId', authMiddleware, requireRole('lecturer'), async (req, res) => {
+router.get('/insights/:classId', authenticateToken, async (req, res) => {
   try {
     const { classId } = req.params;
     const lecturerId = req.user.id;
@@ -567,7 +565,7 @@ router.get('/insights/:classId', authMiddleware, requireRole('lecturer'), async 
  * GET /api/attendance/alerts
  * Admin alert management
  */
-router.get('/alerts', authMiddleware, requireRole('admin'), async (req, res) => {
+router.get('/alerts', authenticateToken, async (req, res) => {
   try {
     const { severity, resolved } = req.query;
 
@@ -624,7 +622,7 @@ router.get('/alerts', authMiddleware, requireRole('admin'), async (req, res) => 
  * PUT /api/attendance/alerts/:alertId/resolve
  * Resolve an alert (admin only)
  */
-router.put('/alerts/:alertId/resolve', authMiddleware, requireRole('admin'), async (req, res) => {
+router.put('/alerts/:alertId/resolve', authenticateToken, async (req, res) => {
   try {
     const { alertId } = req.params;
     const { resolution, notes } = req.body;

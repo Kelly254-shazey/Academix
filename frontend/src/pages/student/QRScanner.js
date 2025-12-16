@@ -2,8 +2,9 @@ import React, { useRef, useEffect, useState } from 'react';
 import QrScanner from 'qr-scanner';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import apiClient from '../../services/apiClient';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+
 
 const QRScanner = () => {
   const videoRef = useRef(null);
@@ -139,28 +140,16 @@ const QRScanner = () => {
       setFeedback('Processing QR code with location validation...');
       setIsScanning(false);
 
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      };
-
-      const response = await fetch(`${API_URL}/qr/validate-and-checkin`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          qr_token: qrData,
-          latitude: currentLocation.latitude,
-          longitude: currentLocation.longitude,
-          device_fingerprint: navigator.userAgent + window.innerWidth + window.innerHeight + navigator.language,
-          device_name: navigator.platform || 'Unknown Device'
-        })
+      const result = await apiClient.post('/qr/validate-and-checkin', {
+        qr_token: qrData,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        device_fingerprint: navigator.userAgent + window.innerWidth + window.innerHeight + navigator.language,
+        device_name: navigator.platform || 'Unknown Device'
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setFeedback(`✅ Check-in successful! Welcome to ${result.data.classInfo?.courseName || 'class'}. Location verified.`);
+      if (result && result.success) {
+        setFeedback(`✅ Check-in successful! Welcome to ${result.data.classInfo?.courseName || 'class'}. Location verified.`);
           // Play success sound if available
           if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance('Check-in successful. Location verified.');
@@ -177,8 +166,7 @@ const QRScanner = () => {
           }
         }
       } else {
-        const error = await response.json();
-        setFeedback(`❌ Check-in failed: ${error.message}`);
+        setFeedback(`❌ Check-in failed: ${result?.message || 'Unknown error'}`);
         // Vibrate for error
         if (navigator.vibrate) {
           navigator.vibrate([200, 100, 200]);

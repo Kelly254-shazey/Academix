@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const { requireRole } = require('../middlewares/rbacMiddleware');
 const qrGenerationService = require('../services/qrGenerationService');
 const db = require('../database');
 
 // All routes require authentication and lecturer role
-router.use(authMiddleware);
-router.use(requireRole('lecturer'));
+router.use(authenticateToken);
+
 
 /**
  * GET /sessions/lecturer/upcoming

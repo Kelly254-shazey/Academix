@@ -7,6 +7,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { ToastContainer, useToast } from '../components/Toast';
 import { exportToCSV, exportToJSON } from '../utils/exportHelpers';
 import { sanitizeInput } from '../utils/validation';
+import './StudentPortal.css';
 
 /**
  * StudentPortal Component
@@ -21,7 +22,7 @@ import { sanitizeInput } from '../utils/validation';
  * Auth: Requires valid JWT token
  * Real-time: Socket.IO enabled for notifications
  */
-const StudentPortal = ({ user, token }) => {
+const StudentPortal = ({ user, token, onLogout }) => {
   // State Management
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dashboard, setDashboard] = useState(null);
@@ -32,7 +33,11 @@ const StudentPortal = ({ user, token }) => {
   const [queueStatus, setQueueStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { toasts, addToast, removeToast } = useToast();
+
+  // Initialize toasts state for components that need it
+  const [componentToasts, setComponentToasts] = useState([]);
 
   // Verify user is authenticated and has student role
   useEffect(() => {
@@ -74,6 +79,47 @@ const StudentPortal = ({ user, token }) => {
   };
 
   /**
+   * Logout user and clear authentication
+   */
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      // Call logout API endpoint
+      await apiClient.logout();
+      
+      // Clear token and auth state
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Disconnect socket
+      if (socketService.socket) {
+        socketService.disconnect();
+      }
+      
+      // Call parent logout handler if provided
+      if (onLogout) {
+        onLogout();
+      }
+      
+      addToast('✓ Logged out successfully', 'success');
+    } catch (err) {
+      console.error('Logout error:', err);
+      // Still clear local data even if API call fails
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (socketService.socket) {
+        socketService.disconnect();
+      }
+      if (onLogout) {
+        onLogout();
+      }
+      addToast('Logged out', 'success');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  /**
    * Sync offline queue when online
    */
   const syncOfflineQueue = async () => {
@@ -94,6 +140,12 @@ const StudentPortal = ({ user, token }) => {
    * Setup real-time event listeners for Socket.IO events
    */
   const setupRealTimeListeners = () => {
+    // New notification (real-time push)
+    socketService.on('new_notification', (data) => {
+      setNotifications(prev => [data, ...prev]);
+      addToast(`📬 ${data.title || 'New notification'}`, 'info');
+    });
+
     // Admin messages
     socketService.on('admin:message', (data) => {
       setNotifications(prev => [data, ...prev]);
@@ -269,10 +321,25 @@ const StudentPortal = ({ user, token }) => {
               <button
                 onClick={refreshDashboard}
                 disabled={refreshing}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 transition"
+                className={`btn-base btn-primary ${refreshing ? 'btn-loading' : ''}`}
                 title="Refresh data"
+                aria-label="Refresh dashboard data"
               >
-                🔄
+                {!refreshing && '🔄'}
+              </button>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className={`btn-base btn-danger ${isLoggingOut ? 'btn-loading' : ''}`}
+                title="Logout"
+                aria-label="Logout from account"
+              >
+                {!isLoggingOut && (
+                  <>
+                    <span className="hidden sm:inline">🚪 Logout</span>
+                    <span className="sm:hidden">🚪</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -321,19 +388,19 @@ const StudentPortal = ({ user, token }) => {
           <>
             {/* Navigation Tabs */}
             <div className="bg-white border-b border-gray-200 sticky top-16 z-30">
-              <div className="max-w-7xl mx-auto px-4">
-                <nav className="flex space-x-8 overflow-x-auto" role="tablist">
+              <div className="max-w-7xl mx-auto px-2 sm:px-4">
+                <nav className="flex space-x-1 sm:space-x-4 overflow-x-auto scrollbar-hide" role="tablist">
                   {[
-                    { id: 'dashboard', label: '📊 Dashboard', icon: '📊' },
-                    { id: 'attendance', label: '📱 QR Attendance', icon: '📱' },
-                    { id: 'timetable', label: '📅 Timetable', icon: '📅' },
-                    { id: 'notifications', label: '🔔 Notifications', icon: '🔔' },
-                    { id: 'grades', label: '📈 Grades', icon: '📈' },
-                    { id: 'resources', label: '📚 Resources', icon: '📚' },
-                    { id: 'performance', label: '🎯 Performance', icon: '🎯' },
-                    { id: 'profile', label: '👤 Profile', icon: '👤' },
-                    { id: 'settings', label: '⚙️ Settings', icon: '⚙️' },
-                    { id: 'support', label: '💬 Support', icon: '💬' }
+                    { id: 'dashboard', label: '📊 Dashboard', short: '📊' },
+                    { id: 'attendance', label: '📱 QR Attendance', short: '📱 QR' },
+                    { id: 'timetable', label: '📅 Timetable', short: '📅' },
+                    { id: 'notifications', label: '🔔 Notifications', short: '🔔' },
+                    { id: 'grades', label: '📈 Grades', short: '📈' },
+                    { id: 'resources', label: '📚 Resources', short: '📚' },
+                    { id: 'performance', label: '🎯 Performance', short: '🎯' },
+                    { id: 'profile', label: '👤 Profile', short: '👤' },
+                    { id: 'settings', label: '⚙️ Settings', short: '⚙️' },
+                    { id: 'support', label: '💬 Support', short: '💬' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -341,13 +408,14 @@ const StudentPortal = ({ user, token }) => {
                       role="tab"
                       aria-selected={activeTab === tab.id}
                       aria-label={`Navigate to ${tab.label}`}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm transition whitespace-nowrap ${
+                      className={`py-3 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm transition whitespace-nowrap flex-shrink-0 ${
                         activeTab === tab.id
                           ? 'border-blue-500 text-blue-600'
                           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                       }`}
                     >
-                      {tab.label}
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="sm:hidden">{tab.short}</span>
                     </button>
                   ))}
                 </nav>
@@ -360,12 +428,12 @@ const StudentPortal = ({ user, token }) => {
               {activeTab === 'attendance' && <AttendanceTab user={user} onQRScanned={refreshDashboard} addToast={addToast} />}
               {activeTab === 'timetable' && <TimetableTab data={timetable} onExport={() => { const data = Array.isArray(timetable) ? timetable : (timetable?.data || []); exportToCSV(data.map(c => ({ class: c.className || c.name, time: c.start_time, room: c.classroom })), 'timetable.csv'); }} />}
               {activeTab === 'notifications' && <NotificationsTab notifications={notifications} setNotifications={setNotifications} addToast={addToast} onRefresh={() => { setNotifications([...notifications]); }} />}
-              {activeTab === 'grades' && <GradesTab />}
-              {activeTab === 'resources' && <ResourcesTab />}
-              {activeTab === 'performance' && <PerformanceTab />}
-              {activeTab === 'profile' && <ProfileTab user={user} onExport={() => exportToJSON({ user }, 'profile.json')} />}
-              {activeTab === 'settings' && <SettingsTab />}
-              {activeTab === 'support' && <SupportTab />}
+              {activeTab === 'grades' && <GradesTab addToast={addToast} />}
+              {activeTab === 'resources' && <ResourcesTab addToast={addToast} />}
+              {activeTab === 'performance' && <PerformanceTab addToast={addToast} />}
+              {activeTab === 'profile' && <ProfileTab user={user} onExport={() => exportToJSON({ user }, 'profile.json')} addToast={addToast} />}
+              {activeTab === 'settings' && <SettingsTab addToast={addToast} />}
+              {activeTab === 'support' && <SupportTab addToast={addToast} />}
             </main>
           </>
         )}
@@ -392,15 +460,17 @@ const DashboardTab = ({ data, onRefresh, onExport }) => {
       <div className="flex gap-2 justify-end flex-wrap">
         <button
           onClick={onRefresh}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          className="btn-base btn-primary"
+          aria-label="Refresh dashboard"
         >
-          🔄 Refresh
+          🔄 <span className="hidden sm:inline">Refresh</span>
         </button>
         <button
           onClick={onExport}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          className="btn-base btn-success"
+          aria-label="Export data to CSV"
         >
-          ⬇️ Export CSV
+          ⬇️ <span className="hidden sm:inline">Export CSV</span>
         </button>
       </div>
 
@@ -626,9 +696,10 @@ const AttendanceTab = ({ user, onQRScanned, addToast }) => {
       <button
         onClick={startScanning}
         disabled={scanning}
-        className="w-full px-4 py-3 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:bg-gray-400 transition"
+        className={`btn-base btn-primary w-full ${scanning ? 'btn-loading' : ''}`}
+        aria-label={scanning ? 'Scanning QR code' : 'Start QR code scan'}
       >
-        {scanning ? '⏳ Scanning...' : '▶️ Start QR Scan'}
+        {!scanning && '▶️ Start QR Scan'}
       </button>
 
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
@@ -675,12 +746,14 @@ const TimetableTab = ({ data, onExport }) => {
           placeholder="Search classes or lecturer..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(sanitizeInput(e.target.value))}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600"
+          className="form-input flex-1"
+          aria-label="Search classes or lecturer"
         />
         <select
           value={filterDay}
           onChange={(e) => setFilterDay(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-600"
+          className="form-input"
+          aria-label="Filter by day"
         >
           <option value="all">All Days</option>
           {days.map(day => (
@@ -689,9 +762,10 @@ const TimetableTab = ({ data, onExport }) => {
         </select>
         <button
           onClick={onExport}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition whitespace-nowrap"
+          className="btn-base btn-success whitespace-nowrap"
+          aria-label="Export timetable"
         >
-          ⬇️ Export
+          ⬇️ <span className="hidden sm:inline">Export</span>
         </button>
       </div>
 
@@ -746,14 +820,14 @@ const NotificationsTab = ({ notifications = [], setNotifications, addToast, onRe
   const [filterType, setFilterType] = useState('all');
   const [filterRead, setFilterRead] = useState('all');
 
-  const filtered = notifications.filter(notif => {
+  const filtered = (Array.isArray(notifications) ? notifications : []).filter(notif => {
     const typeMatch = filterType === 'all' || notif.type === filterType;
     const readMatch = filterRead === 'all' || 
                       (filterRead === 'unread' ? !notif.read && !notif.read_status : notif.read || notif.read_status);
     return typeMatch && readMatch;
   });
 
-  const notificationTypes = [...new Set(notifications.map(n => n.type || 'general'))];
+  const notificationTypes = [...new Set((Array.isArray(notifications) ? notifications : []).map(n => n.type || 'general'))];
 
   const handleMarkAsRead = async (notifId) => {
     try {
@@ -860,16 +934,20 @@ const NotificationsTab = ({ notifications = [], setNotifications, addToast, onRe
                   {!notif.read_status && (
                     <button
                       onClick={() => handleMarkAsRead(notif.id)}
-                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition whitespace-nowrap"
+                      className="btn-base btn-primary btn-sm whitespace-nowrap"
+                      aria-label="Mark notification as read"
                     >
-                      Mark Read
+                      <span className="hidden sm:inline">Mark Read</span>
+                      <span className="sm:hidden">✓</span>
                     </button>
                   )}
                   <button
                     onClick={() => handleDelete(notif.id)}
-                    className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition whitespace-nowrap"
+                    className="btn-base btn-outline text-red-600 border-red-600 hover:bg-red-600 hover:text-white btn-sm whitespace-nowrap"
+                    aria-label="Delete notification"
                   >
-                    Delete
+                    <span className="hidden sm:inline">Delete</span>
+                    <span className="sm:hidden">×</span>
                   </button>
                 </div>
               </div>
@@ -889,10 +967,9 @@ const NotificationsTab = ({ notifications = [], setNotifications, addToast, onRe
 /**
  * Grades Tab - View academic grades and performance
  */
-const GradesTab = () => {
+const GradesTab = ({ addToast }) => {
   const [grades, setGrades] = useState([]);
   const [gradesLoading, setGradesLoading] = useState(true);
-  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchGrades = async () => {
@@ -910,7 +987,7 @@ const GradesTab = () => {
     };
 
     fetchGrades();
-  }, [addToast]);
+  }, []);
 
   const calculateGPA = (gradesList) => {
     if (!gradesList.length) return 0;
@@ -983,11 +1060,10 @@ const GradesTab = () => {
 /**
  * Resources Tab - Access course materials and documents
  */
-const ResourcesTab = () => {
+const ResourcesTab = ({ addToast }) => {
   const [resources, setResources] = useState([]);
   const [resourcesLoading, setResourcesLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -1005,7 +1081,7 @@ const ResourcesTab = () => {
     };
 
     fetchResources();
-  }, [addToast]);
+  }, []);
 
   const categories = ['all', 'lecture_notes', 'assignments', 'textbooks', 'videos'];
   const filteredResources = selectedCategory === 'all' 
@@ -1087,10 +1163,9 @@ const ResourcesTab = () => {
 /**
  * Performance Tab - Analytics and progress tracking
  */
-const PerformanceTab = () => {
+const PerformanceTab = ({ addToast }) => {
   const [performanceData, setPerformanceData] = useState(null);
   const [performanceLoading, setPerformanceLoading] = useState(true);
-  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchPerformance = async () => {
@@ -1108,7 +1183,7 @@ const PerformanceTab = () => {
     };
 
     fetchPerformance();
-  }, [addToast]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -1186,7 +1261,7 @@ const PerformanceTab = () => {
 /**
  * Settings Tab - User preferences and account settings
  */
-const SettingsTab = () => {
+const SettingsTab = ({ addToast }) => {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [localSettings, setLocalSettings] = useState({
     emailNotifications: true,
@@ -1194,7 +1269,6 @@ const SettingsTab = () => {
     darkMode: false,
     language: 'en'
   });
-  const { addToast } = useToast();
 
   const handleSettingChange = (key) => {
     const newSettings = { ...localSettings, [key]: !localSettings[key] };
@@ -1335,11 +1409,10 @@ const SettingsTab = () => {
 /**
  * Support Tab - FAQ and help resources
  */
-const SupportTab = () => {
+const SupportTab = ({ addToast }) => {
   const [supportMessage, setSupportMessage] = useState('');
   const [submittingSupport, setSubmittingSupport] = useState(false);
   const [selectedFaq, setSelectedFaq] = useState(null);
-  const { addToast } = useToast();
 
   const faqs = [
     {
@@ -1483,10 +1556,9 @@ const SupportTab = () => {
 /**
  * Profile Tab - Device history and settings
  */
-const ProfileTab = ({ user, onExport }) => {
+const ProfileTab = ({ user, onExport, addToast }) => {
   const [deviceHistory, setDeviceHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchDeviceHistory = async () => {

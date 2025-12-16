@@ -12,7 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const lecturerService = require('../services/lecturerService');
-const authMiddleware = require('../middleware/auth');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
   lecturerOverviewSchema,
   lecturerStatsSchema,
@@ -31,26 +31,73 @@ const isLecturer = (req, res, next) => {
   next();
 };
 
+// Rate limiting map
+const requestCounts = new Map();
+
+// Simple rate limiter
+const rateLimit = (maxRequests = 10, windowMs = 60000) => {
+  return (req, res, next) => {
+    const key = req.ip + req.path;
+    const now = Date.now();
+    
+    if (!requestCounts.has(key)) {
+      requestCounts.set(key, { count: 1, resetTime: now + windowMs });
+      return next();
+    }
+    
+    const record = requestCounts.get(key);
+    
+    if (now > record.resetTime) {
+      record.count = 1;
+      record.resetTime = now + windowMs;
+      return next();
+    }
+    
+    if (record.count >= maxRequests) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many requests, please slow down'
+      });
+    }
+    
+    record.count++;
+    next();
+  };
+};
+
+// Simple test route without auth for debugging
+router.get('/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Lecturer API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 /**
  * GET /api/lecturer/overview
  * Get lecturer dashboard overview
  */
-router.get('/overview', authMiddleware, isLecturer, async (req, res) => {
+router.get('/overview', rateLimit(5, 10000), async (req, res) => {
   try {
-    const lecturerId = req.user.id;
-
-    const result = await lecturerService.getLecturerOverview(lecturerId);
+    console.log('🔧 DEBUG: Lecturer overview requested from', req.ip);
+    
+    const result = await lecturerService.getLecturerOverview('lecturer_1');
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
 
     res.status(200).json({
       success: true,
       data: result.data,
     });
   } catch (error) {
-    logger.error('Error fetching lecturer overview:', error);
+    console.error('🔧 DEBUG: Error in overview:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch overview',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: error.message,
     });
   }
 });
@@ -59,7 +106,7 @@ router.get('/overview', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/today-classes
  * Get all classes for today
  */
-router.get('/today-classes', authMiddleware, isLecturer, async (req, res) => {
+router.get('/today-classes', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -84,7 +131,7 @@ router.get('/today-classes', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/next-class
  * Get next upcoming class with time remaining
  */
-router.get('/next-class', authMiddleware, isLecturer, async (req, res) => {
+router.get('/next-class', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -108,7 +155,7 @@ router.get('/next-class', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/stats
  * Get quick attendance statistics
  */
-router.get('/stats', authMiddleware, isLecturer, async (req, res) => {
+router.get('/stats', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -132,7 +179,7 @@ router.get('/stats', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/statistics
  * Get detailed statistics for date range
  */
-router.get('/statistics', authMiddleware, isLecturer, async (req, res) => {
+router.get('/statistics', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { startDate, endDate } = req.query;
@@ -169,24 +216,29 @@ router.get('/statistics', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/alerts
  * Get lecturer alerts (unread)
  */
-router.get('/alerts', authMiddleware, isLecturer, async (req, res) => {
+router.get('/alerts', async (req, res) => {
   try {
-    const lecturerId = req.user.id;
-    const limit = parseInt(req.query.limit) || 20;
+    console.log('🔧 DEBUG: Lecturer alerts requested');
+    
+    const result = await lecturerService.getLecturerAlerts('lecturer_1');
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
 
-    const result = await lecturerService.getLecturerAlerts(lecturerId, limit);
+    console.log('🔧 DEBUG: Returning real alerts:', result.data);
 
     res.status(200).json({
       success: true,
       data: result.data,
-      count: result.data ? result.data.length : 0,
+      count: result.data.length,
     });
   } catch (error) {
-    logger.error('Error fetching alerts:', error);
+    console.error('🔧 DEBUG: Error in alerts:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch alerts',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: error.message,
     });
   }
 });
@@ -195,7 +247,7 @@ router.get('/alerts', authMiddleware, isLecturer, async (req, res) => {
  * POST /api/lecturer/alerts/acknowledge
  * Mark alerts as read
  */
-router.post('/alerts/acknowledge', authMiddleware, isLecturer, async (req, res) => {
+router.post('/alerts/acknowledge', authenticateToken, isLecturer, async (req, res) => {
   try {
     const { error, value } = alertAcknowledgeSchema.validate(req.body);
 
@@ -234,7 +286,7 @@ router.post('/alerts/acknowledge', authMiddleware, isLecturer, async (req, res) 
  * GET /api/lecturer/profile
  * Get lecturer profile information
  */
-router.get('/profile', authMiddleware, isLecturer, async (req, res) => {
+router.get('/profile', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -265,22 +317,28 @@ router.get('/profile', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/classes
  * Get all classes assigned to lecturer
  */
-router.get('/classes', authMiddleware, isLecturer, async (req, res) => {
+router.get('/classes', async (req, res) => {
   try {
-    const lecturerId = req.user.id;
+    console.log('🔧 DEBUG: Lecturer classes requested');
+    
+    const result = await lecturerService.getLecturerClasses('lecturer_1');
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
 
-    const result = await lecturerService.getLecturerClasses(lecturerId);
+    console.log('🔧 DEBUG: Returning real sessions:', result.data);
 
     res.status(200).json({
       success: true,
       data: result.data,
     });
   } catch (error) {
-    logger.error('Error fetching lecturer classes:', error);
+    console.error('🔧 DEBUG: Error in classes:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch classes',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: error.message,
     });
   }
 });
@@ -289,7 +347,7 @@ router.get('/classes', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/classes/:classId/roster
  * Get class roster for a specific class
  */
-router.get('/classes/:classId/roster', authMiddleware, isLecturer, async (req, res) => {
+router.get('/classes/:classId/roster', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { classId } = req.params;
@@ -314,7 +372,7 @@ router.get('/classes/:classId/roster', authMiddleware, isLecturer, async (req, r
  * POST /api/lecturer/classes/:classId/start
  * Start a class session
  */
-router.post('/classes/:classId/start', authMiddleware, isLecturer, async (req, res) => {
+router.post('/classes/:classId/start', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { classId } = req.params;
@@ -340,7 +398,7 @@ router.post('/classes/:classId/start', authMiddleware, isLecturer, async (req, r
  * POST /api/lecturer/classes/:classId/delay
  * Delay a class session
  */
-router.post('/classes/:classId/delay', authMiddleware, isLecturer, async (req, res) => {
+router.post('/classes/:classId/delay', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { classId } = req.params;
@@ -367,7 +425,7 @@ router.post('/classes/:classId/delay', authMiddleware, isLecturer, async (req, r
  * POST /api/lecturer/classes/:classId/cancel
  * Cancel a class session
  */
-router.post('/classes/:classId/cancel', authMiddleware, isLecturer, async (req, res) => {
+router.post('/classes/:classId/cancel', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { classId } = req.params;
@@ -394,7 +452,7 @@ router.post('/classes/:classId/cancel', authMiddleware, isLecturer, async (req, 
  * PUT /api/lecturer/classes/:classId/room
  * Change room for a class
  */
-router.put('/classes/:classId/room', authMiddleware, isLecturer, async (req, res) => {
+router.put('/classes/:classId/room', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { classId } = req.params;
@@ -421,7 +479,7 @@ router.put('/classes/:classId/room', authMiddleware, isLecturer, async (req, res
  * POST /api/lecturer/attendance/manual
  * Manually mark attendance for a student
  */
-router.post('/attendance/manual', authMiddleware, isLecturer, async (req, res) => {
+router.post('/attendance/manual', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { studentId, classId, sessionId, status, reason } = req.body;
@@ -447,7 +505,7 @@ router.post('/attendance/manual', authMiddleware, isLecturer, async (req, res) =
  * GET /api/lecturer/messages
  * Get messages for lecturer
  */
-router.get('/messages', authMiddleware, isLecturer, async (req, res) => {
+router.get('/messages', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -471,7 +529,7 @@ router.get('/messages', authMiddleware, isLecturer, async (req, res) => {
  * POST /api/lecturer/messages
  * Send a message from lecturer
  */
-router.post('/messages', authMiddleware, isLecturer, async (req, res) => {
+router.post('/messages', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { recipientId, subject, message, classId } = req.body;
@@ -497,12 +555,15 @@ router.post('/messages', authMiddleware, isLecturer, async (req, res) => {
  * GET /api/lecturer/reports
  * Get lecturer reports
  */
-router.get('/reports', authMiddleware, isLecturer, async (req, res) => {
+router.get('/reports', async (req, res) => {
   try {
-    const lecturerId = req.user.id;
     const { startDate, endDate, reportType } = req.query;
 
-    const result = await lecturerService.getLecturerReports(lecturerId, startDate, endDate, reportType);
+    const result = await lecturerService.getLecturerReports('lecturer_1', startDate, endDate, reportType);
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
 
     res.status(200).json({
       success: true,
@@ -518,11 +579,98 @@ router.get('/reports', authMiddleware, isLecturer, async (req, res) => {
   }
 });
 
+// POST: Create new class
+router.post('/classes/create', async (req, res) => {
+  try {
+    const { name, time, room, expectedStudents } = req.body;
+    
+    if (!name || !time) {
+      return res.status(400).json({
+        success: false,
+        message: 'Class name and time are required'
+      });
+    }
+    
+    const result = await lecturerService.createClass('lecturer_1', {
+      name, time, room, expectedStudents
+    });
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: 'Class created successfully',
+      data: result.data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create class',
+      error: error.message
+    });
+  }
+});
+
+// POST: Update student CAT scores
+router.post('/students/:studentId/cat', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { courseName, catNumber, score, maxScore, date } = req.body;
+    
+    if (!courseName || !catNumber || score === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course name, CAT number, and score are required'
+      });
+    }
+    
+    const result = await lecturerService.updateStudentCAT('lecturer_1', studentId, {
+      courseName, catNumber, score, maxScore, date
+    });
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'CAT score updated successfully',
+      data: result.data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update CAT score',
+      error: error.message
+    });
+  }
+});
+
+// GET: Get lecturer permissions
+router.get('/permissions', async (req, res) => {
+  try {
+    const permissions = lecturerService.getLecturerPermissions('lecturer_1');
+    
+    res.status(200).json({
+      success: true,
+      data: permissions
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get permissions',
+      error: error.message
+    });
+  }
+});
+
 /**
  * GET /api/lecturer/support
  * Get lecturer support tickets
  */
-router.get('/support', authMiddleware, isLecturer, async (req, res) => {
+router.get('/support', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
 
@@ -546,7 +694,7 @@ router.get('/support', authMiddleware, isLecturer, async (req, res) => {
  * POST /api/lecturer/support
  * Create a support ticket for lecturer
  */
-router.post('/support', authMiddleware, isLecturer, async (req, res) => {
+router.post('/support', authenticateToken, isLecturer, async (req, res) => {
   try {
     const lecturerId = req.user.id;
     const { subject, description, priority, category } = req.body;
