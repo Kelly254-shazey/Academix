@@ -290,9 +290,10 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/support', supportRoutes);
 
 // Admin Portal (NO DUPLICATES)
+app.use('/api/admin', authenticateToken);
+app.use('/api/admin', rbacRequireRole(['admin']));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/admin', require('./routes/adminDashboard')); // Admin dashboard
-app.use('/api/admin', require('./routes/adminCommunication')); // Admin messaging & real-time
 
 // Complaints system
 app.use('/api/complaints', require('./routes/complaintsRoutes'));
