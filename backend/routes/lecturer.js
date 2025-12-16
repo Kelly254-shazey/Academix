@@ -75,6 +75,34 @@ router.get('/test', (req, res) => {
 });
 
 /**
+ * GET /api/lecturer/dashboard
+ * Get lecturer dashboard data (alias for overview)
+ */
+router.get('/dashboard', async (req, res) => {
+  try {
+    console.log('🔧 DEBUG: Lecturer dashboard requested');
+    
+    const result = await lecturerService.getLecturerOverview('lecturer_1');
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('🔧 DEBUG: Error in dashboard:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch dashboard',
+      error: error.message,
+    });
+  }
+});
+
+/**
  * GET /api/lecturer/overview
  * Get lecturer dashboard overview
  */
@@ -712,6 +740,35 @@ router.post('/support', authenticateToken, isLecturer, async (req, res) => {
       success: false,
       message: 'Failed to create support ticket',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * POST /api/lecturer/classes/:classId/sessions/:sessionId/qr
+ * Generate QR code for class session
+ */
+router.post('/classes/:classId/sessions/:sessionId/qr', async (req, res) => {
+  try {
+    const { classId, sessionId } = req.params;
+    
+    const result = await lecturerService.generateSessionQR('lecturer_1', classId, sessionId);
+    
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'QR code generated successfully',
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('🔧 DEBUG: Error generating QR:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate QR code',
+      error: error.message,
     });
   }
 });

@@ -256,26 +256,10 @@ app.use('/api/classes', rosterRoutes);
 app.use('/api/schedule', scheduleRoutes);
 
 // Authentication middleware
-const { authenticateToken, requireRole } = require('./middlewares/authMiddleware');
-const { requireRole: rbacRequireRole } = require('./middlewares/rbacMiddleware');
+const { authenticateToken, authorizeRoles } = require('./middlewares/authMiddleware');
 
-// Lecturer Portal (protected routes)
-app.use('/api/lecturer', authenticateToken);
-app.use('/api/lecturer', rbacRequireRole(['lecturer', 'admin']));
+// Lecturer Portal
 app.use('/api/lecturer', lecturerRoutes);
-app.use('/api/lecturer', require('./routes/lecturerDashboard'));
-app.use('/api/lecturer', require('./routes/lecturerProfile'));
-app.use('/api/lecturer', require('./routes/lecturerSupport'));
-app.use('/api/lecturer', require('./routes/lecturerResources'));
-
-// Student Portal (protected routes)
-app.use('/api/student', authenticateToken);
-app.use('/api/student', rbacRequireRole(['student', 'admin']));
-app.use('/api/student', require('./routes/studentResources'));
-
-// Notifications (protected)
-app.use('/api/notifications', authenticateToken);
-app.use('/api/notifications', require('./routes/notifications'));
 
 // AI Features
 app.use('/api/ai', aiRoutes);
@@ -290,10 +274,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/support', supportRoutes);
 
 // Admin Portal (NO DUPLICATES)
-app.use('/api/admin', authenticateToken);
-app.use('/api/admin', rbacRequireRole(['admin']));
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/admin', require('./routes/adminDashboard')); // Admin dashboard
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminDashboardRoutes);
 
 // Complaints system
 app.use('/api/complaints', require('./routes/complaintsRoutes'));

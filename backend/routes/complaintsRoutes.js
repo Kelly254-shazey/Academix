@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../backend/database');
-const { authMiddleware } = require('../middlewares/authMiddleware');
+const db = require('../database');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // ============================================================
 // ANONYMOUS COMPLAINT SUBMISSION (No auth required)
@@ -28,7 +28,7 @@ router.post('/submit', async (req, res) => {
 // ============================================================
 // AUTHENTICATED COMPLAINT SUBMISSION
 // ============================================================
-router.post('/submit-authenticated', authMiddleware, async (req, res) => {
+router.post('/submit-authenticated', authenticateToken, async (req, res) => {
   try {
     const { message, category, anonymous } = req.body;
     
@@ -52,7 +52,7 @@ router.post('/submit-authenticated', authMiddleware, async (req, res) => {
 // ============================================================
 // GET USER'S COMPLAINTS (Authenticated)
 // ============================================================
-router.get('/my-complaints', authMiddleware, async (req, res) => {
+router.get('/my-complaints', authenticateToken, async (req, res) => {
   try {
     const [complaints] = await db.execute(`
       SELECT id, message, category, status, created_at, updated_at, resolution_notes

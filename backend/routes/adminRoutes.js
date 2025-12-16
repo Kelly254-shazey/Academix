@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../backend/database');
-const { authMiddleware } = require('../middlewares/authMiddleware');
+const db = require('../database');
+const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // Apply auth middleware to all admin routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // ============================================================
 // DASHBOARD & OVERVIEW
@@ -59,6 +59,20 @@ router.delete('/users/:id', async (req, res) => {
 // ============================================================
 // COMMUNICATIONS
 // ============================================================
+router.get('/communications', async (req, res) => {
+  try {
+    const [communications] = await db.execute(`
+      SELECT c.*, u.name as sender_name 
+      FROM communications c
+      LEFT JOIN users u ON c.sender_id = u.id
+      ORDER BY c.created_at DESC
+    `);
+    res.json({ data: communications });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/communications/send', async (req, res) => {
   try {
     const { recipientRole, messageType, subject, message, priority } = req.body;

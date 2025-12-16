@@ -1,4 +1,4 @@
-const db = require('../../backend/database');
+const db = require('../database');
 
 class AuditLogger {
   static async log(userId, action, resource, resourceId, description, metadata = null, severity = 'info', req = null) {
