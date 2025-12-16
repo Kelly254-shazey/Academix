@@ -2,6 +2,7 @@
   "name": "classtrack-frontend",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://Kelly254-shazey.github.io/Academix",
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.8",
     "@fullcalendar/interaction": "^6.1.8",
